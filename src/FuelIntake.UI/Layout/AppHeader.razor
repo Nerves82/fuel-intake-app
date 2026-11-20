@@ -29,12 +29,13 @@
     {
         <div class="spacer"></div>
         <span class="user">@Session.User.DisplayName</span>
-        @if (Session.Screen == Screen.Check)
+        @if (Session.Screen is Screen.Check or Screen.Settings)
         {
             <button class="secondary" @onclick="() => Session.Go(Screen.Clients)">Back to clients</button>
         }
         else
         {
+            <button class="link" @onclick="() => Session.Go(Screen.Settings)">Staff, vendors &amp; settings</button>
             <button class="link" @onclick="() => Session.Go(Screen.Check)">Check this computer</button>
         }
     }

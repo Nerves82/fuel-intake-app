@@ -7,7 +7,7 @@ using FuelIntake.Core.Validation;
 namespace FuelIntake.UI.Services;
 
 /// <summary>Which screen is showing.</summary>
-public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Check }
+public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Check, Settings }
 
 /// <summary>
 /// The open client and everything the screens share: the record, calculated values, lists,
@@ -43,6 +43,31 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Settings = await lists.GetSettingsAsync();
         Staff = await lists.GetStaffAsync();
         Vendors = await lists.GetVendorsAsync();
+    }
+
+    public async Task SaveStaffAsync(IEnumerable<StaffMember> staff)
+    {
+        await lists.SaveStaffAsync(staff);
+        await ReloadListsAsync();
+    }
+
+    public async Task SaveVendorsAsync(IEnumerable<Vendor> vendors)
+    {
+        await lists.SaveVendorsAsync(vendors);
+        await ReloadListsAsync();
+    }
+
+    public async Task SaveSettingsAsync(AgencySettings settings)
+    {
+        await lists.SaveSettingsAsync(settings);
+        await ReloadListsAsync();
+    }
+
+    private async Task ReloadListsAsync()
+    {
+        await InitializeAsync();
+        Recalculate();
+        Notify();
     }
 
     public void Go(Screen screen)
