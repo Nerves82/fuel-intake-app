@@ -1,0 +1,18 @@
+/* Shared styles for all hosts. Served as _content/FuelIntake.UI/app.css */
+:root { --ink: #1f2933; --quiet: #5f6b7a; --line: #d9dee5; --accent: #1f3b57; --ok: #2e7d32; --bad: #c62828; }
+html, body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); background: #fff; }
+.check { max-width: 760px; margin: 24px auto; padding: 0 16px; }
+.check h1 { color: var(--accent); margin-bottom: 4px; }
+.check .lead { color: var(--quiet); margin-top: 0; }
+.check table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+.check th { text-align: left; width: 160px; color: var(--quiet); font-weight: 600; }
+.check th, .check td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-all; }
+.check button { font: inherit; padding: 6px 14px; border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; cursor: pointer; }
+.check button.link { background: none; color: var(--accent); border: none; padding: 0; text-decoration: underline; }
+.results { list-style: none; padding: 0; }
+.results li { padding: 6px 0; }
+.results .pass strong { color: var(--ok); }
+.results .fail strong { color: var(--bad); }
+.results .detail { color: var(--quiet); margin-left: 6px; }
+.note { color: var(--quiet); font-size: 0.9em; margin-top: 24px; }
+#blazor-error-ui { display: none; background: #fff3cd; padding: 8px 16px; position: fixed; bottom: 0; left: 0; right: 0; }

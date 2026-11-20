@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- Phase 1 desktop host: a WPF window that shows the shared Blazor screens through BlazorWebView (WebView2). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Windows 10 SDK version: WebView2 needs the Windows SDK projection (Microsoft.Windows.SDK.NET.dll). -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>FuelIntake.Desktop</RootNamespace>
+    <AssemblyName>FuelIntake</AssemblyName>
+    <!-- Lets the project restore/build on non-Windows machines (CI uses Windows anyway). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon></ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FuelIntake.UI\FuelIntake.UI.csproj" />
+    <ProjectReference Include="..\FuelIntake.Core\FuelIntake.Core.csproj" />
+  </ItemGroup>
+
+</Project>

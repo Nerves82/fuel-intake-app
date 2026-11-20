@@ -1,0 +1,69 @@
+# Builds, tests and packages the Windows desktop app on GitHub's Windows machines.
+# Every push produces a downloadable zip (Actions run page -> Artifacts).
+# Pushing a tag like v0.1.0 also creates a GitHub Release with the zip attached.
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed only to create releases on tags
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Work out version
+        id: ver
+        shell: pwsh
+        run: |
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          if ("${{ github.ref_type }}" -eq "tag") { $v = "${{ github.ref_name }}".TrimStart("v") }
+          else { $v = "0.1.${{ github.run_number }}" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "info=$v ($sha)" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore FuelIntake.sln
+
+      - name: Build
+        run: dotnet build FuelIntake.sln -c Release --no-restore "-p:Version=${{ steps.ver.outputs.version }}" "-p:InformationalVersion=${{ steps.ver.outputs.info }}"
+
+      - name: Test
+        run: dotnet test FuelIntake.sln -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: Publish desktop app (self-contained, win-x64)
+        run: >
+          dotnet publish src/FuelIntake.Desktop/FuelIntake.Desktop.csproj -c Release -r win-x64 --self-contained true
+          "-p:Version=${{ steps.ver.outputs.version }}" "-p:InformationalVersion=${{ steps.ver.outputs.info }}"
+          -o publish/FuelIntake
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path publish/FuelIntake -DestinationPath "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FuelIntake-${{ steps.ver.outputs.version }}-win-x64
+          path: publish/FuelIntake
+          retention-days: 30
+
+      - name: Create release (tags only)
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip" --title "${{ github.ref_name }}" --generate-notes
