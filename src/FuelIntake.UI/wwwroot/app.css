@@ -230,3 +230,11 @@ button.link.danger { background: none; color: var(--bad); }
 .picker-list li.chosen { font-weight: 600; }
 .picker-list li.none { color: var(--quiet); }
 .picker-list.right { left: auto; right: 0; }
+
+/* marker on a field that has notes about it (see NoteMarker.razor) */
+.note-marker { background: #fff7d1; border: 1px solid #e6cf6a; color: #6b5300; border-radius: 10px; padding: 0 5px;
+    margin-left: 6px; font-size: 11px; line-height: 16px; vertical-align: 1px; cursor: pointer; font-weight: 600; }
+.note-marker:hover:not(:disabled) { background: #ffeea0; border-color: #c9ae3c; }
+.money.cell { position: relative; }
+.money.cell .note-marker { position: absolute; top: -9px; right: -4px; margin: 0; z-index: 2; }
+.notes-list li.flash { animation: flash 2.2s ease-out; }

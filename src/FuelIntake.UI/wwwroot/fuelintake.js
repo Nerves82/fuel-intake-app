@@ -38,5 +38,13 @@ window.fuelIntake = {
     }
     const item = list.children[index];
     if (item) item.scrollIntoView({ block: 'nearest' });
+  },
+  // Scrolls the notes panel to these notes and highlights them all.
+  flashNotes(ids) {
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (els.length === 0) return;
+    // the panel lists newest first, so the last id is the topmost note
+    els[els.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    els.forEach(el => { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
   }
 };

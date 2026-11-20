@@ -94,6 +94,9 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   browser menu. Field keys come from the cascaded `FieldScope` (tab › section/card › label), so
   renaming a section or label breaks old links (they then just open the tab). Household references
   are by member number: removing a member shifts later members' links.
+- A field with notes about it shows a small 📝 marker by its label (with a count when more than one).
+  Clicking it opens the notes panel and highlights those notes. Matching is by tab + field key
+  (`ActivityLog.NotesAbout`), so a note still finds its field if the label wording changes.
 
 ## Printing (phase 1c)
 

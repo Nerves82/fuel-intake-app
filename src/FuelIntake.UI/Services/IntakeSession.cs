@@ -140,6 +140,21 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Notify();
     }
 
+    /// <summary>Notes to highlight in the notes panel after the next render (set by a field's note marker).</summary>
+    public IReadOnlyList<string>? HighlightNoteIds { get; set; }
+
+    /// <summary>Opens the notes panel and highlights the notes about one field.</summary>
+    public void ShowNotesAbout(NoteFieldRef r)
+    {
+        if (Record is null) return;
+        var ids = ActivityLog.NotesAbout(Record, r.Screen, r.Key).Select(n => n.Id).ToList();
+        if (ids.Count == 0) return;
+        FieldMenu = null;
+        NotesOpen = true;
+        HighlightNoteIds = ids;
+        Notify();
+    }
+
     /// <summary>The notes panel stays open (or closed) while moving between tabs.</summary>
     public bool NotesOpen { get; private set; }
 

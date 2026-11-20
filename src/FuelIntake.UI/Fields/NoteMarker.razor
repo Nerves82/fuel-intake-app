@@ -1,0 +1,40 @@
+@* A small marker next to a field's label when staff notes are about that field. Click: show them in the notes panel. *@
+@implements IDisposable
+@inject IntakeSession Session
+
+@if (count > 0 && reference is { } r)
+{
+    <button type="button" class="note-marker" title="@(count == 1 ? "1 note about this field — show it" : $"{count} notes about this field — show them")"
+            aria-label="@($"Show {count} note{(count == 1 ? "" : "s")} about {Label}")"
+            @onclick="() => Session.ShowNotesAbout(r)" @onclick:stopPropagation="true" @onclick:preventDefault="true">📝@(count > 1 ? count.ToString() : "")</button>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [CascadingParameter] public FieldScope? Scope { get; set; }
+
+    private NoteFieldRef? reference;
+    private int count;
+
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    protected override void OnParametersSet()
+    {
+        reference = Scope?.RefFor(Label);
+        count = Count();
+    }
+
+    private int Count() =>
+        Session.Record is { } rec && reference is { } r ? FuelIntake.Core.Activity.ActivityLog.NotesAbout(rec, r.Screen, r.Key).Count : 0;
+
+    // Notes are added and deleted elsewhere, so re-check on every change, re-rendering only when the count moves.
+    private void OnState()
+    {
+        var now = Count();
+        if (now == count) return;
+        count = now;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Session.StateChanged -= OnState;
+}

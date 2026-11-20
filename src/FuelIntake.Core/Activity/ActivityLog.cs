@@ -92,6 +92,10 @@ public static partial class ActivityLog
         return note;
     }
 
+    /// <summary>Notes about one field (same tab and field key), oldest first.</summary>
+    public static IReadOnlyList<StaffNote> NotesAbout(IntakeRecord r, string screen, string key) =>
+        r.Notes.Where(n => n.About is { } a && a.Screen == screen && a.Key == key).ToList();
+
     /// <summary>Deletes a note and logs who deleted it (and whose note it was).</summary>
     public static bool DeleteNote(IntakeRecord r, string noteId, StaffStamp by, DateTimeOffset at)
     {
