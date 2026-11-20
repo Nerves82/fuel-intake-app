@@ -43,7 +43,7 @@ public static class IntakeValidator
             var who = m.FullName.Length > 0 ? m.FullName : $"Member {m.Number}";
             if (!m.IsPresent && HasData(m.Data))
                 Add(IssueSeverity.Warning, "Household", $"Member {m.Number}", $"Member {m.Number} has details but no name.");
-            if (!string.IsNullOrWhiteSpace(m.Data.Ssn) && !Ssn.IsValid(Ssn.Format(m.Data.Ssn)))
+            if (!string.IsNullOrWhiteSpace(m.Data.Ssn) && !Ssn.IsValid(m.Data.Ssn))
                 Add(IssueSeverity.Error, "Household", $"{who}: SSN", $"{who}: SSN must be 9 digits (dashes optional).");
             if (m.Number > 1 && m.DateOfBirth > today)
                 Add(IssueSeverity.Error, "Household", $"{who}: Date of birth", $"{who}: date of birth is in the future.");

@@ -41,3 +41,17 @@ public class ValidationTests
         Assert.Contains(Check(r), i => i.Field == "FPL");
     }
 }
+
+public class SsnValidationTests
+{
+    [Theory]
+    [InlineData("12345678")]   // 8 digits: must be re-entered with the leading zero
+    [InlineData("12-34")]
+    public void ShortSsn_IsAnError(string ssn)
+    {
+        var r = FakeIntake.Family();
+        r.Household[1].Ssn = ssn;
+        var issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.Contains(issues, i => i.Field == "Demo Sampleton: SSN" && i.Severity == IssueSeverity.Error);
+    }
+}
