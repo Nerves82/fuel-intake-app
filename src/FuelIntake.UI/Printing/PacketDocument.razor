@@ -1,0 +1,34 @@
+@* A whole printable document: the chosen forms, one or more pages each, with the print stylesheet inlined. *@
+@using FuelIntake.Core.Packets
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@Title</title>
+    <style>@((MarkupString)FormAssets.Css)</style>
+</head>
+<body>
+    @foreach (var form in Forms)
+    {
+        @switch (form)
+        {
+            case FormId.CoverSheet: <CoverSheetForm P="P" /> break;
+            case FormId.GoEngageData: <GoEngageDataForm P="P" /> break;
+            case FormId.IntakePage1: <IntakePage1Form P="P" /> break;
+            case FormId.IntakePage2: <IntakePage2Form P="P" /> break;
+            case FormId.Application: <ApplicationForm P="P" /> break;
+            case FormId.FuelOrder: <FuelOrderForm P="P" /> break;
+            case FormId.ElectricPledge: <ElectricPledgeForm P="P" /> break;
+            case FormId.Access: <AccessForm P="P" /> break;
+            case FormId.IncomeExpense: <IncomeExpenseForm P="P" /> break;
+            default: <div class="sheet"><div class="title">@form — not drawn yet</div></div> break;
+        }
+    }
+</body>
+</html>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<FormId> Forms { get; set; } = [];
+    [Parameter] public string Title { get; set; } = "Forms";
+}

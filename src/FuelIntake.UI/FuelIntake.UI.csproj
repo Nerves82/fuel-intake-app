@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Printing\nekca-logo.png" LogicalName="nekca-logo.png" />
+    <EmbeddedResource Include="Printing\forms.css" LogicalName="forms.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\FuelIntake.Core\FuelIntake.Core.csproj" />
   </ItemGroup>
 

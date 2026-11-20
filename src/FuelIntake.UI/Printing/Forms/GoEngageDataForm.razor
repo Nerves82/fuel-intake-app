@@ -1,0 +1,93 @@
+@* GoEngage Data Sheet (staff only, landscape): every value to type into GoEngage, in GoEngage wording. *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Model
+@{ var r = P.R; var c = P.C; var cl = r.Client; var fe = r.FuelElectric; var ie = r.IncomeExpenses; var a = r.Application;
+   var members = c.Members.Where(m => m.IsPresent).ToList(); }
+<div class="sheet landscape staff">
+    <h1>GoEngage Data Sheet — values to enter in GoEngage (dropdown wording matches GoEngage)</h1>
+    <div class="sub conf">CONFIDENTIAL — contains SSNs and income. Keep with the client file; shred when no longer needed. Do not upload to GoEngage.</div>
+
+    <div class="sect">CLIENT &amp; ADDRESS</div>
+    <table class="kv">
+        <colgroup><col style="width:7%" /><col style="width:17%" /><col style="width:10%" /><col style="width:15%" /><col style="width:9%" /><col style="width:16%" /><col style="width:10%" /><col /></colgroup>
+        <tr><td class="k">Name</td><td class="x">@c.ClientFullName</td><td class="k">DOB</td><td class="x">@D(cl.DateOfBirth)</td><td class="k">Phone</td><td class="x">@Ph(cl.Phone)</td><td class="k">Email</td><td class="x">@cl.Email</td></tr>
+        <tr><td class="k">Street</td><td class="x">@cl.AddressPhysical</td><td class="k">City</td><td class="x">@cl.City</td><td class="k">State</td><td class="x">@cl.State</td><td class="k">Zip</td><td class="x">@cl.Zip</td></tr>
+        <tr><td class="k">County</td><td class="x">@cl.County</td><td class="k">School district</td><td class="x">@cl.SchoolDistrict</td><td class="k">Mailing</td><td class="x">@cl.AddressMailing</td><td class="k">Case #</td><td class="x">@r.Staff.CaseNumber</td></tr>
+        <tr><td class="k">Language</td><td class="x">@cl.PrimaryLanguage@(string.IsNullOrEmpty(cl.LanguageOther) ? "" : " / " + cl.LanguageOther)</td><td class="k">Translator</td><td class="x">@cl.TranslatorNeeded</td>
+            <td class="k">Housing type</td><td class="x">@cl.HousingType</td><td class="k">Household type</td><td class="x">@cl.HouseholdType</td></tr>
+        <tr><td class="k">Benefits</td><td class="x" colspan="3">@Benefits()</td><td class="k">Interests</td><td class="x" colspan="3">@Interests()</td></tr>
+    </table>
+
+    <div class="sect">HOUSEHOLD MEMBERS</div>
+    <table class="kv tight">
+        <tr>@foreach (var h in Heads) { <th>@h</th> }</tr>
+        @foreach (var m in members)
+        {
+            var d = m.Data;
+            <tr>
+                <td class="x">@m.LastName</td><td class="x">@m.FirstName</td><td class="x">@D(m.DateOfBirth)</td><td class="x">@c.AgeOf(m)</td><td class="x">@d.Gender</td>
+                <td class="x">@d.Race</td><td class="x">@d.Hispanic</td><td class="x">@d.Disabled</td><td class="x">@d.Education</td><td class="x">@d.HealthInsurance</td>
+                <td class="x">@d.MilitaryStatus</td><td class="x">@d.Occupation</td><td class="x">@Ssn(d.Ssn)</td><td class="x">@MD(d.IncomePerMonth)</td>
+                <td class="x">@d.IncomeSource</td><td class="x">@D(d.IncomeVerifiedDate)</td>
+            </tr>
+        }
+    </table>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.15in">
+        <div>
+            <div class="sect">INCOME &amp; ELIGIBILITY</div>
+            <table class="kv">
+                <colgroup><col style="width:26%" /><col /></colgroup>
+                <tr><td class="k">Income sources</td><td class="x">@IncomeSources()</td></tr>
+                <tr><td class="k">Total gross monthly</td><td class="x">@MD(c.IncomeTotal) &nbsp; · &nbsp; HH size @c.HouseholdSize &nbsp; · &nbsp; FPL @FuelIntake.Core.Formatting.Percent.Format(c.FplPercent)</td></tr>
+                <tr><td class="k">SNAP (ACCESS)</td><td class="x">@c.AccessNonIncomeLine @(c.AccessNonIncomeLine.Length > 0 ? D(cl.Benefits.SnapVerifiedDate) : "")</td></tr>
+                <tr><td class="k">Crisis / SFA</td><td class="x">@a.CrisisType · SFA: @a.SeasonalFuelStatus @MD(fe.SeasonalFuelAmountGranted)</td></tr>
+            </table>
+        </div>
+        <div>
+            <div class="sect">FUEL / ELECTRIC</div>
+            <table class="kv">
+                <colgroup><col style="width:22%" /><col style="width:30%" /><col style="width:20%" /><col /></colgroup>
+                <tr><td class="k">Fuel type / vendor</td><td class="x">@fe.FuelType@(string.IsNullOrEmpty(fe.Vendor) ? "" : " — " + fe.Vendor)</td><td class="k">Vendor acct #</td><td class="x">@fe.VendorAccount</td></tr>
+                <tr><td class="k">Electric provider</td><td class="x">@fe.ElectricProvider</td><td class="k">Electric acct #</td><td class="x">@fe.ElectricAccount</td></tr>
+                <tr><td class="k">Fuel order total</td><td class="x">@MD(c.FuelOrderTotal)</td><td class="k">Pledge total</td><td class="x">@MD(c.PledgeTotal)</td></tr>
+                <tr><td class="k">Actual (invoice) total</td><td class="x">@MD(c.InvoiceTotal)</td><td class="k">Delivery date</td><td class="x">@D(fe.Invoice.DeliveryDate)</td></tr>
+            </table>
+        </div>
+    </div>
+    <table class="kv" style="margin-top:6px"><colgroup><col style="width:10%" /><col /></colgroup>
+        <tr><td class="k">Circumstance</td><td class="x">@a.Circumstance</td></tr></table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+
+    private static readonly string[] Heads =
+        ["Last", "First", "DOB", "Age", "Gender", "Race", "Hisp.", "Dis.", "Education", "Insurance", "Military", "Occupation", "SSN", "Income/mo", "Source", "Verified"];
+
+    private string Benefits()
+    {
+        var b = P.R.Client.Benefits;
+        var list = new List<string>();
+        if (b.Snap) list.Add("SNAP" + (b.SnapAmount is null ? "" : $" ({MD(b.SnapAmount)}/{b.SnapPeriod})"));
+        if (b.Wic) list.Add("WIC"); if (b.Liheap) list.Add("LIHEAP"); if (b.HousingChoiceVoucher) list.Add("Housing Choice Voucher");
+        if (b.PublicHousing) list.Add("Public Housing"); if (b.PermanentSupportiveHousing) list.Add("Perm. Supportive Housing");
+        if (b.HudVash) list.Add("HUD-VASH"); if (b.ChildcareVoucher) list.Add("Childcare Voucher"); if (b.AcaSubsidy) list.Add("ACA Subsidy");
+        return string.Join(", ", list);
+    }
+
+    private string Interests()
+    {
+        var i = P.R.Client.Interests;
+        var list = new List<string>();
+        if (i.FoodClothing) list.Add("Food/Clothing"); if (i.HousingSupport) list.Add("Housing"); if (i.FuelAssistance) list.Add("Fuel");
+        if (i.EconomicPrograms) list.Add("Economic"); if (i.YouthPrograms) list.Add("Youth"); if (i.FamilySupports) list.Add("Parent/Family");
+        if (i.Tefap) list.Add("TEFAP"); if (i.CommunityJustice) list.Add("Community Justice");
+        if (i.Other) list.Add("Other" + (string.IsNullOrEmpty(i.OtherText) ? "" : ": " + i.OtherText));
+        return string.Join(", ", list);
+    }
+
+    private string IncomeSources() => string.Join(";  ", IncomeExpenseCatalog.IncomeLines
+        .Where(l => P.R.IncomeExpenses.Income.GetValueOrDefault(l.Key) is not null)
+        .Select(l => $"{l.Label.Split(" (")[0]}: {MD(P.R.IncomeExpenses.Income[l.Key])}"));
+}

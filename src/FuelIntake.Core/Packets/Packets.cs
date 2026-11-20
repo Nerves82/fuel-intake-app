@@ -37,6 +37,21 @@ public static class PacketCatalog
     /// <summary>File name pattern for a custom selection.</summary>
     public const string CustomFileNamePattern = "{Initial}_{Last}_forms_{Date}";
 
+    /// <summary>Name shown in the form picker.</summary>
+    public static string Title(FormId f) => f switch
+    {
+        FormId.CoverSheet => "Cover Sheet",
+        FormId.GoEngageData => "GoEngage Data",
+        FormId.IntakePage1 => "Intake page 1",
+        FormId.IntakePage2 => "Intake page 2",
+        FormId.Application => "Application",
+        FormId.Access => "ACCESS Verification",
+        FormId.IncomeExpense => "Income/Expense Worksheet",
+        FormId.FuelOrder => "Fuel Order",
+        FormId.ElectricPledge => "Electric Pledge",
+        _ => f.ToString(),
+    };
+
     /// <summary>Staff-only forms (SSNs and income).</summary>
     public static bool IsStaffOnly(FormId f) => f is FormId.CoverSheet or FormId.GoEngageData;
 

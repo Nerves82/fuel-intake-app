@@ -1,0 +1,55 @@
+@* NEKCA Standard Intake Form, page 1 of 2 (landscape). Ten household rows. *@
+@using static FuelIntake.UI.Printing.PrintContext
+@{ var r = P.R; var c = P.C; var cl = r.Client; var members = c.Members.Where(m => m.IsPresent).Take(10).ToList(); }
+<div class="sheet landscape">
+    <div style="display:flex; gap:0.2in">
+        <div class="logo"></div>
+        <div style="flex:1">
+            <div class="title" style="font-size:13pt; text-decoration:underline">NEKCA STANDARD INTAKE FORM – Page 1 of 2</div>
+            <div class="row"><F L="Physical Address:" V="@cl.AddressPhysical" Grow="true" /></div>
+            <div class="row"><F L="City/Town, State, Zip:" V="@c.CityStateZip" Grow="true" /></div>
+            <div class="row"><span class="l">Mailing Address:</span><Opt Text="Same" On="@string.IsNullOrWhiteSpace(cl.AddressMailing)" /><F L="or" V="@cl.AddressMailing" Grow="true" /></div>
+            <div class="row"><F L="Phone Number:" V="@Ph(cl.Phone)" W="2.0in" /><F L="Email (optional):" V="@cl.Email" Grow="true" /></div>
+        </div>
+    </div>
+    <div class="row">
+        <F L="Primary Language:" V="@cl.PrimaryLanguage" W="0.9in" />
+        <F L="Other (Please Specify):" V="@cl.LanguageOther" W="1.0in" />
+        <F L="English Fluency (if applicable):" V="@cl.EnglishFluency" W="0.8in" />
+        <span class="nowrap">Translator Needed? <Opt Text="Y" On="@(cl.TranslatorNeeded == "Y")" /><Opt Text="N" On="@(cl.TranslatorNeeded == "N")" /></span>
+    </div>
+    <div class="center bu" style="margin-top:4px; font-size:9pt">Please complete the information below for every member of your household. These include questions mandated by our federal funding source. Thank you for your assistance.</div>
+    <table class="hh">
+        <colgroup><col style="width:11%" /><col style="width:10%" /><col style="width:7.5%" /><col style="width:5%" /><col style="width:3.5%" /><col style="width:7%" />
+            <col style="width:6%" /><col style="width:6%" /><col style="width:7%" /><col style="width:6.5%" /><col style="width:7.5%" /><col style="width:6.5%" /><col style="width:7.5%" /></colgroup>
+        <tr>
+            @foreach (var h in Heads) { <th><div>@((MarkupString)h)</div></th> }
+        </tr>
+        @for (var i = 0; i < 10; i++)
+        {
+            var m = i < members.Count ? members[i] : null;
+            var d = m?.Data;
+            <tr class="@(i == 0 ? "first" : "")">
+                <td>@m?.LastName</td><td>@m?.FirstName</td><td>@D(m?.DateOfBirth)</td><td>@d?.Gender</td><td>@d?.Disabled</td>
+                <td>@d?.Education</td><td>@d?.Race</td><td>@d?.Hispanic</td><td>@d?.HealthInsurance</td><td>@M(d?.IncomePerMonth)</td>
+                <td>@d?.IncomeSource</td><td>@d?.MilitaryStatus</td><td>@Ssn(d?.Ssn)</td>
+            </tr>
+        }
+    </table>
+    <div class="row" style="margin-top:6px"><span class="ital" style="flex:1">I certify that all information is correct to the best of my knowledge.</span><span class="ital" style="flex:1">All information provided is private and confidential.</span></div>
+    <div class="row">
+        <span class="f" style="flex:1"><span class="l hl-y">Participant Signature:</span><span class="v" style="flex:1"></span><span class="l hl-y" style="margin-left:8px">Date:</span><span class="v" style="width:0.85in">@P.AppDate</span></span>
+        <span class="f" style="flex:1; margin-left:0.3in"><span class="l hl-b">NEKCA Staff:</span><span class="v" style="flex:1">@r.Staff.StaffName</span><span class="l hl-b" style="margin-left:8px">Date:</span><span class="v" style="width:0.85in">@P.AppDate</span></span>
+    </div>
+    <div style="text-align:right; font-weight:700; font-size:8pt; margin-top:4px">PLEASE CONTINUE TO PAGE 2</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+    private static readonly string[] Heads =
+    [
+        "Last Name", "First Name", "Date of Birth", "Gender Identity", "Disabled<br/>(Y/N)", "Last Grade<br/>Completed", "Race",
+        "Hispanic or Not<br/>Hispanic", "Health<br/>Insurance<br/>Source<br/>(Employer,<br/>Medicaid, Etc.)", "Income per<br/>month", "Source",
+        "Military Status<br/>(Veteran/ Active/<br/>None)", "SS #",
+    ];
+}

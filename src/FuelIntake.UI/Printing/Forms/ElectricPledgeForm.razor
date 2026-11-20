@@ -1,0 +1,60 @@
+@* NEKCA Electric Pledge (original: FA pg. 3.2). *@
+@using static FuelIntake.UI.Printing.PrintContext
+@{ var r = P.R; var c = P.C; var p = r.FuelElectric.ElectricPledge; }
+<div class="sheet">
+    <div class="head"><div class="logo"></div><div class="title">NEKCA Electric Pledge</div></div>
+
+    <div class="row gap">
+        <span class="f"><span class="l b">Authorized</span><Bx C="p.Authorized" /></span>
+        <F L="Date:" V="@D(p.Date)" W="0.95in" />
+        <F L="Time:" V="@T(p.Time)" W="0.95in" />
+        <F L="Staff:" V="@r.Staff.StaffName" Grow="true" />
+        <span class="ref">3108(d)</span>
+    </div>
+
+    <div class="cols" style="margin-top:0.25in">
+        <div class="stack"><div class="row"><F L="Vendor:" V="@r.FuelElectric.ElectricProvider" Grow="true" /></div></div>
+        <div class="stack">
+            <div class="row"><F L="Contact email/#:" V="@c.ElectricEmails" Grow="true" /></div>
+            <div class="row"><F V="@c.ElectricPhones" Grow="true" /></div>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top:0.2in">
+        <div class="cols">
+            <div class="stack">
+                <div class="row"><F L="Client Name:" V="@c.ClientFullName" Grow="true" /></div>
+                <div class="row"><F L="Account #:" V="@r.FuelElectric.ElectricAccount" W="2.2in" /></div>
+                <div class="row"><span class="f"><span class="l b">Disconnect Notice Attached</span><Bx C="p.DisconnectNoticeAttached" /></span></div>
+                <div class="row right"><F L="Amount Required: $" V="@M(p.AmountRequired)" W="1.45in" Class="money" /></div>
+                <div class="row right"><F L="Reconnection Fee: $" V="@M(p.ReconnectionFee)" W="1.45in" Class="money" /></div>
+                <div class="row right"><F L="Total: $" V="@M(c.PledgeTotal)" W="1.45in" Bold="true" Class="money" /></div>
+            </div>
+            <div class="stack">
+                <div class="row"><F L="Service Address:" V="@c.ServiceAddressLine1" Grow="true" /></div>
+                <div class="row"><F V="@c.ServiceAddressLine2" Grow="true" /></div>
+                <div class="row"><F V="" Grow="true" /></div>
+                <div class="row"><span class="l">Discount/Forgiveness program:</span>
+                    <Opt Text="Yes" On="@(p.DiscountProgram == "Yes")" /><Opt Text="No" On="@(p.DiscountProgram == "No")" /></div>
+                <div class="row"><F L="Disconnect Date:" V="@D(p.DisconnectDate)" W="1.5in" /></div>
+                <div class="row"><F L="Grant/Funding Source:" V="@p.FundingSource" W="1.5in" /></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top:0.35in; min-height: 3.6in">
+        <div class="cols">
+            <div class="stack">
+                <div class="row right"><F L="Remaining Balance: $" V="@M(p.RemainingBalance)" W="1.45in" Class="money" /></div>
+                <div class="row right"><F L="Next Bill: $" V="@M(p.NextBill)" W="1.45in" Class="money" /></div>
+            </div>
+            <div class="stack"><div class="row"><F L="Next Bill Due by:" V="@D(p.NextBillDue)" W="1.5in" /></div></div>
+        </div>
+        <div style="margin-top:0.25in">Responsibilities of the client (notes):</div>
+        <div class="notes">@p.ClientResponsibilities</div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+}

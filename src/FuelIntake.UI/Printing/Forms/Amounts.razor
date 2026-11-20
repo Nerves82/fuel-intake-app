@@ -1,0 +1,28 @@
+@* The Fuel/Special Trip/Pressure Test/Start Up/Total block shared by both halves of the Fuel Order. *@
+@using static FuelIntake.UI.Printing.PrintContext
+<div class="cols amounts">
+    <div class="stack">
+        <div class="row right"><F L="Fuel: $" V="@M(Fuel)" W="1.45in" Class="money" /></div>
+        <div class="row right"><F L="Special Trip: $" V="@M(Trip)" W="1.45in" Class="money" /></div>
+        <div class="row right"><F L="Pressure Test: $" V="@M(Pressure)" W="1.45in" Class="money" /></div>
+        <div class="row right"><F L="Start Up: $" V="@M(StartUp)" W="1.45in" Class="money" /></div>
+        <div class="row right"><F L="Total: $" V="@M(Total)" W="1.45in" Bold="true" Class="money" /></div>
+    </div>
+    <div class="stack">
+        <div class="row right"><F L="Quantity (gallons):" V="@Gallons" W="1.5in" /></div>
+        <div class="row right tall"><F L="@DateLabel" V="@D(Date)" W="1.5in" /></div>
+        <div class="row right tall"><F L="Grant/Funding Source:" V="@Funding" W="1.5in" /></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public decimal? Fuel { get; set; }
+    [Parameter] public decimal? Trip { get; set; }
+    [Parameter] public decimal? Pressure { get; set; }
+    [Parameter] public decimal? StartUp { get; set; }
+    [Parameter] public decimal? Total { get; set; }
+    [Parameter] public string? Gallons { get; set; }
+    [Parameter] public string DateLabel { get; set; } = "";
+    [Parameter] public DateOnly? Date { get; set; }
+    [Parameter] public string? Funding { get; set; }
+}

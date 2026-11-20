@@ -14,6 +14,7 @@
         Review
         @if (Session.Issues.Count > 0) { <span class="count">@Session.Issues.Count</span> }
     </button>
+    <button class="@(Session.Screen == Screen.Print ? "active" : "")" @onclick="() => Session.Go(Screen.Print)">Print</button>
 </nav>
 
 @code {

@@ -1,0 +1,133 @@
+@* Packet Cover & Status Sheet (staff only): case summary, status stages and checklists. *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Lists
+@using FuelIntake.Core.Packets
+@{ var r = P.R; var c = P.C; var fe = r.FuelElectric; var a = r.Application; var ft = fe.FuelType; var ct = a.CrisisType; var sfa = a.SeasonalFuelStatus;
+   var first = r.Client.FirstName; var last = r.Client.LastName; var fmt = P.Settings.FileDateFormat; var date = r.Staff.AppDate ?? P.Today; }
+<div class="sheet staff">
+    <h1>NEKCA Crisis Fuel / Electric Assistance — Packet Cover &amp; Status Sheet</h1>
+    <div class="sub">Staple to the front of the packet. Update the Status block each time the file is touched; the last checked stage is the current status.
+        <span class="conf">Staff only — do not upload to GoEngage.</span></div>
+
+    <div class="sect">CASE INFORMATION</div>
+    <table class="kv">
+        <colgroup><col style="width:16%" /><col style="width:42%" /><col style="width:16%" /><col /></colgroup>
+        <tr><td class="k">Client name</td><td class="x">@c.ClientFullName</td><td class="k">Case / file #</td><td class="x">@r.Staff.CaseNumber</td></tr>
+        <tr><td class="k">First contact</td><td class="x">@P.AppDate</td><td class="k">Intake staff</td><td class="x">@r.Staff.StaffName</td></tr>
+        <tr><td class="k">Request type</td><td><Bx C="@(ct == CrisisTypes.LowOnFuel)" /> Fuel &nbsp; <Bx C="@(ct == CrisisTypes.DisconnectNotice)" /> Electric &nbsp; <Bx C="false" /> Both</td><td class="k">Assigned worker</td><td></td></tr>
+        <tr><td class="k">Fuel type</td><td><Bx C="@(ft == "Oil")" /> Oil <Bx C="@(ft == "Kerosene")" /> Kero <Bx C="@(ft == "Propane")" /> Propane <Bx C="@(ft is "Wood" or "Pellet")" /> Wood/Pellet <Bx C="@(ft == "Electric")" /> Elec</td>
+            <td class="k">Seasonal Fuel</td><td><Bx C="@(sfa == "Active")" /> Active <Bx C="@(sfa == "Pending")" /> Pending <Bx C="@(sfa == "Closed/Denied")" /> Closed</td></tr>
+        <tr><td class="k">Fuel remaining</td><td class="x">@a.CurrentQuantity @(string.IsNullOrEmpty(fe.FuelOrder.FuelLasts) ? "" : "   Lasts: " + fe.FuelOrder.FuelLasts)</td>
+            <td class="k">Disconnect date</td><td class="x">@D(fe.ElectricPledge.DisconnectDate)</td></tr>
+        <tr><td class="k">HH size</td><td><span class="x">@c.HouseholdSize</span> &nbsp; FPL %: <span class="x">@FuelIntake.Core.Formatting.Percent.Format(c.FplPercent)</span> &nbsp;
+                Under limit: <Bx C="@(c.UnderIncomeLimit == true)" /> Yes <Bx C="@(c.UnderIncomeLimit == false)" /> No</td>
+            <td class="k">Gross mo. income</td><td class="x">@MD(c.IncomeTotal)</td></tr>
+    </table>
+
+    <div class="sect">STATUS (check each stage as it is reached)</div>
+    <table class="kv tight">
+        <tr><th style="width:30%">Stage</th><th style="width:12%">Date</th><th style="width:8%">Init</th><th style="width:30%">Stage</th><th style="width:12%">Date</th><th>Init</th></tr>
+        @for (var i = 0; i < 5; i++)
+        {
+            <tr>
+                <td><Bx C="@(i == 0 && r.Staff.AppDate is not null)" /> @Stages[i]</td>
+                <td class="x">@(i == 0 ? P.AppDate : "")</td><td class="x">@(i == 0 ? c.StaffInitials : "")</td>
+                <td>@if (i + 5 < Stages.Length) { <Bx C="false" /> @Stages[i + 5] }</td><td></td><td></td>
+            </tr>
+        }
+    </table>
+
+    <div class="sect">PACKET CHECKLIST (intake #1–2 is done in GoEngage; paper intake is the backup only)</div>
+    <table class="kv tight">
+        <tr><th style="width:3%">#</th><th style="width:27%">Form</th><th>Must have</th><th style="width:7%">Client sig</th><th style="width:7%">Staff sig</th><th style="width:8%">Done / N/A</th><th style="width:7%">GoEngage</th></tr>
+        @for (var i = 0; i < Checklist.Length; i++)
+        {
+            var (form, must, cs, ss) = Checklist[i];
+            <tr><td class="center">@(i + 1)</td><td>@form</td><td class="tiny">@must</td><td class="center">@cs</td><td class="center">@ss</td><td class="center">☐ ☐</td><td class="center">☐</td></tr>
+        }
+    </table>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.15in">
+        <div>
+            <div class="sect">ELIGIBILITY</div>
+            <table class="kv tight">
+                <tr><th>Step</th><th style="width:20%">Date</th><th style="width:13%">Init</th></tr>
+                @foreach (var e in Eligibility) { <tr><td>☐ @e</td><td></td><td></td></tr> }
+            </table>
+        </div>
+        <div>
+            <div class="sect">ASSISTANCE ISSUED</div>
+            <table class="kv tight">
+                <tr><th></th><th>Fuel order</th><th>Electric pledge</th></tr>
+                <tr><td class="k">Vendor</td><td class="x">@fe.Vendor</td><td class="x">@fe.ElectricProvider</td></tr>
+                <tr><td class="k">Amount authorized</td><td class="x">@MD(c.FuelOrderTotal)</td><td class="x">@MD(c.PledgeTotal)</td></tr>
+                <tr><td class="k">Gallons / reconnect</td><td class="x">@fe.FuelOrder.Gallons</td><td class="x">@MD(fe.ElectricPledge.ReconnectionFee)</td></tr>
+                <tr><td class="k">Funding source</td><td class="x">@fe.FuelOrder.FundingSource</td><td class="x">@fe.ElectricPledge.FundingSource</td></tr>
+                <tr><td class="k">Authorized date</td><td class="x">@D(fe.FuelOrder.Date)</td><td class="x">@D(fe.ElectricPledge.Date)</td></tr>
+                <tr><td class="k">Sent to vendor</td><td></td><td></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="sect">DENIAL &amp; APPEAL (appeal heard same/next business day; fair hearing request within 90 days of written decision)</div>
+    <table class="kv tight">
+        <tr><th><Bx C="a.Determination.Denied" /> Denied (written decision)</th><th>☐ Appeal requested ☐V ☐W</th><th>☐ Appeal heard</th><th>Decision: ☐ Rev ☐ Upheld</th><th>☐ Fair hearing req.</th></tr>
+        <tr><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+    </table>
+
+    <div class="sect">AFTER APPOINTMENT &amp; INVOICE</div>
+    <table class="kv tight">
+        <tr><th>☐ Service note added in GoEngage</th><th>☐ Invoice packet assembled</th><th>☐ Sent to coordinator</th><th>☐ Uploaded to GoEngage</th>
+            <th>☐ Actual fuel cost in GoEngage: @(c.InvoiceTotal is null ? "$_______" : MD(c.InvoiceTotal))</th></tr>
+        <tr><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+    </table>
+
+    <div class="sect">GOENGAGE UPLOAD — scan and combine into these PDF packets before uploading</div>
+    <table class="kv tight">
+        <tr><th style="width:24%">PDF packet</th><th>File name</th><th style="width:32%">Uploaded to GoEngage</th></tr>
+        <tr><td><b>Intake Form Package</b></td><td class="x">@PacketCatalog.ExpandFileName(PacketCatalog.IntakePackage.FileNamePattern, first, last, date, fmt)</td><td>☐ Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+        <tr><td><b>Consent Forms Pack</b></td><td class="x">@PacketCatalog.ExpandFileName("{Initial}_{Last}_fa_consent_forms_26-27", first, last, date, fmt)</td><td>☐ Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+        <tr><td><b>Application Forms Pack</b></td><td class="x">@PacketCatalog.ExpandFileName(PacketCatalog.ApplicationPack.FileNamePattern, first, last, date, fmt)</td><td>☐ Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+        <tr><td><b>Invoice Packet</b></td><td class="x">@PacketCatalog.ExpandFileName("{Initial}_{Last}_invoice_packet_", first, last, date, fmt)mm_dd_yy</td><td>☐ Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+    </table>
+
+    <div class="sect">FOLLOW-UP LOG</div>
+    <table class="kv tight">
+        <tr><th style="width:12%">Date</th><th>Missing item / action</th><th style="width:15%">Contact method</th><th style="width:10%">Due by</th><th style="width:7%">Init</th><th style="width:8%">Resolved</th></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td class="center">☐</td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td><td class="center">☐</td></tr>
+    </table>
+
+    <div class="sect">CLOSEOUT</div>
+    <table class="kv tight">
+        <tr><td>☐ All forms complete or N/A</td><td>☐ All docs uploaded to GoEngage</td><td>File closed — Date: &nbsp; &nbsp; &nbsp; Init:</td><td>Supervisor — Date: &nbsp; &nbsp; &nbsp; Init:</td></tr>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+
+    private static readonly string[] Stages =
+        ["1 Intake started", "2 Waiting on client", "3 Packet complete", "4 Eligible / authorized", "5 Ordered / pledge sent",
+         "6 Delivered / invoice in", "7 Closed", "Denied", "Withdrawn"];
+
+    private static readonly (string, string, string, string)[] Checklist =
+    [
+        ("Intake p.1 — GoEngage / paper backup", "Address, phone; row for every household member", "☐", "☐"),
+        ("Intake p.2 — GoEngage / paper backup", "Housing & HH type, benefits, occupation (14+), programs", "☐", "☐"),
+        ("NEKCA Fuel Assistance Application", "Crisis type, circumstance, SFA status, appeal notice, eligibility", "☐", "☐"),
+        ("ACCESS Verification", "SSN & income per member, SFA status, vendor/electric acct #", "—", "☐"),
+        ("Income/Expense Worksheet", "Income, 30-day expenses, assets, FPL %, income docs", "☐", "☐"),
+        ("NEKCA Consent for Release", "Name, DOB, date, expiration condition", "☐", "☐"),
+        ("Community Partners Release", "Name, date; \"do not share\" agencies initialed", "☐", "—"),
+        ("ESD Release to 3SquaresVT", "Name, DOB, printed name, date (copy to client)", "☐", "—"),
+        ("Crisis Fuel Stmt of Understanding (204NST)", "Name printed, dates (copy to client)", "☐", "☐"),
+        ("Right to Appeal notice", "Given to client", "—", "—"),
+        ("NEKCA Fuel Order", "Authorized, vendor, SFB left, tank size, fuel left, amounts", "—", "☐"),
+        ("NEKCA Electric Pledge", "Authorized, disconnect notice, amounts, client duties", "—", "☐"),
+    ];
+
+    private static readonly string[] Eligibility =
+        ["30 days income docs, all earners", "Income & FPL % calculated", "ESD / Seasonal Fuel status checked",
+         "Vendor & account # confirmed", "Disconnect notice on file (electric)", "Applied at ¼ tank or above (repeat)"];
+}

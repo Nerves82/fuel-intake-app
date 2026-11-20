@@ -1,0 +1,63 @@
+@* NEKCA Fuel Order (original: FA pg. 3.1). *@
+@using static FuelIntake.UI.Printing.PrintContext
+@{ var r = P.R; var c = P.C; var o = r.FuelElectric.FuelOrder; var i = r.FuelElectric.Invoice; }
+<div class="sheet">
+    <div class="head"><div class="logo"></div><div class="title">NEKCA Fuel Order</div></div>
+
+    <div class="row gap">
+        <span class="f"><span class="l b">Authorized</span><Bx C="o.Authorized" /></span>
+        <F L="Date:" V="@D(o.Date)" W="0.95in" />
+        <F L="Time:" V="@T(o.Time)" W="0.95in" />
+        <F L="Staff:" V="@r.Staff.StaffName" Grow="true" />
+        <span class="ref">3108(d)</span>
+    </div>
+
+    <div class="caption">PLEASE SEND INVOICE TO</div>
+    <div class="panel">
+        <div class="row"><F L="Email:" V="@c.InvoiceEmail" Grow="true" /><F L="Phone:" V="@c.InvoicePhone" Grow="true" /></div>
+    </div>
+
+    <div class="cols" style="margin-top:0.1in">
+        <div class="stack">
+            <div class="row"><F L="Vendor:" V="@r.FuelElectric.Vendor" Grow="true" /></div>
+        </div>
+        <div class="stack">
+            <div class="row"><F L="Contact email/#:" V="@c.VendorEmails" Grow="true" /></div>
+            <div class="row"><F V="@c.VendorPhones" Grow="true" /></div>
+        </div>
+    </div>
+
+    <div class="row gap">
+        <F L="SFB remaining:" V="@M(o.SfbRemaining)" W="0.8in" Class="money" />
+        <F L="Size of tank:" V="@o.TankSize" W="0.65in" />
+        <F L="Fuel remaining:" V="@o.FuelRemaining" W="0.65in" />
+        <F L="Time fuel will last:" V="@o.FuelLasts" Grow="true" />
+    </div>
+
+    <div class="panel">
+        <div class="cols">
+            <div class="stack">
+                <div class="row"><F L="Client Name:" V="@c.ClientFullName" Grow="true" /></div>
+                <div class="row"><F L="Account #:" V="@r.FuelElectric.VendorAccount" W="2.2in" /></div>
+                <div class="row"><F L="Fuel Type:" V="@r.FuelElectric.FuelType" W="2.2in" /></div>
+            </div>
+            <div class="stack">
+                <div class="row"><F L="Service Address:" V="@c.ServiceAddressLine1" Grow="true" /></div>
+                <div class="row"><F V="@c.ServiceAddressLine2" Grow="true" /></div>
+                <div class="row"><F V="" Grow="true" /></div>
+            </div>
+        </div>
+        <Amounts Fuel="o.Fuel" Trip="o.SpecialTrip" Pressure="o.PressureTest" StartUp="o.StartUp" Total="c.FuelOrderTotal"
+                 Gallons="@o.Gallons" DateLabel="Est. Delivery Date:" Date="o.EstimatedDelivery" Funding="@o.FundingSource" />
+    </div>
+
+    <div class="caption"><span>AFTER INVOICE RECEIVED</span><span>Invoice received <Bx C="i.Received" /></span></div>
+    <div class="panel">
+        <Amounts Fuel="i.Fuel" Trip="i.SpecialTrip" Pressure="i.PressureTest" StartUp="i.StartUp" Total="c.InvoiceTotal"
+                 Gallons="@i.Gallons" DateLabel="Delivery Date:" Date="i.DeliveryDate" Funding="@i.FundingSource" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+}

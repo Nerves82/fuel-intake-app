@@ -46,6 +46,19 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePreview=true`
 (static rendering only: good for screenshots, not clicking).
 
+## Printing (phase 1c)
+
+- Forms are Razor components in `FuelIntake.UI/Printing/Forms`, styled by `forms.css`
+  (letter pages; `.landscape` pages use a named CSS page). Logo and CSS are embedded so the
+  HTML is self-contained.
+- `PacketRenderer` turns the chosen forms into one HTML document; `IPdfPrinter` prints it.
+  Desktop: WebView2 `Page.printToPDF` with `preferCSSPageSize` (portrait + landscape in one PDF).
+  Phase 2: a headless Chromium on the server can print the same HTML.
+- Check layouts without Windows: DevHost `/print-html?sample=1&forms=FuelOrder,Access`, then print to
+  PDF in Chromium (Playwright `page.pdf(prefer_css_page_size=True)`) — same engine as WebView2.
+- Re-printing replaces the PDF of the same name; if it's open in a viewer, a "(2)" copy is saved.
+- Consent forms are not drawn: they're copied from the Masters folder into new client folders.
+
 ## Architecture rules
 
 - Screens never call Windows-only features directly. Anything host-specific goes behind
