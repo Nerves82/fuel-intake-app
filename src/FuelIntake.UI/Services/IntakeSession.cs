@@ -15,7 +15,7 @@ public enum Screen { Clients, Client, Household, Application, IncomeExpenses, Fu
 /// validation issues, and saving. One per window (desktop) or per browser connection (web).
 /// Screens call <see cref="Changed"/> after every edit; the session recalculates and autosaves.
 /// </summary>
-public sealed class IntakeSession(IClientStore store, IListSource lists, ICurrentUser user, TimeProvider clock) : IDisposable
+public sealed class IntakeSession(IClientStore store, IListSource lists, ICurrentUser user, TimeProvider clock, IRecentClients recent) : IDisposable
 {
     private CancellationTokenSource? saveDelay;
 
@@ -147,6 +147,14 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
 
     public Task<IReadOnlyList<ClientFolderInfo>> ListClientsAsync() => store.ListClientsAsync();
 
+    public Task<IReadOnlyList<RecentClient>> RecentClientsAsync() => recent.GetAsync();
+
+    private async Task RememberAsync(ClientFolderInfo folder)
+    {
+        try { await recent.TouchAsync(folder, clock.GetLocalNow()); }
+        catch { /* the recent list is a convenience; never block opening a client */ }
+    }
+
     public async Task OpenAsync(ClientFolderInfo folder)
     {
         await CloseAsync();
@@ -162,6 +170,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         baseline = ActivityLog.Snapshot(record);
         if (loaded is null) ActivityLog.RecordCreated(record, Me, clock.GetLocalNow());
         await AddSnapshotStaffAsync(record);
+        await RememberAsync(folder);
         Recalculate();
         Screen = Screen.Client;
         Notify();
@@ -187,6 +196,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         loadedVersion = await store.GetLastSavedAsync(folder.Id);
         baseline = ActivityLog.Snapshot(record);
         if (existing is null) ActivityLog.RecordCreated(record, Me, clock.GetLocalNow());
+        await RememberAsync(folder);
         Recalculate();
         Screen = Screen.Client;
         await SaveAsync();

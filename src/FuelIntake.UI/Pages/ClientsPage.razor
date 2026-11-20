@@ -32,9 +32,26 @@
         </details>
     </section>
 
+    @if (recentShown.Count > 0)
+    {
+        <section class="card">
+            <h2>Recently opened</h2>
+            <ul class="client-list">
+                @foreach (var (c, at) in recentShown)
+                {
+                    <li>
+                        <button class="link" @onclick="() => Session.OpenAsync(c)">@c.DisplayName</button>
+                        @if (c.DisplayName.StartsWith(ClientFolders.TestPrefix)) { <span class="badge test">TEST</span> }
+                        <span class="note" title="@at.ToLocalTime().ToString("MMM d, yyyy h:mm tt")">opened @Ago(at)</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
     <section class="card">
         <div class="row-between">
-            <h2>Clients</h2>
+            <h2>All clients</h2>
             <input class="search" placeholder="Search names…" @bind="search" @bind:event="oninput" />
         </div>
         @if (clients is null)
@@ -69,6 +86,18 @@
 
 @code {
     private IReadOnlyList<ClientFolderInfo>? clients;
+    private List<(ClientFolderInfo Client, DateTimeOffset At)> recentShown = [];
+
+    private string Ago(DateTimeOffset at)
+    {
+        var span = DateTimeOffset.Now - at;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} min ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours} hr ago";
+        if (span.TotalDays < 2) return "yesterday";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays} days ago";
+        return at.ToLocalTime().ToString("MMM d");
+    }
     private string? error, nameProblem, search, first, last;
     private bool busy;
 
@@ -76,6 +105,14 @@
     {
         try { clients = await Session.ListClientsAsync(); }
         catch (Exception ex) { error = "Couldn't read the client folders: " + ex.Message; clients = []; }
+        try
+        {
+            // only folders that still exist (renamed or removed folders drop off)
+            var byId = clients.ToDictionary(c => c.Id, StringComparer.OrdinalIgnoreCase);
+            recentShown = (await Session.RecentClientsAsync())
+                .Where(r => byId.ContainsKey(r.Id)).Select(r => (byId[r.Id], r.OpenedAt)).ToList();
+        }
+        catch { recentShown = []; }
     }
 
     private async Task Create(SampleIntakes.Sample? sample)
