@@ -1,0 +1,41 @@
+using FuelIntake.Core.Hosting;
+
+namespace FuelIntake.Core.Tests;
+
+public class DataFolderTests
+{
+    private const string Default = @"C:\Users\pexample\Documents\Client Files - Fuel 26-27";
+    private const string Synced = @"C:\Users\pexample\Example Agency\Crisis Fuel - Documents\Client Files - Fuel 26-27";
+
+    [Fact]
+    public void Resolve_UsesSavedChoice_OrDefault()
+    {
+        Assert.Equal(Default, DataFolderRules.Resolve(null, Default));
+        Assert.Equal(Default, DataFolderRules.Resolve("  ", Default));
+        Assert.Equal(Synced, DataFolderRules.Resolve(Synced + @"\", Default));
+    }
+
+    [Fact]
+    public void ToSaved_StoresNothingForTheDefault()
+    {
+        Assert.Null(DataFolderRules.ToSaved(null, Default));
+        Assert.Null(DataFolderRules.ToSaved(Default.ToUpperInvariant() + @"\", Default));
+        Assert.Equal(Synced, DataFolderRules.ToSaved(" " + Synced + " ", Default));
+    }
+
+    [Fact]
+    public void IsInside_MatchesWholeFolderNames()
+    {
+        Assert.True(DataFolderRules.IsInside(Synced, @"C:\Users\pexample\Example Agency"));
+        Assert.True(DataFolderRules.IsInside(@"c:\users\PEXAMPLE\example agency", @"C:\Users\pexample\Example Agency\"));
+        Assert.False(DataFolderRules.IsInside(@"C:\Users\pexample\Example Agency 2\x", @"C:\Users\pexample\Example Agency"));
+    }
+
+    [Fact]
+    public void Warning_SpotsSettingsAndClientFolders()
+    {
+        Assert.Null(DataFolderRules.Warning(Synced, hasIntakeFile: false));
+        Assert.NotNull(DataFolderRules.Warning(Synced + @"\_Fuel Intake Settings", hasIntakeFile: false));
+        Assert.NotNull(DataFolderRules.Warning(Synced + @"\_TEST Sampleton, Testy", hasIntakeFile: true));
+    }
+}

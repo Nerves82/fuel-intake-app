@@ -11,6 +11,7 @@
         <button class="@(tab == 0 ? "active" : "")" @onclick="() => tab = 0">Staff (@staff.Count)</button>
         <button class="@(tab == 1 ? "active" : "")" @onclick="() => tab = 1">Vendors (@vendors.Count)</button>
         <button class="@(tab == 2 ? "active" : "")" @onclick="() => tab = 2">Agency settings</button>
+        <button class="@(tab == 3 ? "active" : "")" @onclick="() => tab = 3">Data folder</button>
     </nav>
 
     @if (message is not null) { <p class="@(messageIsError ? "problem" : "ok")">@message</p> }
@@ -106,7 +107,7 @@
             </div>
         </section>
     }
-    else
+    else if (tab == 2)
     {
         <section class="card">
             <h2>Eligibility</h2>
@@ -158,6 +159,10 @@
             <button @onclick="SaveSettings">Save agency settings</button>
         </div>
     }
+    else if (tab == 3)
+    {
+        <DataFolderCard Changed="ReloadFromFolder" />
+    }
 </main>
 
 @code {
@@ -174,6 +179,16 @@
     private decimal fplExtra;
 
     protected override void OnInitialized()
+    {
+        tab = Session.SettingsTab;
+        Session.SettingsTab = 0;
+        LoadFromSession();
+    }
+
+    /// <summary>After switching folders the lists come from the new folder.</summary>
+    private void ReloadFromFolder() => LoadFromSession();
+
+    private void LoadFromSession()
     {
         staff = Session.Staff.Members.Select(StaffRow.From).ToList();
         vendors = Session.Vendors.Vendors.Select(VendorRow.From).ToList();

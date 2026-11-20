@@ -8,13 +8,13 @@ namespace FuelIntake.Desktop.Hosting;
 /// Phase 1 storage: one folder per client under the clients root (a OneDrive-synced SharePoint folder),
 /// holding intake.json plus generated PDFs. Folder ids are full paths.
 /// </summary>
-public sealed class LocalFolderClientStore(string clientsRoot, IListSource lists) : IClientStore
+public sealed class LocalFolderClientStore(LocalDataFolder folder, IListSource lists) : IClientStore
 {
-    public string ClientsRoot { get; } = clientsRoot;
+    public string ClientsRoot => folder.Root;
 
     public Task<IReadOnlyList<ClientFolderInfo>> ListClientsAsync(CancellationToken ct = default)
     {
-        Directory.CreateDirectory(ClientsRoot);
+        folder.EnsureAvailable();
         IReadOnlyList<ClientFolderInfo> list = new DirectoryInfo(ClientsRoot).GetDirectories()
             .Where(d => !d.Name.StartsWith(ClientFolders.HiddenPrefix, StringComparison.Ordinal)
                         || d.Name.StartsWith(ClientFolders.TestPrefix, StringComparison.Ordinal))
@@ -26,6 +26,7 @@ public sealed class LocalFolderClientStore(string clientsRoot, IListSource lists
 
     public async Task<ClientFolderInfo> CreateClientAsync(string firstName, string lastName, CancellationToken ct = default)
     {
+        folder.EnsureAvailable();
         var settings = await lists.GetSettingsAsync(ct);
         var path = Path.Combine(ClientsRoot, ClientFolders.FolderName(firstName, lastName, settings.FolderNameSeparator));
         Directory.CreateDirectory(path);

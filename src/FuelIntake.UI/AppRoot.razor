@@ -5,7 +5,12 @@
 
 @if (loadError is not null)
 {
-    <main class="page"><h1>Couldn't start</h1><p class="problem">@loadError</p></main>
+    <main class="page narrow">
+        <h1>Couldn't start</h1>
+        <p class="problem">@loadError</p>
+        <p class="note">Fix the folder below, or <button class="link" @onclick="Retry">try again</button> once OneDrive has caught up.</p>
+        <DataFolderCard Changed="Retry" />
+    </main>
 }
 else if (!ready)
 {
@@ -99,7 +104,12 @@ else
     protected override async Task OnInitializedAsync()
     {
         Session.StateChanged += OnState;
-        try { await Session.InitializeAsync(); }
+        await Retry();
+    }
+
+    private async Task Retry()
+    {
+        try { await Session.InitializeAsync(); loadError = null; }
         catch (Exception ex) { loadError = "The staff, vendor or settings lists couldn't be read: " + ex.Message; }
         ready = true;
     }

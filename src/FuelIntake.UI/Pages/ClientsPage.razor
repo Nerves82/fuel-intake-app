@@ -2,6 +2,7 @@
 @using FuelIntake.Core.TestData
 @inject IntakeSession Session
 @inject ITestDataSets TestSets
+@inject IDataFolder Folder
 
 <main class="page narrow">
     <section class="hero">
@@ -95,6 +96,7 @@
         else if (error is not null)
         {
             <p class="problem">@error</p>
+            <p><button class="link" @onclick="Session.GoToDataFolder">Choose the client files folder</button></p>
         }
         else
         {
@@ -103,6 +105,9 @@
             {
                 <p class="note">No client folders yet.</p>
             }
+            <p class="note folder-line">In <code>@Folder.Current.Path</code>
+                @if (Folder.Current.SyncedFrom is not null) { <span class="badge synced">@Folder.Current.SyncedFrom</span> }
+                · <button class="link" @onclick="Session.GoToDataFolder">change</button></p>
             <ul class="client-list">
                 @foreach (var c in shown)
                 {

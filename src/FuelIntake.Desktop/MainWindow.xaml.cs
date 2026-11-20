@@ -23,13 +23,16 @@ public partial class MainWindow : Window
 #endif
         // Phase 1 implementations of the Core interfaces (phase 2 swaps these for Microsoft 365 versions).
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var clientsRoot = Path.Combine(documents, new AgencySettings().ClientsRootFolderName);
-        var lists = new LocalListSource(Path.Combine(clientsRoot, "_Fuel Intake Settings"));
+        // the chosen folder lives in LocalAppData, so new versions open the same one; Documents until one is chosen
+        dataFolder = new LocalDataFolder(Path.Combine(StartupLog.AppDataFolder, "data-folder.json"),
+            Path.Combine(documents, new AgencySettings().ClientsRootFolderName), Dispatcher, () => this);
+        var lists = new LocalListSource(dataFolder);
+        services.AddSingleton<IDataFolder>(dataFolder);
         services.AddSingleton<IListSource>(lists);
-        services.AddSingleton<IClientStore>(new LocalFolderClientStore(clientsRoot, lists));
+        services.AddSingleton<IClientStore>(new LocalFolderClientStore(dataFolder, lists));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IRecentClients>(new LocalRecentClients(Path.Combine(StartupLog.AppDataFolder, "recent-clients.json")));
-        services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets>(new LocalTestDataSets(Path.Combine(lists.DataFolder, "test-data")));
+        services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets>(new LocalTestDataSets(dataFolder));
         services.AddSingleton<IntakeSession>();
         services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
         // PDFs reuse the main window's WebView2 environment (a second, different environment on the same data folder is refused)
@@ -37,7 +40,7 @@ public partial class MainWindow : Window
         services.AddSingleton<IFileOutput, LocalFileOutput>();
         services.AddSingleton<ICurrentUser, WindowsCurrentUser>();
         services.AddSingleton(BuildHostInfo());
-        foreach (var target in CheckTargets())
+        foreach (var target in CheckTargets(dataFolder.Root))
             services.AddSingleton(target);
 
         provider = services.BuildServiceProvider();
@@ -48,6 +51,7 @@ public partial class MainWindow : Window
     }
 
     private readonly ServiceProvider provider;
+    private readonly LocalDataFolder dataFolder;
 
     /// <summary>Saves any unsaved edits before the window closes (runs off the UI thread to avoid a deadlock).</summary>
     private void SavePending()
@@ -83,13 +87,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Folders the "It works" page tests for write access.</summary>
-    private static IEnumerable<CheckTarget> CheckTargets()
+    private static IEnumerable<CheckTarget> CheckTargets(string clientsRoot)
     {
         var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         yield return new CheckTarget("Documents", documents);
-        yield return new CheckTarget("Client files folder", Path.Combine(documents, "Client Files - Fuel 26-27"));
+        yield return new CheckTarget("Client files folder", clientsRoot);
 
         var oneDrive = Environment.GetEnvironmentVariable("OneDriveCommercial")
                        ?? Environment.GetEnvironmentVariable("OneDrive");

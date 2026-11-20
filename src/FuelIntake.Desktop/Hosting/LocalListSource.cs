@@ -7,11 +7,11 @@ using FuelIntake.Core.Storage;
 namespace FuelIntake.Desktop.Hosting;
 
 /// <summary>
-/// Phase 1 lists: staff.json, vendors.json and settings.json in an app-data folder.
+/// Phase 1 lists: staff.json, vendors.json and settings.json in "_Fuel Intake Settings" inside the client files folder.
 /// Missing files are created (empty lists, default settings) so staff can see where they go.
 /// Phase 2 reads Microsoft Lists instead.
 /// </summary>
-public sealed class LocalListSource(string dataFolder) : IListSource
+public sealed class LocalListSource(LocalDataFolder folder) : IListSource
 {
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -20,7 +20,7 @@ public sealed class LocalListSource(string dataFolder) : IListSource
         PropertyNameCaseInsensitive = true,
     };
 
-    public string DataFolder { get; } = dataFolder;
+    public string DataFolder => folder.SettingsFolder;
 
     public async Task<StaffDirectory> GetStaffAsync(CancellationToken ct = default) =>
         new(await ReadAsync<List<StaffMember>>("staff.json", [], ct));
@@ -51,6 +51,7 @@ public sealed class LocalListSource(string dataFolder) : IListSource
 
     private async Task WriteAsync<T>(string name, T value, CancellationToken ct)
     {
+        folder.EnsureAvailable();
         Directory.CreateDirectory(DataFolder);
         var path = Path.Combine(DataFolder, name);
         var temp = path + ".saving";
@@ -60,6 +61,7 @@ public sealed class LocalListSource(string dataFolder) : IListSource
 
     private async Task<T> ReadAsync<T>(string name, T fallback, CancellationToken ct)
     {
+        folder.EnsureAvailable();
         var path = Path.Combine(DataFolder, name);
         if (!File.Exists(path))
         {

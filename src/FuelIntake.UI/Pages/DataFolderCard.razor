@@ -1,0 +1,93 @@
+@* Shows and changes the client files folder. Used on the settings page and when the app can't start. *@
+@inject IDataFolder Folder
+@inject IntakeSession Session
+
+<section class="card data-folder">
+    <h2>Client files folder</h2>
+    @{ var cur = Folder.Current; }
+    <p class="folder-path">
+        <code>@cur.Path</code>
+        @if (cur.IsDefault) { <span class="badge">default</span> }
+        @if (cur.SyncedFrom is not null) { <span class="badge synced" title="OneDrive keeps this folder in sync">@cur.SyncedFrom</span> }
+        @if (!cur.Available) { <span class="badge bad">not available</span> }
+    </p>
+    <p class="note">
+        Client folders and the shared lists (staff, vendors, settings, saved test data sets) are kept here.
+        Your choice is remembered on this computer, so new versions of the app open the same folder.
+        To use SharePoint, sync the document library with OneDrive (the <strong>Sync</strong> or
+        <strong>Add shortcut to My files</strong> button in SharePoint), then choose the synced folder here.
+    </p>
+
+    @if (pending is not null)
+    {
+        <div class="pending">
+            <p>Switch to <code>@pending</code>?</p>
+            @if (pendingWarning is not null) { <p class="warn">@pendingWarning</p> }
+            <label class="check-line"><input type="checkbox" @bind="copyLists" /> Bring my staff, vendor and settings lists and saved test data sets
+                (only where the new folder doesn't have them yet)</label>
+            <p class="note">Client folders aren't moved. To bring clients along, move their folders in File Explorer.</p>
+            <div class="actions">
+                <button disabled="@busy" @onclick="Confirm">Use this folder</button>
+                <button class="secondary" disabled="@busy" @onclick="() => { pending = null; pendingWarning = null; }">Cancel</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="actions">
+            @if (Folder.CanPick)
+            {
+                <button class="secondary" disabled="@busy" @onclick="Pick">Choose folder…</button>
+            }
+            else
+            {
+                <span class="note">The browser preview keeps data in memory; choose a folder in the desktop app.</span>
+            }
+            @if (!cur.IsDefault)
+            {
+                <button class="link" disabled="@busy" @onclick="UseDefault">Go back to the default (Documents)</button>
+            }
+        </div>
+    }
+    @if (message is not null) { <p class="@(messageIsError ? "problem" : "ok")">@message</p> }
+</section>
+
+@code {
+    /// <summary>Called after the folder changes (the start-up error page uses it to retry).</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string? pending, pendingWarning, message;
+    private bool busy, messageIsError, copyLists = true;
+
+    private async Task Pick()
+    {
+        message = null;
+        string? path;
+        try { path = await Folder.PickAsync(); }
+        catch (Exception ex) { Say("Couldn't open the folder picker: " + ex.Message, true); return; }
+        if (path is null) return;
+        if (Folder.Problem(path) is { } problem) { Say(problem, true); return; }
+        pending = path;
+        pendingWarning = Folder.Warning(path);
+    }
+
+    private Task Confirm() => Switch(pending, copyLists);
+
+    private Task UseDefault() => Switch(null, copyLists: false);
+
+    private async Task Switch(string? path, bool copyLists)
+    {
+        busy = true;
+        try
+        {
+            await Session.SwitchDataFolderAsync(() => Folder.UseAsync(path, copyLists));
+            pending = null; pendingWarning = null;
+            Say("Now using " + Folder.Current.Path, false);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) { Say("Couldn't switch folders: " + ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Say(string text, bool error) { message = text; messageIsError = error; }
+}

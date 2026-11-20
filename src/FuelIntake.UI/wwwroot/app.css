@@ -198,3 +198,13 @@ button.link.danger { background: none; color: var(--bad); }
 .notes-list .about-link { font-size: 12px; text-align: left; margin-top: 2px; }
 @keyframes flash { 0% { background: #fff3a6; box-shadow: 0 0 0 4px #fff3a6; } 100% { background: transparent; box-shadow: 0 0 0 4px transparent; } }
 .flash { animation: flash 2.2s ease-out; border-radius: 6px; }
+
+/* client files folder */
+.folder-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 8px; }
+.folder-path code, .folder-line code, .data-folder .pending code { font-size: 12.5px; background: var(--line); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.badge.synced { background: #dcecf9; color: #1d4f7a; }
+.badge.bad { background: #fde2e2; color: var(--bad); }
+.data-folder .pending { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+.data-folder .warn { color: var(--warn); }
+.data-folder .check-line { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.folder-line { margin: 0 0 6px; }
