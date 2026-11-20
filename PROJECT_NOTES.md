@@ -114,6 +114,13 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - Re-printing replaces the PDF of the same name; if it's open in a viewer, a "(2)" copy is saved.
 - Consent forms are not drawn: they're copied from the Masters folder into new client folders.
 
+## Light / dark mode
+- The round button at the right of the header cycles System (◐, follows Windows) → Light (☀) → Dark (☾).
+  The choice is kept in WebView2's browser storage under %LOCALAPPDATA%, so new versions keep it.
+- All app colours are CSS variables in `app.css`; `:root[data-theme="dark"]` overrides them.
+  `fuelintake.js` sets `data-theme` before the first render. Printed forms (`forms.css`) and the
+  print preview always stay black on white.
+
 ## Architecture rules
 
 - Screens never call Windows-only features directly. Anything host-specific goes behind
