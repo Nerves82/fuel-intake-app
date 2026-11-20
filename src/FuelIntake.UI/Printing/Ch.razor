@@ -1,0 +1,5 @@
+@* "___ Option" with an X on the blank when chosen (paper-form style). *@<span class="choice"><span class="tick">@(C ? "X" : "")</span> @T</span>
+@code {
+    [Parameter] public string T { get; set; } = "";
+    [Parameter] public bool C { get; set; }
+}

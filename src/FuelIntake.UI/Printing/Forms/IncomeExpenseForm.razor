@@ -1,0 +1,71 @@
+@* Income/Expense Worksheet (original: FA pg. 1.3). *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Model
+@{ var r = P.R; var c = P.C; var ie = r.IncomeExpenses; var inc = IncomeExpenseCatalog.IncomeLines; var exp = IncomeExpenseCatalog.ExpenseLines; }
+<div class="sheet">
+    <div class="title" style="font-size:12pt; margin-bottom:0.1in">Income/Expense Worksheet</div>
+    <table class="grid ie">
+        <colgroup><col style="width:2.7in" /><col style="width:0.8in" /><col style="width:1.85in" /><col style="width:1.0in" /><col style="width:1.0in" /></colgroup>
+        <tr><th>Gross Income</th><td>Monthly Amount ($)</td><th>Expenses</th><td>Paid in Last 30 Days ($)</td><td>Bills ($)</td></tr>
+        @for (var i = 0; i < exp.Count; i++)
+        {
+            var e = ie.Expenses.GetValueOrDefault(exp[i].Key);
+            <tr>
+                @if (i < 10)
+                {
+                    <td>@inc[i].Label</td><td class="n">@M(ie.Income.GetValueOrDefault(inc[i].Key))</td>
+                }
+                else if (i == 10)
+                {
+                    <td rowspan="5">Other</td><td rowspan="5" class="n">@M(ie.Income.GetValueOrDefault("Other"))</td>
+                }
+                else if (i == 15)
+                {
+                    <td rowspan="2">Any Income Change in the next month?</td><td class="@(ie.IncomeChangeNextMonth == "Yes" ? "chosen" : "")">Yes @(ie.IncomeChangeNextMonth == "Yes" ? "✔" : "")</td>
+                }
+                else if (i == 16)
+                {
+                    <td class="@(ie.IncomeChangeNextMonth == "No" ? "chosen" : "")">No @(ie.IncomeChangeNextMonth == "No" ? "✔" : "")</td>
+                }
+                else if (i == 17)
+                {
+                    <td colspan="2" rowspan="5">If yes, explain: <span class="val">@ie.IncomeChangeExplanation</span></td>
+                }
+                <td>@exp[i].Label</td><td class="n">@M(e?.PaidLast30Days)</td><td class="n">@M(e?.Bill)</td>
+            </tr>
+        }
+        <tr><td>Total Gross Monthly Income:</td><td class="n">@M(c.IncomeTotal)</td><td>Total Expenses:</td><td class="n">@M(c.ExpensesPaidTotal)</td><td class="n">@M(c.ExpensesBillTotal)</td></tr>
+    </table>
+
+    <div class="row gap">
+        <F L="Income – Expenses (difference):" V="@M(c.IncomeMinusExpenses)" W="0.8in" Class="money" />
+        <F L="Checking:" V="@M(ie.AssetChecking)" W="0.75in" Class="money" />
+        <F L="Savings:" V="@M(ie.AssetSavings)" W="0.75in" Class="money" />
+        <F L="Cash:" V="@M(ie.AssetCash)" W="0.7in" Class="money" />
+    </div>
+    <div class="row" style="justify-content:center">
+        <F L="CDs/Stocks/Bonds:" V="@M(ie.AssetCdsStocksBonds)" W="0.95in" Class="money" />
+        <F L="401K/403B/Retirement:" V="@M(ie.AssetRetirement)" W="1.25in" Class="money" />
+    </div>
+    <div>Explanation/Notes:</div>
+    <div class="notes" style="height:0.75in; overflow:hidden">@ie.Notes</div>
+
+    <div class="row">
+        <F L="Total Gross Income:" V="@M(c.IncomeTotal)" W="1.6in" Class="money" />
+        <F L="# HH Members:" V="@c.HouseholdSize.ToString()" W="0.8in" />
+        <F L="FPL %:" V="@FuelIntake.Core.Formatting.Percent.Format(c.FplPercent)" W="1.1in" />
+    </div>
+    <div class="row tall">
+        <span>Documents Attached for 30 days Income<Bx C="ie.DocumentsAttached30Days" /></span>
+        <span style="margin-left:0.35in">FPL Less Than @(FuelIntake.Core.Formatting.Percent.Format(P.Settings.IncomeLimit))<Bx C="@(c.UnderIncomeLimit == true)" /></span>
+        <span style="margin-left:auto"><span class="hl-b">Staff Initials:</span> <span class="v" style="width:0.8in">@c.StaffInitials</span></span>
+    </div>
+    <div class="row gap tall">
+        <span class="f grow"><span class="l hl-y">Client Signature:</span><span class="v" style="flex:1"></span></span>
+        <span class="f"><span class="l hl-y">Date:</span><span class="v" style="width:0.85in">@P.AppDate</span></span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+}

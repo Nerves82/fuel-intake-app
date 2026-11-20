@@ -3,7 +3,7 @@
 @{ var calc = Session.Calc!; }
 
 <h1>Review</h1>
-<p class="lead">Fix errors before printing. Warnings are worth a look; notes are just information.</p>
+<p class="lead">Fix errors before printing. Warnings are worth a look; notes are just information. When it looks right, go to <button class="link" @onclick="() => Session.Go(Screen.Print)">Print</button>.</p>
 
 <section class="card">
     <div class="summary-strip">

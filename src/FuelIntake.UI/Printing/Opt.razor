@@ -1,0 +1,5 @@
+@* A printed option that is circled when chosen. *@<span class="opt @(On ? "on" : "")">@Text</span>
+@code {
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public bool On { get; set; }
+}

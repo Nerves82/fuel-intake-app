@@ -20,6 +20,22 @@ public static class DevServices
             System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, "Browser"));
         services.AddSingleton<IEnumerable<CheckTarget>>([new CheckTarget("Temp folder", Path.GetTempPath())]);
         services.AddScoped<IntakeSession>();
+        services.AddScoped<FuelIntake.UI.Printing.PacketRenderer>();
+        services.AddSingleton<IPdfPrinter, NoPdf>();
+        services.AddSingleton<IFileOutput, NoFiles>();
+    }
+
+    /// <summary>The browser preview can't make PDFs; use Preview, or the desktop app.</summary>
+    private sealed class NoPdf : IPdfPrinter
+    {
+        public Task<byte[]> PrintAsync(string html, CancellationToken ct = default) =>
+            throw new NotSupportedException("PDF saving works in the desktop app. Use Preview here.");
+    }
+
+    private sealed class NoFiles : IFileOutput
+    {
+        public Task<string> SaveAsync(string clientId, string fileName, byte[] content, CancellationToken ct = default) => Task.FromResult(fileName);
+        public Task OpenAsync(string location, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class FakeUser : ICurrentUser

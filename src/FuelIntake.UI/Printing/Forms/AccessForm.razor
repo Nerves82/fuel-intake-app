@@ -1,0 +1,49 @@
+@* ACCESS Verification (original: FA pg. 1.2). Members 1-4; member 1 is the head of household. *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Model
+@{ var r = P.R; var c = P.C; var members = c.Members.Take(4).ToList(); var fe = r.FuelElectric; var sfa = r.Application.SeasonalFuelStatus; }
+<div class="sheet">
+    <div class="title" style="font-size:12pt">ACCESS Verification</div>
+    <div class="row" style="justify-content:flex-end; padding-right:1.1in; min-height:0.2in">3104(e)</div>
+
+    @for (var n = 0; n < 4; n++)
+    {
+        var m = n < members.Count ? members[n] : null;
+        <div class="row tall">
+            <F L="@(n == 0 ? "Head of Household:" : "Name:")" V="@(m?.FullName)" Grow="true" />
+            <F L="SSN:" V="@Ssn(m?.Data.Ssn)" W="1.45in" />
+            <span class="f"><span class="l">Disabled</span><Bx C="@(m?.Data.Disabled == "Y")" /></span>
+        </div>
+        <div class="row">
+            <F L="Income (quantity and source):" V="@(m is null ? "" : IntakeCalculations.IncomeText(m))" Grow="true" />
+            <F L="Date:" V="@D(m?.Data.IncomeVerifiedDate)" W="0.9in" />
+        </div>
+    }
+
+    <div class="row gap tall">
+        <F L="Non-Income (quantity and source, ex. SNAP):" V="@c.AccessNonIncomeLine" Grow="true" />
+        <F L="Date:" V="@(c.AccessNonIncomeLine.Length > 0 ? D(r.Client.Benefits.SnapVerifiedDate) : "")" W="0.9in" />
+    </div>
+    <div class="row"><span style="width:2.42in"></span><F V="" Grow="true" /><F L="Date:" V="" W="0.9in" /></div>
+    <div class="row"><span style="width:2.42in"></span><F V="" Grow="true" /><F L="Date:" V="" W="0.9in" /></div>
+
+    <div class="row gap tall">
+        <span style="width:1.7in">Seasonal Fuel Status:</span>
+        <Opt Text="Active" On="@(sfa == "Active")" /><Opt Text="Pending" On="@(sfa == "Pending")" /><Opt Text="Closed/Denied" On="@(sfa == "Closed/Denied")" />
+    </div>
+    <div class="row"><F L="Amount Granted: $" V="@M(fe.SeasonalFuelAmountGranted)" W="1.2in" Class="money" />
+        <span style="width:0.9in"></span><F L="Date Granted:" V="@D(fe.SeasonalFuelDateGranted)" W="1.2in" /></div>
+
+    <div class="row gap"><F L="Fuel Type:" V="@fe.FuelType" W="1.1in" /><F L="Service Address:" V="@c.ServiceAddressLine1" Grow="true" /></div>
+    <div class="row"><span style="width:1.88in"></span><F V="@c.ServiceAddressLine2" Grow="true" /></div>
+    <div class="row tall"><F L="Vendor:" V="@fe.Vendor" Grow="true" /><F L="Contact email/#:" V="@(string.Join(", ", new[] { c.VendorEmails, c.VendorPhones }.Where(s => s.Length > 0)))" W="1.9in" /><span class="ref">3104(m)1</span></div>
+    <div class="row"><F L="Account #:" V="@fe.VendorAccount" W="1.8in" /><span class="ref">3104(m)2</span></div>
+    <div class="row"><F L="Electric Provider:" V="@fe.ElectricProvider" Grow="true" /><F L="Account #:" V="@fe.ElectricAccount" W="1.8in" /><span class="ref">3104(m)3</span></div>
+    <div class="row">Notes:</div>
+    <div class="notes" style="height:1.0in">@fe.AccessNotes</div>
+    <div class="row"><span class="hl-b">Staff Initials:</span>&nbsp;<span class="v" style="width:1.0in">@c.StaffInitials</span></div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+}

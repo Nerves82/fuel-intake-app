@@ -1,0 +1,65 @@
+@* NEKCA Fuel Assistance Application (layout from the paper form; rule citations on the right). *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Lists
+@{ var r = P.R; var c = P.C; var a = r.Application; var d = a.Determination; var x = a.Referrals; }
+<div class="sheet app">
+    <div class="title" style="font-size:13pt">NEKCA Fuel Assistance Application</div>
+    <div class="row tall"><F L="Client Name:" V="@c.ClientFullName" Grow="true" /></div>
+    <div class="row small" style="justify-content:space-between">
+        <span>AAA employee applying on behalf<Bx C="a.AaaOnBehalf" /> 3103(c)</span>
+        <span>Afterhours Follow-up<Bx C="a.AfterHours" /> 3105(i)</span>
+        <span>Second Crisis Assist<Bx C="a.SecondCrisis" /> 3109(c)</span>
+    </div>
+    <div class="row tall"><b>Low on Fuel</b><Bx C="@(a.CrisisType == CrisisTypes.LowOnFuel)" /><F L="Current Quantity:" V="@a.CurrentQuantity" W="2.2in" /><span class="ref small">3102(c)5i, 5ii, 5iii</span></div>
+    <div class="row"><b>Disconnect Notice</b><Bx C="@(a.CrisisType == CrisisTypes.DisconnectNotice)" /></div>
+    <div class="row ind">For Electric required for heating system<Bx C="a.ElectricForHeat" /><span style="margin-left:0.3in">or Propane</span><Bx C="a.ElectricPropane" /></div>
+    <div class="row ind"><F L="Which component of the heating system does the electric run?" V="@a.ElectricComponent" Grow="true" /></div>
+    <div class="row ind" style="align-items:flex-start">
+        <span style="flex:1">Landlord Verification form required (rents, multi-family home AND heating system located outside of living unit) Form 204VEF?
+            <span style="margin-left:0.3in">Yes</span><Bx C="@(a.LandlordVerification == "Yes")" /><span style="margin-left:0.3in">No</span><Bx C="@(a.LandlordVerification == "No")" /></span>
+        <span class="ref small">3107(c)</span>
+    </div>
+    <div class="row">Heat included in rent<Bx C="a.HeatInRent" /><span style="margin-left:0.4in">AND meets rule exception 3102(d)</span><Bx C="a.RuleException" /><span class="ref small">3102(d)</span></div>
+    <div class="row">Is this a life-threatening crisis (documentation of medical condition must be provided)?<Bx C="a.LifeThreatening" /><span class="ref small">3103</span></div>
+    <div class="row">Unforeseen/Extenuating Circumstance:<span class="ref small">3102(c)6</span></div>
+    <div class="v wrap" style="display:block; min-height:0.45in; width:100%">@a.Circumstance</div>
+    <div class="row tall">Seasonal Fuel Status:
+        <span style="margin-left:0.3in">Active</span><Bx C="@(a.SeasonalFuelStatus == "Active")" />
+        <span style="margin-left:0.3in">Pending</span><Bx C="@(a.SeasonalFuelStatus == "Pending")" />
+        <span style="margin-left:0.3in">Closed/Denied</span><Bx C="@(a.SeasonalFuelStatus == "Closed/Denied")" /></div>
+    <div class="row small" style="align-items:flex-start"><span style="flex:1">NOTICE: If documents are not provided, this application will be closed in 5 business days. If entire application is not signed, no future assistance will be provided.</span><span class="ref">3104(f)</span></div>
+    <div class="row">Appeal Notice provided<Bx C="a.AppealNotice" /><span class="ref small">3112</span></div>
+    <div class="row tall"><span class="f grow"><span class="l hl-y">Client Signature:</span><span class="v" style="flex:1"></span></span><span class="f"><span class="l hl-y">Date:</span><span class="v" style="width:0.95in">@P.AppDate</span></span></div>
+    <div class="row">Phone application<Bx C="a.PhoneApplication" /><span class="ref small">3104(b)</span></div>
+    <div class="row"><F L="Reason:" V="@a.PhoneApplicationReason" Grow="true" /><F L="Staff Initials:" V="@c.StaffInitials" W="0.9in" /></div>
+    <div style="border-bottom:1.5pt solid #000; margin:6px 0"></div>
+
+    <div class="row"><b>Referrals</b></div>
+    <div class="row small" style="justify-content:space-between; padding-left:0.25in">
+        <span>Weatherization/NETO<Bx C="x.Neto" /></span><span>Financial Coaching<Bx C="x.FinancialCoaching" /></span><span>Whole Family Approach<Bx C="x.WholeFamily" /></span>
+    </div>
+    <div class="row small" style="justify-content:space-between; padding-left:0.25in">
+        <span>Agency on Aging<Bx C="x.AgencyOnAging" /></span><span>Community Connections<Bx C="x.CommunityConnections" /></span><span>VITA<Bx C="x.Vita" /></span>
+    </div>
+
+    <div class="row gap"><b>Denied</b><Bx C="d.Denied" /></div>
+    <div class="deny small">
+        <span>Obtained Expedited SFA<Bx C="d.DenyExpeditedSfa" /></span><span>No home heating crisis<Bx C="d.DenyNoCrisis" /></span><span>No unforeseen/extenuating circumstance<Bx C="d.DenyNoCircumstance" /></span>
+        <span>Over 200% FPL<Bx C="d.DenyOver200" /></span><span>Accessible Resources<Bx C="d.DenyResources" /></span><span>Use of funds over the past 30 days<Bx C="d.DenyFundsUse" /></span>
+        <span>Not receiving SFB<Bx C="d.DenyNoSfb" /></span><span>Max # of Grants<Bx C="d.DenyMaxGrants" /></span><span>Did not meet conditions of prior crisis assist<Bx C="d.DenyPriorConditions" /></span>
+        <span style="grid-column: 1 / -1">Other – Did not return with documentation<Bx C="d.DenyNoDocs" /></span>
+    </div>
+
+    <div class="row tall"><b>Warmth Eligible</b><Bx C="d.WarmthEligible" /><F L="Date:" V="@D(d.WarmthDate)" W="1.0in" />
+        <span style="margin-left:0.3in"><b>VLITE Eligible</b><Bx C="d.VliteEligible" /></span><F L="Date:" V="@D(d.VliteDate)" W="1.0in" /></div>
+    <div class="row"><b>Crisis Fuel Eligible</b><Bx C="d.CrisisEligible" /><F L="Date:" V="@D(d.CrisisEligibleDate)" W="1.0in" /><F L="Time:" V="@T(d.CrisisEligibleTime)" W="0.9in" /><span class="ref small">3108(d)</span></div>
+    <div class="row small" style="justify-content:space-between">
+        <span>NEKCA Intake forms complete<Bx C="d.CheckIntake" /></span><span>ACCESS Verification complete<Bx C="d.CheckAccess" /></span><span>Consent forms complete<Bx C="d.CheckConsents" /></span>
+    </div>
+    <div class="row small"><span>Circumstance included in Service Note<Bx C="d.CheckServiceNote" /></span><span style="margin-left:0.5in">Missing documents exception<Bx C="d.CheckMissingDocs" /> 3107(e)</span></div>
+    <div class="row gap tall"><span class="f grow"><span class="l hl-b">Staff Signature:</span><span class="v" style="flex:1"></span></span><span class="f"><span class="l hl-b">Date:</span><span class="v" style="width:0.95in">@P.AppDate</span></span></div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+}

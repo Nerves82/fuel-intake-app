@@ -1,0 +1,145 @@
+@using FuelIntake.Core.Packets
+@using FuelIntake.Core.Storage
+@using FuelIntake.Core.Validation
+@using FuelIntake.UI.Printing
+@inject IntakeSession Session
+@inject PacketRenderer Renderer
+@inject IPdfPrinter Printer
+@inject IFileOutput Output
+
+@{ var errors = Session.Issues.Count(i => i.Severity == IssueSeverity.Error); }
+<h1>Print packets</h1>
+<p class="lead">Pick a ready-made pack or choose forms, then save one PDF into the client's folder.</p>
+
+@if (errors > 0)
+{
+    <p class="problem">There @(errors == 1 ? "is 1 error" : $"are {errors} errors") on the <button class="link" @onclick="() => Session.Go(Screen.Review)">Review</button> tab. You can still print, but check them first.</p>
+}
+
+<div class="two-col">
+    <section class="card">
+        <h2>Pack</h2>
+        @for (var i = 0; i < PacketCatalog.Packs.Count; i++)
+        {
+            var index = i;
+            var pack = PacketCatalog.Packs[i];
+            <label class="radio block">
+                <input type="radio" name="pack" checked="@(packIndex == index)" @onchange="() => PickPack(index)" />
+                <span>@pack.Name</span>
+            </label>
+        }
+        <label class="radio block">
+            <input type="radio" name="pack" checked="@(packIndex == -1)" @onchange="() => PickPack(-1)" />
+            <span>Custom selection</span>
+        </label>
+    </section>
+
+    <section class="card">
+        <h2>Forms in this PDF</h2>
+        @foreach (var f in PacketCatalog.AllForms)
+        {
+            var form = f;
+            <label class="check">
+                <input type="checkbox" checked="@selected.Contains(form)" @onchange="e => Toggle(form, e.Value is true)" />
+                <span>@PacketCatalog.Title(form)</span>
+                @if (PacketCatalog.IsStaffOnly(form)) { <span class="badge staff">staff only</span> }
+            </label>
+        }
+        @if (selected.Any(PacketCatalog.IsStaffOnly))
+        {
+            <p class="note warn">Contains SSNs and income — keep with the file, don't upload to GoEngage.</p>
+        }
+    </section>
+</div>
+
+<section class="card">
+    <div class="grid">
+        <div class="field wide">
+            <label for="pf">File name</label>
+            <div class="inline"><input id="pf" @bind="fileName" @bind:event="oninput" /><span>.pdf</span></div>
+            <div class="hint">Saved in the client's folder: @Session.Folder?.DisplayName</div>
+        </div>
+    </div>
+    <label class="check"><input type="checkbox" @bind="openAfter" /><span>Open the PDF after saving</span></label>
+    <div class="actions">
+        <button disabled="@(busy || selected.Count == 0 || string.IsNullOrWhiteSpace(fileName))" @onclick="Save">@(busy ? "Saving…" : "Save PDF")</button>
+        <button class="secondary" disabled="@(busy || selected.Count == 0)" @onclick="Preview">Preview</button>
+    </div>
+    @if (message is not null) { <p class="@(isError ? "problem" : "ok")">@message</p> }
+    @if (savedAt is not null)
+    {
+        <p><button class="link" @onclick="() => Output.OpenAsync(savedAt)">Open @Path.GetFileName(savedAt)</button></p>
+    }
+</section>
+
+@if (previewHtml is not null)
+{
+    <section class="card">
+        <div class="row-between"><h2>Preview</h2><button class="link" @onclick="() => previewHtml = null">Close preview</button></div>
+        <iframe class="preview" srcdoc="@previewHtml"></iframe>
+    </section>
+}
+
+@code {
+    private int packIndex = 2; // Application Forms Pack
+    private HashSet<FormId> selected = [];
+    private string fileName = "";
+    private bool openAfter = true, busy, isError;
+    private string? message, savedAt, previewHtml;
+
+    protected override void OnInitialized() => PickPack(packIndex);
+
+    private void PickPack(int index)
+    {
+        packIndex = index;
+        var r = Session.Record!;
+        if (index >= 0)
+        {
+            var pack = PacketCatalog.Packs[index];
+            selected = PacketCatalog.FormsFor(pack, r.Application.CrisisType).ToHashSet();
+            fileName = Name(pack.FileNamePattern);
+        }
+        else fileName = Name(PacketCatalog.CustomFileNamePattern);
+        message = null; savedAt = null;
+    }
+
+    private void Toggle(FormId f, bool on)
+    {
+        if (on) selected.Add(f); else selected.Remove(f);
+        if (packIndex >= 0) { packIndex = -1; fileName = Name(PacketCatalog.CustomFileNamePattern); }
+    }
+
+    private string Name(string pattern) => PacketCatalog.ExpandFileName(pattern, Session.Record!.Client.FirstName,
+        Session.Record.Client.LastName, Session.Today, Session.Settings.FileDateFormat);
+
+    private IReadOnlyList<FormId> Ordered => selected.OrderBy(f => (int)f).ToList();
+
+    private PrintContext Context() => new(Session.Record!, Session.Calc!, Session.Settings, Session.Today);
+
+    private async Task Preview()
+    {
+        previewHtml = await Renderer.RenderAsync(Context(), Ordered, fileName);
+    }
+
+    private async Task Save()
+    {
+        busy = true; message = null; savedAt = null;
+        try
+        {
+            await Session.SaveAsync();
+            var html = await Renderer.RenderAsync(Context(), Ordered, fileName);
+            var pdf = await Printer.PrintAsync(html);
+            var name = ClientFolders.SafeName(fileName.Trim()) + ".pdf";
+            savedAt = await Output.SaveAsync(Session.Folder!.Id, name, pdf);
+            message = $"Saved {Path.GetFileName(savedAt)} ({selected.Count} form{(selected.Count == 1 ? "" : "s")}).";
+            isError = false;
+            if (openAfter) await Output.OpenAsync(savedAt);
+        }
+        catch (Exception ex)
+        {
+            message = "Couldn't save the PDF: " + ex.Message;
+            isError = true;
+        }
+        finally { busy = false; }
+    }
+}

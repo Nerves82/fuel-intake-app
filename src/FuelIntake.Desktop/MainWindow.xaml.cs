@@ -29,6 +29,9 @@ public partial class MainWindow : Window
         services.AddSingleton<IClientStore>(new LocalFolderClientStore(clientsRoot, lists));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IntakeSession>();
+        services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
+        services.AddSingleton<IPdfPrinter>(new WebView2PdfPrinter(Dispatcher));
+        services.AddSingleton<IFileOutput, LocalFileOutput>();
         services.AddSingleton<ICurrentUser, WindowsCurrentUser>();
         services.AddSingleton(BuildHostInfo());
         foreach (var target in CheckTargets())

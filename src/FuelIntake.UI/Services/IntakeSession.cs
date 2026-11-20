@@ -7,7 +7,7 @@ using FuelIntake.Core.Validation;
 namespace FuelIntake.UI.Services;
 
 /// <summary>Which screen is showing.</summary>
-public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Check, Settings }
+public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Print, Check, Settings }
 
 /// <summary>
 /// The open client and everything the screens share: the record, calculated values, lists,

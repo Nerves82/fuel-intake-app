@@ -1,0 +1,72 @@
+@* NEKCA Intake page 2 of 2 (landscape). *@
+@using FuelIntake.Core.Mapping
+@{ var r = P.R; var c = P.C; var b = r.Client.Benefits; var it = r.Client.Interests; var rows = c.OccupationRows; }
+<div class="sheet landscape">
+    <div style="display:flex; gap:0.25in; align-items:center">
+        <div class="logo small"></div>
+        <div style="flex:1; text-align:center">
+            <div class="title" style="font-size:13pt">NEKCA INTAKE PAGE 2 of 2</div>
+            <div class="bu tiny" style="font-size:7pt">Please complete the information below for your household. These include questions mandated by our federal funding source. Thank you for your assistance.</div>
+        </div>
+    </div>
+
+    <div class="bx"><div class="choices"><b>Housing Type:</b>
+        <Ch T="Own" C="@(c.HousingBox == HousingBox.Own)" /><Ch T="Rent" C="@(c.HousingBox == HousingBox.Rent)" />
+        <Ch T="Homeless/Temporary Shelter" C="@(c.HousingBox == HousingBox.HomelessTemporaryShelter)" /><Ch T="Other" C="@(c.HousingBox == HousingBox.Other)" />
+    </div></div>
+    <div class="bx" style="margin-top:8px"><div class="choices"><b>Household Type:</b>
+        @foreach (var (box, text) in HhTypes) { <Ch T="@text" C="@(c.HouseholdTypeBox == box)" /> }
+    </div></div>
+
+    <h3>Do You Receive Any Of The Following? (Please Check All That Apply):</h3>
+    <div class="bx"><div class="choices">
+        <span class="choice"><span class="tick">@(b.Snap ? "X" : "")</span> SNAP (Amount: $<span class="v" style="width:0.8in">@PrintContext.M(b.SnapAmount)</span>/<span class="v" style="width:0.5in">@(b.Snap ? b.SnapPeriod : "")</span>)</span>
+        <Ch T="WIC" C="b.Wic" /><Ch T="LIHEAP" C="b.Liheap" /><Ch T="Housing Choice Voucher" C="b.HousingChoiceVoucher" /><Ch T="Public Housing" C="b.PublicHousing" />
+        <Ch T="Permanent Supportive Housing" C="b.PermanentSupportiveHousing" /><Ch T="HUD-VASH" C="b.HudVash" /><Ch T="Childcare Voucher" C="b.ChildcareVoucher" /><Ch T="Affordable Care Act Subsidy" C="b.AcaSubsidy" />
+    </div></div>
+
+    <h3>FOR Household Members 14 + (Occupation Status)</h3>
+    @for (var k = 0; k < 4; k++)
+    {
+        var row = k < rows.Count ? rows[k] : null;
+        <div class="occ">
+            <div class="row" style="min-height:0.22in"><F L="Name:" V="@row?.Name" W="2.2in" /></div>
+            <div class="choices">
+                @foreach (var (box, text) in Occ) { <Ch T="@text" C="@(row?.Boxes.Contains(box) == true)" /> }
+            </div>
+        </div>
+    }
+
+    <h3>Programs / Service Categories of Interest:</h3>
+    <div class="bx"><div class="choices">
+        <Ch T="Food / Clothing" C="it.FoodClothing" /><Ch T="Housing Support" C="it.HousingSupport" /><Ch T="Fuel Assistance" C="it.FuelAssistance" />
+        <Ch T="Economic Programs (e.g. VITA, MicroBusiness, Coaching)" C="it.EconomicPrograms" /><Ch T="Youth Programs" C="it.YouthPrograms" />
+        <Ch T="Parent/Family Supports" C="it.FamilySupports" /><Ch T="TEFAP/USDA" C="it.Tefap" /><Ch T="Community Justice Programs" C="it.CommunityJustice" />
+        <span class="choice"><span class="tick">@(it.Other ? "X" : "")</span> Other: <span class="v" style="width:1.3in">@it.OtherText</span></span>
+    </div></div>
+
+    <div class="row" style="margin-top:6px"><span style="flex:1">I certify that all information is correct to the best of my knowledge.</span><span style="flex:1">All information provided is private and confidential.</span></div>
+    <div class="row">
+        <span class="f" style="flex:1"><span class="l hl-y">Participant Signature:</span><span class="v" style="flex:1"></span><span class="l hl-y" style="margin-left:8px">Date:</span><span class="v" style="width:0.85in">@P.AppDate</span></span>
+        <span class="f" style="flex:1; margin-left:0.3in"><span class="l hl-b">NEKCA Staff:</span><span class="v" style="flex:1">@r.Staff.StaffName</span><span class="l hl-b" style="margin-left:8px">Date:</span><span class="v" style="width:0.85in">@P.AppDate</span></span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+
+    private static readonly (HouseholdTypeBox, string)[] HhTypes =
+    [
+        (HouseholdTypeBox.SingleIndividual, "Single Individual"), (HouseholdTypeBox.TwoAdultsNoChildren, "Two Adults NO Children"),
+        (HouseholdTypeBox.SingleParentFemale, "Single Parent Female"), (HouseholdTypeBox.SingleParentMale, "Single Parent Male"),
+        (HouseholdTypeBox.TwoParentHousehold, "Two Parent HH"), (HouseholdTypeBox.NonRelatedAdultsWithChildren, "Non-Related Adults With Children"),
+        (HouseholdTypeBox.MultigenerationalHousehold, "Multigenerational HH"), (HouseholdTypeBox.Other, "Other"),
+    ];
+
+    private static readonly (OccupationBox, string)[] Occ =
+    [
+        (OccupationBox.EmployedFullTime, "Employed FT"), (OccupationBox.EmployedPartTime, "Employed PT"), (OccupationBox.Retired, "Retired"),
+        (OccupationBox.Student, "Student"), (OccupationBox.UnemployedUnder6Months, "Unemployed (< 6 Months)"),
+        (OccupationBox.Unemployed6MonthsPlus, "Unemployed (6 months+)"), (OccupationBox.MigrantWorker, "Migrant Worker"),
+    ];
+}
