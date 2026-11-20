@@ -28,8 +28,12 @@ See [PROJECT_NOTES.md](PROJECT_NOTES.md) for decisions and rules.
 
 **Newest approved version** (everything merged into `main`)
 [![Latest release](https://img.shields.io/github/v/release/Nerves82/fuel-intake-app?label=latest&cacheSeconds=60)](https://github.com/Nerves82/fuel-intake-app/releases/latest):
-[Download FuelIntake-win-x64.zip](https://github.com/Nerves82/fuel-intake-app/releases/latest/download/FuelIntake-win-x64.zip)
+**[Download the newest version](https://nerves82.github.io/fuel-intake-app/download/)**
+(the file is named with its version, e.g. `FuelIntake-0.1.45-win-x64.zip`)
 · [All releases](https://github.com/Nerves82/fuel-intake-app/releases)
+
+Backup link with a fixed file name (no version in it):
+[FuelIntake-win-x64.zip](https://github.com/Nerves82/fuel-intake-app/releases/latest/download/FuelIntake-win-x64.zip)
 
 After a merge, the new release takes about 2–3 minutes to build. Until then this link still gives the
 previous version: check the **latest** badge above or the
