@@ -46,6 +46,23 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePreview=true`
 (static rendering only: good for screenshots, not clicking).
 
+## Test data
+- Built-in practice cases live in `SampleIntakes.All` (Core). Each one uses SSNs starting 000 and
+  555 phone numbers. Cases: single senior/oil, family of 4/disconnect, over income/denied/phone app,
+  household of 10/propane with fees and invoice, multigenerational SSDI+SSI/pellets, shelter/kerosene/
+  second crisis, and "Needs fixing" (deliberate errors for Review-tab practice; `HasErrors` exempts it
+  from the no-errors test).
+- **Save as test data set** is on the Review tab of a **test client only**. A real client can never be
+  saved as a set, because its SSNs and income would become practice data. Core enforces this:
+  `TestDataSetRules.FromRecord` throws for a non-test record, and sets read from disk that aren't
+  marked as test data are skipped.
+- Saving drops activity, notes, creator, staff name/overrides and case number. Starting a client
+  from a set uses the new test client's name and today's date.
+- Saving with an existing set's name replaces that set. Deleting a set leaves the test clients made from it.
+- Saved sets are stored as one JSON file each in `_Fuel Intake Settings\test-data\`, next to the
+  staff and vendor lists. They become shared whenever that folder does (see the open question above).
+  Phase 2 will move them to a SharePoint list or library.
+
 ## Multiple staff on one intake
 
 - Any staff member can open and edit any client. Each save logs who changed which fields

@@ -1,6 +1,7 @@
 @using FuelIntake.Core.Storage
 @using FuelIntake.Core.TestData
 @inject IntakeSession Session
+@inject ITestDataSets TestSets
 
 <main class="page narrow">
     <section class="hero">
@@ -24,11 +25,44 @@
         <details class="test-tools">
             <summary>Practice with test data</summary>
             <p class="note">Creates a <strong>_TEST</strong> folder filled with made-up data. Never use this for a real client.</p>
-            @foreach (var s in SampleIntakes.All)
+            <p class="note">Uses the name above, or Testy Sampleton if it's blank.</p>
+            <h3>Built-in cases</h3>
+            <ul class="sample-list">
+                @foreach (var s in SampleIntakes.All)
+                {
+                    <li>
+                        <button class="secondary" disabled="@busy" @onclick="() => Create(s)">@s.Name</button>
+                        <span class="note">@s.Description</span>
+                    </li>
+                }
+            </ul>
+            <h3>Saved test data sets</h3>
+            @if (savedSets.Count == 0)
             {
-                <button class="secondary" disabled="@busy" @onclick="() => Create(s)">@s.Name</button>
-                <span class="note"> @s.Description</span><br />
+                <p class="note">None yet. Open a test client, set it up the way you want, then use <strong>Save as test data set</strong> on its Review tab.</p>
             }
+            else
+            {
+                <ul class="sample-list">
+                    @foreach (var t in savedSets)
+                    {
+                        <li>
+                            <button class="secondary" disabled="@busy" @onclick="() => Create(TestDataSetRules.AsSample(t))">@t.Name</button>
+                            <span class="note">@t.Description @(t.SavedBy is { } by ? $"· saved by {by.Name}" : "") @t.SavedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                            @if (confirmDelete == t.Id)
+                            {
+                                <button class="link danger" @onclick="() => DeleteSet(t)">Yes, delete</button>
+                                <button class="link" @onclick="() => confirmDelete = null">Keep</button>
+                            }
+                            else
+                            {
+                                <button class="link" title="Delete this saved set (test clients made from it stay)" @onclick="() => confirmDelete = t.Id">Delete</button>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            @if (setsError is not null) { <p class="problem">@setsError</p> }
         </details>
     </section>
 
@@ -98,7 +132,22 @@
         if (span.TotalDays < 7) return $"{(int)span.TotalDays} days ago";
         return at.ToLocalTime().ToString("MMM d");
     }
-    private string? error, nameProblem, search, first, last;
+    private string? error, nameProblem, search, first, last, setsError, confirmDelete;
+    private IReadOnlyList<TestDataSet> savedSets = [];
+
+    private async Task LoadSets()
+    {
+        try { savedSets = await TestSets.ListAsync(); setsError = null; }
+        catch (Exception ex) { savedSets = []; setsError = "Couldn't read saved test data sets: " + ex.Message; }
+    }
+
+    private async Task DeleteSet(TestDataSet t)
+    {
+        confirmDelete = null;
+        try { await TestSets.DeleteAsync(t.Id); }
+        catch (Exception ex) { setsError = "Couldn't delete: " + ex.Message; }
+        await LoadSets();
+    }
     private bool busy;
 
     protected override async Task OnInitializedAsync()
@@ -113,6 +162,7 @@
                 .Where(r => byId.ContainsKey(r.Id)).Select(r => (byId[r.Id], r.OpenedAt)).ToList();
         }
         catch { recentShown = []; }
+        await LoadSets();
     }
 
     private async Task Create(SampleIntakes.Sample? sample)
