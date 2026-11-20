@@ -158,6 +158,12 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
 
     // ------------------------------------------------------------------ vendors
 
+    public AgencySettings Settings => ctx.Settings;
+
+    public GrantSource? FuelOrderGrant => GrantSources.Find(ctx.Settings.GrantSources, r.FuelElectric.FuelOrder.FundingSource);
+    public GrantSource? InvoiceGrant => GrantSources.Find(ctx.Settings.GrantSources, r.FuelElectric.Invoice.FundingSource);
+    public GrantSource? PledgeGrant => GrantSources.Find(ctx.Settings.GrantSources, r.FuelElectric.ElectricPledge.FundingSource);
+
     public Vendor? FuelVendor => ctx.Vendors.Find(r.FuelElectric.Vendor);
 
     public Vendor? ElectricVendor => ctx.Vendors.Find(r.FuelElectric.ElectricProvider);

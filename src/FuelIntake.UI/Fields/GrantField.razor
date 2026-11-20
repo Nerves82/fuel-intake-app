@@ -1,0 +1,40 @@
+@* Grant/funding source: a dropdown of the agency's grant sources (Settings → Grant sources), with the
+   chosen source's code, limit and notes shown underneath. Falls back to a text box until a list exists. *@
+@inject IntakeSession Session
+
+@if (Choices.Count == 0 && Session.Settings.GrantSources.Count == 0)
+{
+    <TextBox Label="@Label" Value="@Value" ValueChanged="Set"
+             Hint="Add grant sources under Staff, vendors & settings → Grant sources to pick from a list." />
+}
+else
+{
+    <SelectBox Label="@Label" Value="@Value" ValueChanged="Set" Options="Choices" />
+    @if (Grant is { } g && (g.Code is { Length: > 0 } || g.MaxPerAssist is not null || g.Notes is { Length: > 0 } || !g.Active))
+    {
+        <div class="vendor-details wide grant-details">
+            @if (g.Code is { Length: > 0 }) { <span>Code: <strong>@g.Code</strong></span> }
+            @if (g.MaxPerAssist is { } max)
+            {
+                <span class="@(Total > max ? "over" : "")">Limit per assist: <strong>@Money.Format(max)</strong>@(Total > max ? $" — this total is {Money.Format(Total)}" : "")</span>
+            }
+            @if (!g.Active) { <span class="over">Marked inactive</span> }
+            @if (g.Notes is { Length: > 0 }) { <span>Notes: <strong>@g.Notes</strong></span> }
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public GrantUse Use { get; set; }
+    /// <summary>The order's or pledge's total, to compare with the source's limit.</summary>
+    [Parameter] public decimal? Total { get; set; }
+
+    private IReadOnlyList<string> Choices => GrantSources.For(Session.Settings.GrantSources, Use).Select(g => g.Name).ToList();
+
+    private GrantSource? Grant => GrantSources.Find(Session.Settings.GrantSources, Value);
+
+    private Task Set(string? value) => ValueChanged.InvokeAsync(value);
+}

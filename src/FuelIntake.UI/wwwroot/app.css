@@ -239,3 +239,7 @@ button.link.danger { background: none; color: var(--bad); }
 .money.cell .note-marker { position: absolute; top: -9px; right: -4px; margin: 0; z-index: 2; }
 .notes-list li.flash { animation: flash 2.2s ease-out; }
 table.changes tr.note-row td:first-child { white-space: nowrap; }
+.grant-details .over { color: var(--warn); font-weight: 600; }
+table.edit td.center { text-align: center; vertical-align: middle; }
+table.edit.grants td.narrow input:not([type=checkbox]) { width: 100px; }
+table.edit.grants tr.inactive input:not([type=checkbox]) { color: var(--quiet); }

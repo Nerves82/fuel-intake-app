@@ -16,6 +16,9 @@ public sealed class AgencySettings
     /// <summary>Fuel Order "send invoice to" phone when the staff member has none.</summary>
     public string? DefaultInvoicePhone { get; set; }
 
+    /// <summary>Grant/funding sources offered on the Fuel Order, invoice and Electric Pledge.</summary>
+    public List<GrantSource> GrantSources { get; set; } = [];
+
     /// <summary>Client folders live under Documents\&lt;this&gt; in phase 1.</summary>
     public string ClientsRootFolderName { get; set; } = "Client Files - Fuel 26-27";
 

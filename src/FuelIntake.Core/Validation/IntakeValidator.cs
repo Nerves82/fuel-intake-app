@@ -71,7 +71,36 @@ public static class IntakeValidator
         if (!string.IsNullOrWhiteSpace(r.FuelElectric.ElectricProvider) && calc.ElectricVendor is null)
             Add(IssueSeverity.Info, "Fuel & Electric", "Electric provider", "Electric provider isn't on the vendor list, so contact details won't fill in.");
 
+        // Grant/funding sources (only checked once the agency has a list)
+        if (r.FuelElectric.FuelOrder.Authorized || r.FuelElectric.FuelOrder.Fuel is not null)
+            CheckGrant("Fuel Order", r.FuelElectric.FuelOrder.FundingSource, calc.FuelOrderGrant, calc.FuelOrderTotal, GrantUse.Fuel);
+        if (r.FuelElectric.Invoice.Received)
+            CheckGrant("Invoice", r.FuelElectric.Invoice.FundingSource, calc.InvoiceGrant, calc.InvoiceTotal, GrantUse.Fuel);
+        if (r.FuelElectric.ElectricPledge.Authorized || r.FuelElectric.ElectricPledge.AmountRequired is not null)
+            CheckGrant("Electric Pledge", r.FuelElectric.ElectricPledge.FundingSource, calc.PledgeGrant, calc.PledgeTotal, GrantUse.Electric);
+
         return issues;
+
+        void CheckGrant(string what, string? entered, GrantSource? grant, decimal? total, GrantUse use)
+        {
+            var field = $"{what} funding source";
+            if (string.IsNullOrWhiteSpace(entered))
+            {
+                if (GrantSources.For(calc.Settings.GrantSources, use).Count > 0)
+                    Add(IssueSeverity.Warning, "Fuel & Electric", field, $"Pick the grant/funding source for the {what}.");
+                return;
+            }
+            if (calc.Settings.GrantSources.Count == 0) return;
+            if (grant is null)
+                Add(IssueSeverity.Info, "Fuel & Electric", field, $"\"{entered.Trim()}\" isn't on the grant source list.");
+            else if (!grant.Active)
+                Add(IssueSeverity.Warning, "Fuel & Electric", field, $"\"{grant.Name}\" is marked inactive in the grant source list.");
+            else if (use == GrantUse.Fuel ? !grant.ForFuel : !grant.ForElectric)
+                Add(IssueSeverity.Warning, "Fuel & Electric", field, $"\"{grant.Name}\" isn't set up for {(use == GrantUse.Fuel ? "fuel" : "electric")} assistance.");
+            else if (grant.MaxPerAssist is { } max && total > max)
+                Add(IssueSeverity.Warning, "Fuel & Electric", field,
+                    $"{what} total {Money.Format(total)} is over the {grant.Name} limit of {Money.Format(max)}.");
+        }
 
         void CheckPhone(string? value, string section, string field)
         {

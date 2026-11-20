@@ -75,7 +75,11 @@ public static class DevServices
             new StaffMember("Sam Placeholder", null, "8025550101", "splaceholder@example.org"),
         ];
         private List<Vendor>? vendors;
-        private AgencySettings settings = new() { DefaultInvoiceEmail = "fuel@example.org", DefaultInvoicePhone = "8025550000" };
+        private AgencySettings settings = new()
+        {
+            DefaultInvoiceEmail = "fuel@example.org", DefaultInvoicePhone = "8025550000",
+            GrantSources = [new() { Name = "Crisis Fuel", Code = "PREVIEW-01", MaxPerAssist = 1000m, Notes = "Preview example" }, new() { Name = "Example Electric Fund", ForFuel = false, MaxPerAssist = 400m }],
+        };
 
         public Task SaveStaffAsync(IEnumerable<StaffMember> s, CancellationToken ct = default) { staff = s.ToList(); return Task.CompletedTask; }
         public Task SaveVendorsAsync(IEnumerable<Vendor> v, CancellationToken ct = default) { vendors = v.ToList(); return Task.CompletedTask; }
