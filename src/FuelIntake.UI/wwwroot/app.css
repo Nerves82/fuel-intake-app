@@ -237,7 +237,8 @@ button.link.danger { background: none; color: var(--bad); }
 .note-marker:hover:not(:disabled) { background: #ffeea0; border-color: #c9ae3c; }
 .money.cell { position: relative; }
 .money.cell .note-marker { position: absolute; top: -9px; right: -4px; margin: 0; z-index: 2; }
-.notes-list li.flash { animation: flash 2.2s ease-out; }
+.notes-list li { transition: background-color 1.2s ease-out, box-shadow 1.2s ease-out; border-radius: 4px; }
+.notes-list li.highlight { background-color: #fff3a6; box-shadow: 0 0 0 4px #fff3a6; transition: background-color .15s, box-shadow .15s; }
 table.changes tr.note-row td:first-child { white-space: nowrap; }
 .grant-details .over { color: var(--warn); font-weight: 600; }
 table.edit td.center { text-align: center; vertical-align: middle; }
