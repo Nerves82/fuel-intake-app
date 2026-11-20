@@ -80,15 +80,17 @@ h3 { font-size: 10pt; margin: 10px 0 2px; }
 
 /* staff sheets (cover, GoEngage data) */
 .sheet.staff { font-size: 8pt; padding: 0.25in 0.3in; }
-.staff h1 { font-size: 13pt; color: #1f3b57; margin: 0; }
+.staff h1 { font-size: 13pt; color: #1c5630; margin: 0; }
+.staff .brandrow { display: flex; align-items: center; gap: 10px; }
+.staff .brandrow .logo { width: 0.75in; height: 0.5in; }
 .staff .sub { font-size: 7.5pt; color: #595959; font-style: italic; margin-bottom: 4px; }
 .staff .conf { color: #c00000; }
-.sect { background: #1f3b57; color: #fff; font-weight: 700; padding: 1px 6px; margin-top: 5px; font-size: 8pt; }
+.sect { background: #1c5630; color: #fff; font-weight: 700; padding: 1px 6px; margin-top: 5px; font-size: 8pt; }
 table.kv { width: 100%; border-collapse: collapse; table-layout: fixed; }
 table.kv td { border: 0.75pt solid #9aa3ad; padding: 1px 4px; font-size: 7.5pt; vertical-align: top; overflow: hidden; }
-table.kv td.k { background: #e8edf3; font-weight: 700; color: #1f3b57; white-space: nowrap; }
+table.kv td.k { background: #eaf2ec; font-weight: 700; color: #1c4428; white-space: nowrap; }
 table.kv td.x { font-family: "Courier New", monospace; font-weight: 700; color: #0b2f6b; }
-table.kv th { background: #e8edf3; color: #1f3b57; border: 0.75pt solid #9aa3ad; font-size: 7.5pt; padding: 2px; text-align: left; }
+table.kv th { background: #eaf2ec; color: #1c4428; border: 0.75pt solid #9aa3ad; font-size: 7.5pt; padding: 2px; text-align: left; }
 table.kv.tight td { font-size: 7pt; padding: 1px 3px; height: 0.15in; line-height: 1.1; }
 .app .row { min-height: 0.27in; gap: 0.08in; }
 .app .row.ind { padding-left: 0.25in; }

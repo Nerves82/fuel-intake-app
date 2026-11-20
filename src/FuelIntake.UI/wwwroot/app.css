@@ -1,13 +1,15 @@
 /* Shared styles for all hosts. Served as _content/FuelIntake.UI/app.css
-   Colours echo the workbook: yellow-ish inputs, blue calculated values, navy headings. */
+   NEKCA colours; yellow-ish inputs and tinted calculated values echo the workbook. */
 :root {
-  --ink: #1f2933; --quiet: #5f6b7a; --line: #d9dee5; --bg: #f4f6f8; --card: #fff;
-  --navy: #1f3b57; --accent: #2c5d8a; --calc: #e8f0f8; --calc-ink: #1f3b57;
+  /* NEKCA brand: deep leaf green, leaf green, and the navy of "Together We Grow" */
+  --green: #1c5630; --leaf: #4a7a2e; --brand-navy: #1c1c5a;
+  --ink: #1f2933; --quiet: #5f6b7a; --line: #d8e0da; --bg: #f3f6f3; --card: #fff;
+  --navy: #1c5630; --accent: #1c5630; --calc: #eaf2ec; --calc-ink: #1c4428;
   --ok: #2e7d32; --warn: #a15c00; --bad: #c62828; --test: #7b3fa0; --input: #fffdf3;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; color: var(--ink); background: var(--bg); }
-h1 { font-size: 22px; color: var(--navy); margin: 8px 0 4px; }
+h1 { font-size: 22px; color: var(--green); margin: 8px 0 4px; }
 h2 { font-size: 16px; color: var(--navy); margin: 0 0 12px; }
 .lead { color: var(--quiet); margin: 0 0 16px; }
 .note { color: var(--quiet); font-size: 13px; }
@@ -15,18 +17,19 @@ h2 { font-size: 16px; color: var(--navy); margin: 0 0 12px; }
 .ok { color: var(--ok); font-weight: 600; }
 
 /* header + tabs */
-.app-header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--navy); color: #fff; position: sticky; top: 0; z-index: 10; }
-.app-header .brand { font-weight: 600; font-size: 15px; }
-.app-header .client-name { font-size: 15px; flex: 1; }
+.app-header { display: flex; align-items: center; gap: 16px; padding: 6px 20px; background: #fff; color: var(--ink);
+  border-bottom: 4px solid var(--green); box-shadow: 0 1px 0 var(--leaf); position: sticky; top: 0; z-index: 10; min-height: 56px; }
+.app-header .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 16px; color: var(--green); }
+.app-header .brand img { height: 42px; width: auto; display: block; }
+.app-header .brand span { padding-left: 12px; border-left: 1px solid var(--line); }
+.app-header .client-name { font-size: 15px; flex: 1; color: var(--brand-navy); font-weight: 600; }
 .app-header .spacer { flex: 1; }
-.app-header .save-state { font-size: 12px; opacity: .85; }
-.app-header .save-state .problem { color: #ffb4b4; }
-.app-header .user { font-size: 13px; opacity: .85; }
-.app-header button.secondary { background: transparent; color: #fff; border-color: #ffffff88; }
-.app-header button.link { color: #fff; }
-.tabs { display: flex; gap: 2px; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 42px; z-index: 9; overflow-x: auto; }
+.app-header .save-state { font-size: 12px; color: var(--quiet); }
+.app-header .save-state .problem { color: var(--bad); }
+.app-header .user { font-size: 13px; color: var(--quiet); }
+.tabs { display: flex; gap: 2px; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 60px; z-index: 9; overflow-x: auto; }
 .tabs button { background: none; border: none; border-bottom: 3px solid transparent; color: var(--quiet); padding: 10px 14px; border-radius: 0; white-space: nowrap; }
-.tabs button.active { color: var(--navy); border-bottom-color: var(--accent); font-weight: 600; }
+.tabs button.active { color: var(--green); border-bottom-color: var(--leaf); font-weight: 600; }
 .tabs button.review { margin-left: auto; }
 .count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--line); color: var(--ink); font-size: 11px; text-align: center; }
 .count.error { background: var(--bad); color: #fff; }
@@ -144,3 +147,18 @@ ul.activity li.other { border-left: 3px solid var(--warn); padding-left: 8px; }
 table.changes { border-collapse: collapse; margin-top: 6px; font-size: 13px; }
 table.changes td { padding: 2px 8px 2px 0; vertical-align: top; }
 table.changes td.from { color: var(--quiet); text-decoration: line-through; }
+
+/* branding */
+.hero { display: flex; align-items: center; gap: 24px; padding: 20px 24px; margin-bottom: 16px; background: #fff;
+  border: 1px solid var(--line); border-top: 4px solid var(--green); border-radius: 8px; }
+.hero img { height: 96px; width: auto; }
+.hero h1 { margin: 0 0 4px; color: var(--green); }
+.hero p { margin: 0; color: var(--brand-navy); font-style: italic; }
+.splash { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 90vh; color: var(--quiet); }
+.splash img { height: 120px; }
+button { background: var(--green); border-color: var(--green); }
+button:hover:not(:disabled) { background: #164626; }
+button.secondary:hover:not(:disabled) { background: #eef4ef; }
+button.link:hover:not(:disabled) { background: none; }
+button.secondary { color: var(--green); border-color: var(--green); }
+.subtabs button.active { background: var(--green); }
