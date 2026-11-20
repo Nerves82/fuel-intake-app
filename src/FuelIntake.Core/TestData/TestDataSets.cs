@@ -62,6 +62,11 @@ public static class TestDataSetRules
     {
         var r = Strip(Clone(set.Record));
         r.IsTestData = true;
+        // household members who shared the saved client's last name take the new one
+        var oldLast = r.Client.LastName?.Trim();
+        if (!string.IsNullOrEmpty(oldLast))
+            foreach (var m in r.Household.Skip(1).Where(m => string.Equals(m.LastName?.Trim(), oldLast, StringComparison.OrdinalIgnoreCase)))
+                m.LastName = last;
         r.Client.FirstName = first;
         r.Client.LastName = last;
         r.Staff.AppDate = today;
