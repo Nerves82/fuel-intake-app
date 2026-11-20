@@ -1,0 +1,58 @@
+@* "It works" page: proves the app starts, the browser component renders, and folders are writable.
+   Shows no client data. *@
+@inject ICurrentUser User
+@inject HostInfo Host
+@inject IEnumerable<CheckTarget> Targets
+
+<main class="check">
+    <h1>It works</h1>
+    <p class="lead">Fuel Assistance Intake is running on this computer.</p>
+
+    <table>
+        <tbody>
+            <tr><th>Signed in as</th><td>@User.DisplayName @(User.Email is null ? "" : $"({User.Email})")</td></tr>
+            <tr><th>App version</th><td>@Host.AppVersion</td></tr>
+            <tr><th>Host</th><td>@Host.HostKind</td></tr>
+            <tr><th>Computer</th><td>@Host.MachineName</td></tr>
+            <tr><th>Running from</th><td>@Host.RunningFrom</td></tr>
+            <tr><th>.NET</th><td>@Host.Runtime</td></tr>
+            <tr><th>Browser engine</th><td>@Host.BrowserEngine</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Folder checks</h2>
+    @if (results is null)
+    {
+        <button @onclick="RunChecks">Run folder checks</button>
+    }
+    else
+    {
+        <ul class="results">
+            @foreach (var r in results)
+            {
+                <li class="@(r.Passed ? "pass" : "fail")">
+                    <strong>@(r.Passed ? "OK" : "Problem"):</strong> @r.Name <span class="detail">@r.Detail</span>
+                </li>
+            }
+        </ul>
+        <button @onclick="RunChecks">Run again</button>
+    }
+
+    <p class="note">Clicked at @clickedAt.ToString("h:mm:ss tt") @(clicks > 0 ? $"({clicks} clicks)" : "") —
+        <button class="link" @onclick="Click">click to test buttons</button></p>
+</main>
+
+@code {
+    private List<HostCheck.Result>? results;
+    private DateTime clickedAt = DateTime.Now;
+    private int clicks;
+
+    private void RunChecks() =>
+        results = Targets.Select(t => HostCheck.CanWriteTo(t.Name, t.Folder)).ToList();
+
+    private void Click()
+    {
+        clicks++;
+        clickedAt = DateTime.Now;
+    }
+}

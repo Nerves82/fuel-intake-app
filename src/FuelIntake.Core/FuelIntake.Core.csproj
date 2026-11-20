@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Core: data model, validation, FPL, mappings. No UI and no Windows-only code,
+       so it is shared unchanged by the desktop app (phase 1) and the web app (phase 2). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FuelIntake.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>
