@@ -37,7 +37,8 @@ else
     {
         <div class="banner">@Session.Notice <button class="link" @onclick="Session.DismissNotice">Dismiss</button></div>
     }
-    <main class="page">
+    <NotesPanel />
+    <main class="page @(Session.NotesOpen ? "with-notes" : "")">
         @switch (Session.Screen)
         {
             case Screen.Client: <ClientTab /> break;

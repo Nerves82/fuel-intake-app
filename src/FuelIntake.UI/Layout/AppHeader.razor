@@ -30,6 +30,9 @@
                 <span>Saved @t.ToLocalTime().ToString("h:mm tt")</span>
             }
         </div>
+        <button class="secondary @(Session.NotesOpen ? "on" : "")" @onclick="Session.ToggleNotes" title="Show or hide notes (stays open across tabs)">
+            Notes@(r.Notes.Count > 0 ? $" ({r.Notes.Count})" : "")
+        </button>
         <button class="secondary" @onclick="Session.CloseAsync">Close client</button>
     }
     else

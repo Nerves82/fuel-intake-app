@@ -81,6 +81,28 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Notify();
     }
 
+    /// <summary>The notes panel stays open (or closed) while moving between tabs.</summary>
+    public bool NotesOpen { get; private set; }
+
+    public void ToggleNotes() { NotesOpen = !NotesOpen; Notify(); }
+
+    public async Task AddNoteAsync(string text)
+    {
+        if (Record is null || string.IsNullOrWhiteSpace(text)) return;
+        ActivityLog.AddNote(Record, Me, clock.GetLocalNow(), text);
+        HasUnsavedChanges = true;
+        Notify();
+        await SaveAsync();
+    }
+
+    public async Task DeleteNoteAsync(string noteId)
+    {
+        if (Record is null || !ActivityLog.DeleteNote(Record, noteId, Me, clock.GetLocalNow())) return;
+        HasUnsavedChanges = true;
+        Notify();
+        await SaveAsync();
+    }
+
     public void Go(Screen screen)
     {
         Screen = screen;

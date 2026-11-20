@@ -22,6 +22,9 @@ public sealed class IntakeRecord
     /// <summary>Change history: who changed which fields, newest last. See <see cref="Activity.ActivityLog"/>.</summary>
     public List<Activity.ActivityEntry> Activity { get; set; } = [];
 
+    /// <summary>Staff notes on this client, oldest first.</summary>
+    public List<StaffNote> Notes { get; set; } = [];
+
     public StaffSection Staff { get; set; } = new();
     public ClientSection Client { get; set; } = new();
     public List<HouseholdMember> Household { get; set; } = [];
@@ -46,6 +49,15 @@ public sealed class StaffSection
     /// correctly on any computer, and so they can be added to another staff member's Staff list.
     /// </summary>
     public StaffContact? StaffSnapshot { get; set; }
+}
+
+/// <summary>A timestamped, authored note. Deleting removes it; the activity log keeps a record.</summary>
+public sealed class StaffNote
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public DateTimeOffset At { get; set; }
+    public StaffStamp By { get; set; } = new("", null);
+    public string Text { get; set; } = "";
 }
 
 /// <summary>A person who worked on the intake.</summary>

@@ -58,6 +58,12 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - If intake.json changed on disk since it was opened (another computer saved), the app stops
   saving and tells the user to reopen, instead of overwriting.
 
+## Notes
+
+- Staff notes live in `intake.json` → `notes` (id, time, author, text). The Notes panel opens from the
+  header and stays open across tabs. Anyone can delete a note (with a confirm); adding and deleting
+  are logged in the activity history with the note text, so a deleted note is still traceable.
+
 ## Printing (phase 1c)
 
 - Forms are Razor components in `FuelIntake.UI/Printing/Forms`, styled by `forms.css`

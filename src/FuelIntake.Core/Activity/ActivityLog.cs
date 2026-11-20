@@ -25,7 +25,8 @@ public static partial class ActivityLog
     public static readonly TimeSpan MergeWindow = TimeSpan.FromMinutes(15);
 
     /// <summary>Paths that are bookkeeping, not client data.</summary>
-    private static readonly string[] Ignored = ["activity", "createdBy", "createdAt", "formatVersion", "staff.staffSnapshot"];
+    // notes are logged explicitly by AddNote/DeleteNote, not by the field diff
+    private static readonly string[] Ignored = ["activity", "notes", "createdBy", "createdAt", "formatVersion", "staff.staffSnapshot"];
 
     /// <summary>The record as JSON without its history, used as the "before" snapshot.</summary>
     public static string Snapshot(IntakeRecord r)
@@ -80,6 +81,31 @@ public static partial class ActivityLog
         r.CreatedAt ??= at;
         r.Activity.Add(new ActivityEntry { At = at, By = by, Action = "Created" });
     }
+
+    /// <summary>Adds a note by <paramref name="by"/> and logs it.</summary>
+    public static StaffNote AddNote(IntakeRecord r, StaffStamp by, DateTimeOffset at, string text)
+    {
+        var note = new StaffNote { At = at, By = by, Text = text.Trim() };
+        r.Notes.Add(note);
+        r.Activity.Add(new ActivityEntry { At = at, By = by, Action = "Added a note", Changes = [new("Note", null, Preview(note.Text))] });
+        return note;
+    }
+
+    /// <summary>Deletes a note and logs who deleted it (and whose note it was).</summary>
+    public static bool DeleteNote(IntakeRecord r, string noteId, StaffStamp by, DateTimeOffset at)
+    {
+        var note = r.Notes.FirstOrDefault(n => n.Id == noteId);
+        if (note is null) return false;
+        r.Notes.Remove(note);
+        r.Activity.Add(new ActivityEntry
+        {
+            At = at, By = by, Action = "Deleted a note",
+            Changes = [new($"Note by {note.By.Name}, {note.At.ToLocalTime():MMM d h:mm tt}", Preview(note.Text), null)],
+        });
+        return true;
+    }
+
+    private static string Preview(string text) => text.Length <= 120 ? text : text[..117] + "…";
 
     public static bool SamePerson(StaffStamp a, StaffStamp b) =>
         !string.IsNullOrWhiteSpace(a.Email) && !string.IsNullOrWhiteSpace(b.Email)
