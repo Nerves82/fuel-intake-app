@@ -30,7 +30,7 @@
             @foreach (var n in Enumerable.Reverse(r.Notes))
             {
                 var note = n;
-                <li id="note-@note.Id">
+                <li id="note-@note.Id" class="@(flashing.Contains(note.Id) ? "highlight" : "")">
                     <div class="meta">
                         <strong>@note.By.Name</strong>
                         <span>@note.At.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
@@ -68,8 +68,7 @@
         if (Session.HighlightNoteIds is { } ids && Session.NotesOpen && Session.Record is not null)
         {
             Session.HighlightNoteIds = null;
-            try { await JS.InvokeVoidAsync("fuelIntake.flashNotes", ids.Select(i => "note-" + i).ToArray()); }
-            catch (Exception) { /* no JS in static preview */ }
+            _ = FlashAsync(ids);
         }
         if (!Session.FocusNoteBox || !Session.NotesOpen) return;
         Session.FocusNoteBox = false;
@@ -77,6 +76,31 @@
         catch (Exception) { /* no JS in static preview */ }
     }
     private void OnState() => InvokeAsync(StateHasChanged);
+
+    // Notes being highlighted (a field's note marker was clicked). The class is set here rather than by
+    // script, so the highlight shows even if scrolling isn't available.
+    private HashSet<string> flashing = [];
+    private int flashRun;
+
+    private async Task FlashAsync(IReadOnlyList<string> ids)
+    {
+        var run = ++flashRun;
+        if (flashing.Count > 0)
+        {
+            // clear first so clicking again restarts the animation
+            flashing = [];
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(50);
+        }
+        flashing = ids.ToHashSet();
+        await InvokeAsync(StateHasChanged);
+        try { await JS.InvokeVoidAsync("fuelIntake.scrollToNotes", ids.Select(i => "note-" + i).ToArray()); }
+        catch (Exception) { /* no JS in static preview */ }
+        await Task.Delay(1600); // then the highlight fades out (CSS transition)
+        if (run != flashRun) return;
+        flashing = [];
+        await InvokeAsync(StateHasChanged);
+    }
     public void Dispose() => Session.StateChanged -= OnState;
 
     private async Task Key(KeyboardEventArgs e)
