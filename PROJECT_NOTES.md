@@ -46,7 +46,14 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 
 ## Business rules carried over from the workbook
 
-Source of truth until ported: `reference/workbook/build.py` and `print_tabs.py`.
+Ported to `FuelIntake.Core` in phase 1a (data model, formatting, FPL, mappings, staff/vendor
+lookups, packets, validation); print layouts are still in `reference/workbook/print_tabs.py`.
+
+Small deliberate changes from the workbook:
+- ACCESS income text joins amount and source with " - " only when both exist
+  (the workbook could print a leading " - " when only a source was given).
+- Member ages use the application date, or today when there is none (same as the workbook).
+- The Staff list no longer rejects badly formatted phones; validation flags them instead.
 
 - FPL % = monthly household income × 12 ÷ HHS poverty guideline for the household size
   (48 contiguous states). Sizes over 8 add the per-person amount. Guidelines are updated
