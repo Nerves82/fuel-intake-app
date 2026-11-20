@@ -46,6 +46,18 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePreview=true`
 (static rendering only: good for screenshots, not clicking).
 
+## Multiple staff on one intake
+
+- Any staff member can open and edit any client. Each save logs who changed which fields
+  (old → new, SSNs masked) in `intake.json` → `activity`; edits by the same person within
+  15 minutes merge into one entry. The Review tab shows the history and flags edits by
+  someone other than the creator.
+- The assigned staff member's Staff-list details are copied into the file (`staff.staffSnapshot`),
+  so forms print correctly on any computer; opening the file adds them to the local Staff list
+  if missing.
+- If intake.json changed on disk since it was opened (another computer saved), the app stops
+  saving and tells the user to reopen, instead of overwriting.
+
 ## Printing (phase 1c)
 
 - Forms are Razor components in `FuelIntake.UI/Printing/Forms`, styled by `forms.css`
@@ -107,6 +119,10 @@ Small deliberate changes from the workbook:
   3025 Crisis Fuel site). Columns used: Vender Name, Location, Contact Emails,
   Contact Phone Numbers, Fuel Offered, Minimum Delivery, Emergency Trip Fee,
   Preassure Test/Leak Check Fee, Notes (spellings as in the List).
+  - A copy of the List (CSV export, Nov 2026) ships in `src/FuelIntake.Core/Data/` and seeds
+    vendors.json when it's missing or empty. Staff update it with Settings → Vendors → import CSV.
+  - Rows with no Vender Name are skipped (with a warning). The pressure-test fee exports as a Number:
+    0 means "not set". 10-digit phones print as (802) 555-0123.
   - Fuel vendor dropdown: entries not offering only Electric.
   - Electric provider dropdown: entries whose Fuel Offered includes Electric.
   - Fuel Order: emails on contact line 1, phones on line 2. Electric Pledge the same.

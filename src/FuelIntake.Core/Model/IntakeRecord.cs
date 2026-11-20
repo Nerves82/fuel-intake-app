@@ -15,6 +15,13 @@ public sealed class IntakeRecord
     /// <summary>True for test data; the app refuses to save test data over a real client and vice versa.</summary>
     public bool IsTestData { get; set; }
 
+    /// <summary>Who created this intake, and when.</summary>
+    public StaffStamp? CreatedBy { get; set; }
+    public DateTimeOffset? CreatedAt { get; set; }
+
+    /// <summary>Change history: who changed which fields, newest last. See <see cref="Activity.ActivityLog"/>.</summary>
+    public List<Activity.ActivityEntry> Activity { get; set; } = [];
+
     public StaffSection Staff { get; set; } = new();
     public ClientSection Client { get; set; } = new();
     public List<HouseholdMember> Household { get; set; } = [];
@@ -33,7 +40,19 @@ public sealed class StaffSection
     public string? InitialsOverride { get; set; }
     public string? PhoneOverride { get; set; }
     public string? EmailOverride { get; set; }
+
+    /// <summary>
+    /// Copy of the assigned staff member's Staff-list entry, saved with the client so their details print
+    /// correctly on any computer, and so they can be added to another staff member's Staff list.
+    /// </summary>
+    public StaffContact? StaffSnapshot { get; set; }
 }
+
+/// <summary>A person who worked on the intake.</summary>
+public sealed record StaffStamp(string Name, string? Email);
+
+/// <summary>A Staff-list entry saved with the client file.</summary>
+public sealed record StaffContact(string Name, string? Initials, string? Phone, string? Email);
 
 /// <summary>Tab 1 client, contact, service address, housing, benefits and interests.</summary>
 public sealed class ClientSection

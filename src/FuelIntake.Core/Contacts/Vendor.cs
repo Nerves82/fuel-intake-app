@@ -33,6 +33,11 @@ public sealed record Vendor(
         }
     }
 
+    /// <summary>Phone numbers from the list, each 10-digit number formatted: "(802) 748-8934, (802) 748-1393".</summary>
+    public static string FormatPhones(string? value) =>
+        string.Join(", ", (value ?? "").Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(p => Formatting.Phone.IsValid(p) ? Formatting.Phone.Format(p) : p));
+
     /// <summary>Multi-line list values joined with ", " (as the forms print them).</summary>
     public static string JoinLines(string? value) =>
         string.Join(", ", (value ?? "").Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
@@ -45,9 +50,11 @@ public sealed class VendorDirectory(IEnumerable<Vendor> vendors)
 
     public static VendorDirectory Empty { get; } = new([]);
 
-    public IEnumerable<Vendor> FuelVendors => Vendors.Where(v => v.OffersFuel);
+    /// <summary>Fuel vendor dropdown, A–Z.</summary>
+    public IEnumerable<Vendor> FuelVendors => Vendors.Where(v => v.OffersFuel).OrderBy(v => v.DisplayName, StringComparer.CurrentCultureIgnoreCase);
 
-    public IEnumerable<Vendor> ElectricProviders => Vendors.Where(v => v.OffersElectric);
+    /// <summary>Electric provider dropdown, A–Z.</summary>
+    public IEnumerable<Vendor> ElectricProviders => Vendors.Where(v => v.OffersElectric).OrderBy(v => v.DisplayName, StringComparer.CurrentCultureIgnoreCase);
 
     public Vendor? Find(string? displayName)
     {

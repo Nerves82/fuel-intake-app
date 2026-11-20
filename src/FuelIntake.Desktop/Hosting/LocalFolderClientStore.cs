@@ -51,6 +51,12 @@ public sealed class LocalFolderClientStore(string clientsRoot, IListSource lists
         File.Move(temp, file, overwrite: true);
     }
 
+    public Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default)
+    {
+        var file = new FileInfo(Path.Combine(clientId, ClientFolders.IntakeFileName));
+        return Task.FromResult<DateTimeOffset?>(file.Exists ? new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero) : null);
+    }
+
     /// <summary>Copies the forms the app doesn't draw (consent forms) into a new client folder. Never overwrites.</summary>
     private static void CopyTemplates(string clientFolder, AgencySettings settings, string first, string last)
     {

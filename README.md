@@ -24,11 +24,16 @@ See [PROJECT_NOTES.md](PROJECT_NOTES.md) for decisions and rules.
 | `tests/FuelIntake.Core.Tests` | Automated tests for Core. |
 | `reference/workbook` | The Excel workbook generator and scripts this app replaces (for porting). |
 
-## Getting a build
+## Getting the app
 
-Every push builds on GitHub (Actions → **Build** → pick a run → **Artifacts**).
-Download the zip, unzip it, and run `FuelIntake.exe`. Tagging a commit `v0.1.0`
-also creates a Release with the zip attached.
+**Newest approved version** (everything merged into `main`):
+[Download FuelIntake-win-x64.zip](https://github.com/Nerves82/fuel-intake-app/releases/latest/download/FuelIntake-win-x64.zip)
+· [All releases](https://github.com/Nerves82/fuel-intake-app/releases)
+
+Unzip it and run `FuelIntake.exe`. Windows may say "unknown publisher" the first time:
+choose **More info → Run anyway**.
+
+Test builds of branches that aren't merged yet: Actions → **Build** → pick a run → **Artifacts**.
 
 ## Building yourself (optional)
 

@@ -10,7 +10,11 @@
             @Session.Calc?.ClientFullName
         </div>
         <div class="save-state">
-            @if (Session.SaveError is not null)
+            @if (Session.SaveConflict)
+            {
+                <span class="problem">Not saved: changed on another computer</span>
+            }
+            else if (Session.SaveError is not null)
             {
                 <span class="problem" title="@Session.SaveError">Not saved: @Session.SaveError</span>
             }

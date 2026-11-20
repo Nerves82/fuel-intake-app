@@ -21,6 +21,9 @@ public interface IClientStore
     Task<IntakeRecord?> LoadAsync(string clientId, CancellationToken ct = default);
 
     Task SaveAsync(string clientId, IntakeRecord record, CancellationToken ct = default);
+
+    /// <summary>When intake.json was last saved by anyone (to spot two people editing at once), or null if never.</summary>
+    Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default);
 }
 
 /// <summary>Saves generated files (PDF packets) to a client folder and optionally opens them.</summary>

@@ -134,7 +134,10 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
 
     // ------------------------------------------------------------------ staff
 
-    private StaffMember? StaffRow => ctx.Staff.FindByName(r.Staff.StaffName);
+    /// <summary>The Staff-list entry for the assigned staff, else the copy saved with the client.</summary>
+    private StaffMember? StaffRow => ctx.Staff.FindByName(r.Staff.StaffName)
+        ?? (r.Staff.StaffSnapshot is { } s && string.Equals(s.Name.Trim(), r.Staff.StaffName?.Trim(), StringComparison.OrdinalIgnoreCase)
+            ? new StaffMember(s.Name, s.Initials, s.Phone, s.Email) : null);
 
     /// <summary>Override, else Staff list, else automatic from the name.</summary>
     public string StaffInitials =>
@@ -163,11 +166,11 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
     public string VendorEmails => Override(r.FuelElectric.VendorEmailOverride, FuelVendor?.ContactEmails);
 
     /// <summary>Fuel Order contact line 2: override, else vendor list phones.</summary>
-    public string VendorPhones => Override(r.FuelElectric.VendorPhoneOverride, FuelVendor?.ContactPhones);
+    public string VendorPhones => Blank(r.FuelElectric.VendorPhoneOverride) ? Vendor.FormatPhones(FuelVendor?.ContactPhones) : T(r.FuelElectric.VendorPhoneOverride);
 
     public string ElectricEmails => Override(r.FuelElectric.ElectricEmailOverride, ElectricVendor?.ContactEmails);
 
-    public string ElectricPhones => Override(r.FuelElectric.ElectricPhoneOverride, ElectricVendor?.ContactPhones);
+    public string ElectricPhones => Blank(r.FuelElectric.ElectricPhoneOverride) ? Vendor.FormatPhones(ElectricVendor?.ContactPhones) : T(r.FuelElectric.ElectricPhoneOverride);
 
     // ------------------------------------------------------------------ order totals (blank when nothing entered)
 

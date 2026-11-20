@@ -25,8 +25,17 @@ public sealed class LocalListSource(string dataFolder) : IListSource
     public async Task<StaffDirectory> GetStaffAsync(CancellationToken ct = default) =>
         new(await ReadAsync<List<StaffMember>>("staff.json", [], ct));
 
-    public async Task<VendorDirectory> GetVendorsAsync(CancellationToken ct = default) =>
-        new(await ReadAsync<List<Vendor>>("vendors.json", [], ct));
+    /// <summary>Vendors from vendors.json; when it's missing or empty, starts from the list built into the app.</summary>
+    public async Task<VendorDirectory> GetVendorsAsync(CancellationToken ct = default)
+    {
+        var list = await ReadAsync<List<Vendor>>("vendors.json", VendorCsv.BuiltIn().Vendors.ToList(), ct);
+        if (list.Count == 0)
+        {
+            list = VendorCsv.BuiltIn().Vendors.ToList();
+            await SaveVendorsAsync(list, ct);
+        }
+        return new(list);
+    }
 
     public Task<AgencySettings> GetSettingsAsync(CancellationToken ct = default) =>
         ReadAsync("settings.json", new AgencySettings(), ct);
