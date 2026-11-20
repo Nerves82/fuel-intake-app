@@ -4,11 +4,12 @@
     {
         <p class="note">@Note</p>
     }
-    <div class="grid">@ChildContent</div>
+    <CascadingValue Value="@(Scope?.Within(Title))"><div class="grid">@ChildContent</div></CascadingValue>
 </section>
 
 @code {
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public string? Note { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [CascadingParameter] public FieldScope? Scope { get; set; }
 }

@@ -63,6 +63,11 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - Staff notes live in `intake.json` → `notes` (id, time, author, text). The Notes panel opens from the
   header and stays open across tabs. Anyone can delete a note (with a confirm); adding and deleting
   are logged in the activity history with the note text, so a deleted note is still traceable.
+- Right-click a field → "Add note about this field" attaches `about` (tab, field key, label) to the note;
+  the note's link switches tab, scrolls to the field and flashes it. Shift+right-click keeps the normal
+  browser menu. Field keys come from the cascaded `FieldScope` (tab › section/card › label), so
+  renaming a section or label breaks old links (they then just open the tab). Household references
+  are by member number: removing a member shifts later members' links.
 
 ## Printing (phase 1c)
 

@@ -1,5 +1,5 @@
 @inherits FieldBase<bool>
-<label class="check">
+<label class="check" @attributes="Scope?.Attributes(Label)">
     <input type="checkbox" checked="@Value" @onchange="e => SetAsync(e.Value is true)" />
     <span>@Label</span>
     @if (!string.IsNullOrEmpty(Hint))
@@ -7,3 +7,7 @@
         <small>@Hint</small>
     }
 </label>
+
+@code {
+    [CascadingParameter] public FieldScope? Scope { get; set; }
+}

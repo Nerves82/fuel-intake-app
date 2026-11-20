@@ -31,6 +31,8 @@
         {
             FuelIntake.Core.Activity.ActivityLog.AddNote(rec, new("Sam Placeholder", null), DateTimeOffset.Now.AddHours(-3), "Client called: tank at 1/8, delivery needed before the weekend.");
             FuelIntake.Core.Activity.ActivityLog.AddNote(rec, Session.Me, DateTimeOffset.Now.AddMinutes(-20), "Left voicemail with Example Oil about a Friday delivery.\nWill follow up at 3.");
+            FuelIntake.Core.Activity.ActivityLog.AddNote(rec, Session.Me, DateTimeOffset.Now.AddMinutes(-5), "Card shows a different last digit — check with client.",
+                new FuelIntake.UI.Services.FieldScope(FuelIntake.UI.Services.Screen.Household).Within("Member 1").RefFor("SSN"));
             Session.ToggleNotes();
         }
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);

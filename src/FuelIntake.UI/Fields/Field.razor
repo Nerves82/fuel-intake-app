@@ -1,5 +1,5 @@
 @* Layout wrapper: label on top, control, then a hint or problem line. *@
-<div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem")">
+<div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem")" @attributes="Scope?.Attributes(Label)">
     <label for="@For">@Label</label>
     @ChildContent
     @if (Problem is not null)
@@ -19,4 +19,5 @@
     [Parameter] public string? Problem { get; set; }
     [Parameter] public bool Wide { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [CascadingParameter] public FieldScope? Scope { get; set; }
 }

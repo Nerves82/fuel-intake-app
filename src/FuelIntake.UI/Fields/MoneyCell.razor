@@ -1,6 +1,6 @@
 @using System.Globalization
 @* Compact money input for table cells (no label line). The parent records the change. *@
-<div class="money cell @(problem ? "has-problem" : "")">
+<div class="money cell @(problem ? "has-problem" : "")" @attributes="Scope?.Attributes(Label ?? string.Empty)">
     <span>$</span>
     <input type="text" inputmode="decimal" aria-label="@Label" title="@(problem ? "Enter a dollar amount like 291.50" : null)"
            value="@(Value?.ToString("#,##0.00", CultureInfo.GetCultureInfo("en-US")))" @onchange="OnChange" />
@@ -10,6 +10,7 @@
     [Parameter] public decimal? Value { get; set; }
     [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
     [Parameter] public string? Label { get; set; }
+    [CascadingParameter] public FieldScope? Scope { get; set; }
     private bool problem;
 
     private async Task OnChange(ChangeEventArgs e)

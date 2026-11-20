@@ -124,3 +124,17 @@ public class NotesTests
         Assert.Empty(ActivityLog.Diff(before, ActivityLog.Snapshot(r)));
     }
 }
+
+public class FieldNoteTests
+{
+    [Fact]
+    public void NoteAboutAField_KeepsTheReference_AndRoundTrips()
+    {
+        var r = new IntakeRecord();
+        var about = new NoteFieldRef("Household", "household|member-2|ssn", "Household › Member 2 › SSN");
+        ActivityLog.AddNote(r, new StaffStamp("Pat Example", null), DateTimeOffset.Now, "Card shows a different last digit", about);
+        Assert.Equal("Note about Household › Member 2 › SSN", r.Activity.Last().Changes[0].Field);
+        var back = FuelIntake.Core.Storage.IntakeJson.Deserialize(FuelIntake.Core.Storage.IntakeJson.Serialize(r));
+        Assert.Equal(about, back.Notes[0].About);
+    }
+}

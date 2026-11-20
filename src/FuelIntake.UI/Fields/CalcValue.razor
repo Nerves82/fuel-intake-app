@@ -1,5 +1,5 @@
 @* A calculated (read-only) value, shown in blue like the workbook's calculated cells. *@
-<div class="field calc @(Wide ? "wide" : "")">
+<div class="field calc @(Wide ? "wide" : "")" @attributes="Scope?.Attributes(Label)">
     <label>@Label</label>
     <div class="calc-value @(Strong ? "strong" : "")">@(string.IsNullOrEmpty(Value) ? "—" : Value)</div>
     @if (!string.IsNullOrEmpty(Hint))
@@ -14,4 +14,5 @@
     [Parameter] public string? Hint { get; set; }
     [Parameter] public bool Wide { get; set; }
     [Parameter] public bool Strong { get; set; }
+    [CascadingParameter] public FieldScope? Scope { get; set; }
 }

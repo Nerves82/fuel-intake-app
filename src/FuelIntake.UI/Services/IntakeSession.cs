@@ -81,6 +81,41 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Notify();
     }
 
+    /// <summary>The right-click menu on a field, if open.</summary>
+    public (NoteFieldRef Ref, double X, double Y)? FieldMenu { get; private set; }
+
+    /// <summary>The field the next note will be about (set by right-click → Add note).</summary>
+    public NoteFieldRef? PendingNoteRef { get; private set; }
+
+    /// <summary>A field to scroll to and highlight after the next render.</summary>
+    public NoteFieldRef? PendingReveal { get; set; }
+
+    /// <summary>Put the cursor in the note box after the next render.</summary>
+    public bool FocusNoteBox { get; set; }
+
+    public void ShowFieldMenu(NoteFieldRef r, double x, double y) { FieldMenu = (r, x, y); Notify(); }
+
+    public void CloseFieldMenu() { if (FieldMenu is null) return; FieldMenu = null; Notify(); }
+
+    public void StartNoteAbout(NoteFieldRef r)
+    {
+        FieldMenu = null;
+        PendingNoteRef = r;
+        NotesOpen = true;
+        FocusNoteBox = true;
+        Notify();
+    }
+
+    public void ClearPendingNoteRef() { PendingNoteRef = null; Notify(); }
+
+    /// <summary>Go to the field a note is about: switch tab, then scroll to it and highlight it.</summary>
+    public void RevealField(NoteFieldRef r)
+    {
+        if (Enum.TryParse<Screen>(r.Screen, out var s)) Screen = s;
+        PendingReveal = r;
+        Notify();
+    }
+
     /// <summary>The notes panel stays open (or closed) while moving between tabs.</summary>
     public bool NotesOpen { get; private set; }
 
@@ -89,7 +124,8 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public async Task AddNoteAsync(string text)
     {
         if (Record is null || string.IsNullOrWhiteSpace(text)) return;
-        ActivityLog.AddNote(Record, Me, clock.GetLocalNow(), text);
+        ActivityLog.AddNote(Record, Me, clock.GetLocalNow(), text, PendingNoteRef);
+        PendingNoteRef = null;
         HasUnsavedChanges = true;
         Notify();
         await SaveAsync();

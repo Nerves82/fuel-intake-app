@@ -7,6 +7,7 @@
 <div class="two-col">
     <section class="card">
         <h2>Gross monthly income</h2>
+        <CascadingValue Value="@(Scope?.Within("Income"))">
         <table class="lines">
             <tbody>
                 @foreach (var line in IncomeExpenseCatalog.IncomeLines)
@@ -19,6 +20,7 @@
                 <tr class="total"><td>Total gross monthly income</td><td>@Money.Format(calc.IncomeTotal)</td></tr>
             </tbody>
         </table>
+        </CascadingValue>
         <div class="grid">
             <RadioGroup Label="Any income change in the next month?" @bind-Value="ie.IncomeChangeNextMonth" Options="ChoiceLists.YesNo" />
             @if (ie.IncomeChangeNextMonth == "Yes")
@@ -30,6 +32,7 @@
 
     <section class="card">
         <h2>Expenses</h2>
+        <CascadingValue Value="@(Scope?.Within("Expenses"))">
         <table class="lines">
             <thead><tr><th></th><th>Paid in last 30 days</th><th>Bills</th></tr></thead>
             <tbody>
@@ -44,6 +47,7 @@
                 <tr class="total"><td>Total expenses</td><td>@Money.Format(calc.ExpensesPaidTotal)</td><td>@Money.Format(calc.ExpensesBillTotal)</td></tr>
             </tbody>
         </table>
+        </CascadingValue>
     </section>
 </div>
 
@@ -73,6 +77,8 @@
 <NextTab Next="Screen.FuelElectric" />
 
 @code {
+    [CascadingParameter] public FieldScope? Scope { get; set; }
+
     private decimal? Income(string key) => Session.Record!.IncomeExpenses.Income.GetValueOrDefault(key);
 
     private void SetIncome(string key, decimal? v)
