@@ -30,7 +30,8 @@ public partial class MainWindow : Window
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IntakeSession>();
         services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
-        services.AddSingleton<IPdfPrinter>(new WebView2PdfPrinter(Dispatcher));
+        // PDFs reuse the main window's WebView2 environment (a second, different environment on the same data folder is refused)
+        services.AddSingleton<IPdfPrinter>(new WebView2PdfPrinter(Dispatcher, () => Blazor.WebView?.CoreWebView2?.Environment));
         services.AddSingleton<IFileOutput, LocalFileOutput>();
         services.AddSingleton<ICurrentUser, WindowsCurrentUser>();
         services.AddSingleton(BuildHostInfo());

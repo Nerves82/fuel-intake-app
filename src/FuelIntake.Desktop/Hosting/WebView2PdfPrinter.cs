@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using FuelIntake.Core.Hosting;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 
 namespace FuelIntake.Desktop.Hosting;
@@ -11,15 +12,25 @@ namespace FuelIntake.Desktop.Hosting;
 /// DevTools "Page.printToPDF" command so CSS page sizes (portrait and landscape) are honoured.
 /// Uses a hidden off-screen window; nothing is shown to the user and nothing is written to disk.
 /// </summary>
-public sealed class WebView2PdfPrinter(Dispatcher dispatcher) : IPdfPrinter
+public sealed class WebView2PdfPrinter(Dispatcher dispatcher, Func<CoreWebView2Environment?> sharedEnvironment) : IPdfPrinter
 {
     private const string PrintOptions =
         """{"printBackground":true,"preferCSSPageSize":true,"marginTop":0,"marginBottom":0,"marginLeft":0,"marginRight":0}""";
 
-    public Task<byte[]> PrintAsync(string html, CancellationToken ct = default) =>
-        dispatcher.InvokeAsync(() => PrintOnUiThreadAsync(html)).Task.Unwrap();
+    public async Task<byte[]> PrintAsync(string html, CancellationToken ct = default)
+    {
+        try
+        {
+            return await dispatcher.InvokeAsync(() => PrintOnUiThreadAsync(html)).Task.Unwrap();
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("PDF printing failed", ex);
+            throw;
+        }
+    }
 
-    private static async Task<byte[]> PrintOnUiThreadAsync(string html)
+    private async Task<byte[]> PrintOnUiThreadAsync(string html)
     {
         var web = new WebView2();
         var window = new Window
@@ -30,7 +41,10 @@ public sealed class WebView2PdfPrinter(Dispatcher dispatcher) : IPdfPrinter
         window.Show();
         try
         {
-            await web.EnsureCoreWebView2Async(); // uses WEBVIEW2_USER_DATA_FOLDER set at start-up
+            // Must use the same environment as the main window: WebView2 refuses a second environment
+            // with different options on the same user-data folder ("not in the correct state").
+            await web.EnsureCoreWebView2Async(sharedEnvironment()
+                ?? throw new InvalidOperationException("The app's browser isn't ready yet. Try again in a moment."));
             var loaded = new TaskCompletionSource<bool>();
             web.CoreWebView2.NavigationCompleted += (_, e) => loaded.TrySetResult(e.IsSuccess);
             web.CoreWebView2.NavigateToString(html);
