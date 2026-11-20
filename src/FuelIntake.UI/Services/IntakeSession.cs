@@ -56,6 +56,30 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Vendors = await lists.GetVendorsAsync();
     }
 
+    /// <summary>Which sub-tab the settings page opens on (0 staff, 1 vendors, 2 agency, 3 data folder).</summary>
+    public int SettingsTab { get; set; }
+
+    /// <summary>Opens the settings page on the data folder tab.</summary>
+    public void GoToDataFolder()
+    {
+        SettingsTab = 3;
+        Go(Screen.Settings);
+    }
+
+    /// <summary>
+    /// Switches the client files folder: saves and closes the open client first (it belongs to the old
+    /// folder), runs <paramref name="change"/>, then reloads the lists from the new folder.
+    /// </summary>
+    public async Task SwitchDataFolderAsync(Func<Task> change)
+    {
+        var screen = Screen;
+        if (Record is not null) await CloseAsync();
+        await change();
+        await InitializeAsync();
+        Screen = screen == Screen.Settings ? Screen.Settings : Screen.Clients;
+        Notify();
+    }
+
     public async Task SaveStaffAsync(IEnumerable<StaffMember> staff)
     {
         await lists.SaveStaffAsync(staff);

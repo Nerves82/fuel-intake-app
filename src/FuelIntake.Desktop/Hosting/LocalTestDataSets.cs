@@ -4,8 +4,10 @@ using FuelIntake.Core.TestData;
 namespace FuelIntake.Desktop.Hosting;
 
 /// <summary>Saved test data sets: one JSON file each in "_Fuel Intake Settings\test-data", shared by everyone using that folder.</summary>
-public sealed class LocalTestDataSets(string folder) : ITestDataSets
+public sealed class LocalTestDataSets(LocalDataFolder data) : ITestDataSets
 {
+    private string folder => data.TestDataFolder;
+
     public async Task<IReadOnlyList<TestDataSet>> ListAsync(CancellationToken ct = default)
     {
         if (!Directory.Exists(folder)) return [];
@@ -26,6 +28,7 @@ public sealed class LocalTestDataSets(string folder) : ITestDataSets
 
     public async Task SaveAsync(TestDataSet set, CancellationToken ct = default)
     {
+        data.EnsureAvailable();
         Directory.CreateDirectory(folder);
         var path = PathFor(set.Id);
         var temp = path + ".saving";

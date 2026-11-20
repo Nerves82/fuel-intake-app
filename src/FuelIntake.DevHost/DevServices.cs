@@ -20,6 +20,7 @@ public static class DevServices
             System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, "Browser"));
         services.AddSingleton<IEnumerable<CheckTarget>>([new CheckTarget("Temp folder", Path.GetTempPath())]);
         services.AddSingleton<IRecentClients, MemoryRecent>();
+        services.AddSingleton<IDataFolder, PreviewDataFolder>();
         services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets, FuelIntake.Core.TestData.MemoryTestDataSets>();
         services.AddScoped<IntakeSession>();
         services.AddScoped<FuelIntake.UI.Printing.PacketRenderer>();
@@ -38,6 +39,18 @@ public static class DevServices
     {
         public Task<string> SaveAsync(string clientId, string fileName, byte[] content, CancellationToken ct = default) => Task.FromResult(fileName);
         public Task OpenAsync(string location, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    /// <summary>The preview keeps everything in memory; it shows the folder card but can't pick a folder.</summary>
+    private sealed class PreviewDataFolder : IDataFolder
+    {
+        private const string Default = @"C:\Users\pexample\Documents\Client Files - Fuel 26-27";
+        public DataFolderInfo Current => new(Default, Default, true, true, null);
+        public bool CanPick => false;
+        public Task<string?> PickAsync(CancellationToken ct = default) => Task.FromResult<string?>(null);
+        public string? Problem(string path) => "The browser preview keeps data in memory.";
+        public string? Warning(string path) => null;
+        public Task UseAsync(string? path, bool copyLists, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class MemoryRecent : IRecentClients

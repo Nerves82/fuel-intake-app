@@ -31,10 +31,19 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 
 ## Phase 1 data locations (desktop)
 
-- Client folders: `Documents\Client Files - Fuel 26-27\Last, First\intake.json`
+- Client files folder: chosen under **Staff, vendors & settings → Data folder**; default
+  `Documents\Client Files - Fuel 26-27`. The choice is saved per Windows user in
+  `%LOCALAPPDATA%\FuelIntake\data-folder.json`, outside the versioned app folder, so new versions
+  keep it. To use SharePoint: sync the document library with OneDrive, then choose the synced folder.
+  The app labels folders OneDrive keeps in sync (read from the user's OneDrive settings in HKCU).
+- A chosen folder that's missing is never created (that would keep client files on the laptop only);
+  the app shows the problem and lets staff pick again. The default folder is created when missing.
+- Switching folders closes the open client first, can copy the lists and saved test data sets
+  (never overwriting), and never moves client folders.
+- Client folders: `<client files folder>\Last, First\intake.json`
   (existing workbook-era folders show up too; opening one starts a new intake from the folder name).
 - Test clients: folders starting with `_TEST ` (made-up data only).
-- Lists and settings: `Documents\Client Files - Fuel 26-27\_Fuel Intake Settings\`
+- Lists and settings: `<client files folder>\_Fuel Intake Settings\`
   `staff.json`, `vendors.json`, `settings.json` (created empty on first run).
   Open question: move these to the shared Crisis Fuel folder so the team shares one copy.
 - New client folders get the consent forms copied from the Masters template folder.
