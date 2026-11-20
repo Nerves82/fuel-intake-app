@@ -20,6 +20,7 @@ public static class DevServices
             System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, "Browser"));
         services.AddSingleton<IEnumerable<CheckTarget>>([new CheckTarget("Temp folder", Path.GetTempPath())]);
         services.AddSingleton<IRecentClients, MemoryRecent>();
+        services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets, FuelIntake.Core.TestData.MemoryTestDataSets>();
         services.AddScoped<IntakeSession>();
         services.AddScoped<FuelIntake.UI.Printing.PacketRenderer>();
         services.AddSingleton<IPdfPrinter, NoPdf>();

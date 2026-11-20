@@ -1,5 +1,8 @@
 @using FuelIntake.Core.Validation
+@using FuelIntake.Core.TestData
 @inject IntakeSession Session
+@inject ITestDataSets TestSets
+@inject TimeProvider Clock
 @{ var calc = Session.Calc!; }
 
 <h1>Review</h1>
@@ -36,6 +39,21 @@ else
             </ul>
         </section>
     }
+}
+
+@if (Session.Record!.IsTestData)
+{
+    <section class="card test-save">
+        <h2>Save as test data set</h2>
+        <p class="note">Saves this test client's data so anyone can start a new test client from it under
+            <strong>Practice with test data</strong>. Notes, activity and staff details aren't saved.</p>
+        <div class="grid">
+            <div class="field"><label for="tsn">Name</label><input id="tsn" maxlength="@TestDataSetRules.MaxNameLength" @bind="setName" @bind:event="oninput" placeholder="e.g. Propane, over income, phone app" /></div>
+            <div class="field"><label for="tsd">What it tests (optional)</label><input id="tsd" @bind="setDescription" @bind:event="oninput" /></div>
+        </div>
+        @if (setMessage is not null) { <p class="@(setSaved ? "ok" : "problem")">@setMessage</p> }
+        <div class="actions"><button class="secondary" disabled="@savingSet" @onclick="SaveTestSet">Save test data set</button></div>
+    </section>
 }
 
 <section class="card">
@@ -77,6 +95,26 @@ else
 </section>
 
 @code {
+    private string? setName, setDescription, setMessage;
+    private bool savingSet, setSaved;
+
+    private async Task SaveTestSet()
+    {
+        if (string.IsNullOrWhiteSpace(setName)) { setSaved = false; setMessage = "Give the test data set a name."; return; }
+        savingSet = true;
+        try
+        {
+            var existing = (await TestSets.ListAsync()).FirstOrDefault(x => string.Equals(x.Name, setName.Trim(), StringComparison.CurrentCultureIgnoreCase));
+            var set = TestDataSetRules.FromRecord(Session.Record!, setName, setDescription, Session.Me, Clock.GetLocalNow());
+            if (existing is not null) set.Id = existing.Id; // same name replaces it
+            await TestSets.SaveAsync(set);
+            setSaved = true;
+            setMessage = existing is null ? $"Saved \"{set.Name}\"." : $"Replaced the earlier \"{set.Name}\".";
+        }
+        catch (Exception ex) { setSaved = false; setMessage = "Couldn't save: " + ex.Message; }
+        finally { savingSet = false; }
+    }
+
     private static string Title(IssueSeverity s) => s switch
     {
         IssueSeverity.Error => "Errors",
