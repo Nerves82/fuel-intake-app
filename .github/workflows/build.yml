@@ -1,6 +1,9 @@
 # Builds, tests and packages the Windows desktop app on GitHub's Windows machines.
 # Every push produces a downloadable zip (Actions run page -> Artifacts).
-# Pushing a tag like v0.1.0 also creates a GitHub Release with the zip attached.
+# Every push to main (i.e. every merged pull request) also publishes a GitHub Release, so the newest
+# approved build is always at:
+#   https://github.com/Nerves82/fuel-intake-app/releases/latest/download/FuelIntake-win-x64.zip
+# Pushing a tag like v1.0.0 publishes a release with that version number instead.
 name: Build
 
 on:
@@ -53,7 +56,10 @@ jobs:
 
       - name: Zip
         shell: pwsh
-        run: Compress-Archive -Path publish/FuelIntake -DestinationPath "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip"
+        run: |
+          Compress-Archive -Path publish/FuelIntake -DestinationPath "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip"
+          # same file under a fixed name, so ".../releases/latest/download/FuelIntake-win-x64.zip" always works
+          Copy-Item "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip" "FuelIntake-win-x64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -61,9 +67,12 @@ jobs:
           path: publish/FuelIntake
           retention-days: 30
 
-      - name: Create release (tags only)
-        if: github.ref_type == 'tag'
+      - name: Publish release (main and version tags only)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref_type == 'tag')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip" --title "${{ github.ref_name }}" --generate-notes
+        run: |
+          $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "v${{ steps.ver.outputs.version }}" }
+          gh release create $tag "FuelIntake-win-x64.zip" "FuelIntake-${{ steps.ver.outputs.version }}-win-x64.zip" `
+            --target "${{ github.sha }}" --title "Fuel Intake $tag" --generate-notes --latest
