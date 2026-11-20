@@ -19,9 +19,24 @@ window.fuelIntake = {
     if (!el) return false;
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
-    const input = el.querySelector('input:not([type=radio]), select, textarea, input');
+    const input = el.querySelector('input:not([type=radio]), select, .picker-button, textarea, input');
     if (input) setTimeout(() => input.focus({ preventScroll: true }), 350);
     return true;
   },
-  focus(id) { const el = document.getElementById(id); if (el) el.focus(); }
+  focus(id) { const el = document.getElementById(id); if (el) el.focus(); },
+  // Opens a dropdown list upward when there's no room below, and keeps the highlighted option in view.
+  placeList(id, index) {
+    const list = document.getElementById(id);
+    if (!list) return;
+    if (!list.dataset.placed) {
+      list.dataset.placed = '1';
+      const box = list.parentElement.getBoundingClientRect();
+      const below = window.innerHeight - box.bottom, above = box.top;
+      const needed = Math.min(list.scrollHeight, 320);
+      list.classList.toggle('up', below < needed + 8 && above > below);
+      list.classList.toggle('right', list.getBoundingClientRect().right > window.innerWidth - 8);
+    }
+    const item = list.children[index];
+    if (item) item.scrollIntoView({ block: 'nearest' });
+  }
 };
