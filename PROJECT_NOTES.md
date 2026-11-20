@@ -129,6 +129,19 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   never uploaded to GoEngage.
 - Test data is clearly fake and loads only in test mode, never into a real client's file.
 
+## Grant / funding sources
+- Kept in Agency settings (`settings.json` → `grantSources`), edited under Staff, vendors & settings →
+  Grant sources: name (what prints), optional code, used for Fuel and/or Electric, optional limit per
+  assist, active, notes. Phase 2: a Microsoft List.
+- The Fuel Order, invoice and Electric Pledge "Grant/funding source" fields become dropdowns of the
+  active sources for that use (a text box until the agency has a list). The chosen source's code, limit
+  and notes show under the field. Picking on the Fuel Order also fills the invoice when it was blank
+  or matched the order.
+- Review tab: warns when a source is missing (once a list exists), inactive, set up for the other kind
+  of assistance, or when the total is over its limit; notes a typed source that isn't on the list.
+- Open question for Steve: what else a grant source should carry (e.g. a default per crisis type, a
+  season/date range, or a code printed on the forms).
+
 ## Business rules carried over from the workbook
 
 Ported to `FuelIntake.Core` in phase 1a (data model, formatting, FPL, mappings, staff/vendor

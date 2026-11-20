@@ -62,7 +62,7 @@
         <MoneyBox Label="Start Up $" @bind-Value="o.StartUp" />
         <CalcValue Label="Total $" Value="@Money.Format(calc.FuelOrderTotal)" Strong="true" />
         <DateBox Label="Est. delivery date" @bind-Value="o.EstimatedDelivery" />
-        <TextBox Label="Grant/funding source" @bind-Value="o.FundingSource" />
+        <GrantField Label="Grant/funding source" Value="@o.FundingSource" ValueChanged="SetOrderGrant" Use="GrantUse.Fuel" Total="calc.FuelOrderTotal" />
         <CalcValue Label="Send invoice to" Value="@(string.Join("  ·  ", new[] { calc.InvoiceEmail, calc.InvoicePhone }.Where(s => s.Length > 0)))"
                    Hint="Staff contact from tab 1, else the agency default" Wide="true" />
     </Section>
@@ -76,7 +76,7 @@
         <MoneyBox Label="Start Up $" @bind-Value="inv.StartUp" />
         <CalcValue Label="Total $ (enter in GoEngage as the actual fuel cost)" Value="@Money.Format(calc.InvoiceTotal)" Strong="true" />
         <DateBox Label="Delivery date" @bind-Value="inv.DeliveryDate" />
-        <TextBox Label="Grant/funding source" @bind-Value="inv.FundingSource" />
+        <GrantField Label="Grant/funding source" @bind-Value="inv.FundingSource" Use="GrantUse.Fuel" Total="calc.InvoiceTotal" />
     </Section>
 }
 
@@ -92,7 +92,7 @@
         <CalcValue Label="Total $" Value="@Money.Format(calc.PledgeTotal)" Strong="true" />
         <RadioGroup Label="Discount/Forgiveness program" @bind-Value="p.DiscountProgram" Options="ChoiceLists.YesNo" />
         <DateBox Label="Disconnect date" @bind-Value="p.DisconnectDate" ShowToday="false" />
-        <TextBox Label="Grant/funding source" @bind-Value="p.FundingSource" />
+        <GrantField Label="Grant/funding source" @bind-Value="p.FundingSource" Use="GrantUse.Electric" Total="calc.PledgeTotal" />
         <MoneyBox Label="Remaining balance $" @bind-Value="p.RemainingBalance" />
         <MoneyBox Label="Next bill $" @bind-Value="p.NextBill" />
         <DateBox Label="Next bill due by" @bind-Value="p.NextBillDue" ShowToday="false" />
@@ -103,6 +103,16 @@
 <NextTab Next="Screen.Review" />
 
 @code {
+    /// <summary>The invoice is usually paid from the same source, so it's filled in when still blank.</summary>
+    private void SetOrderGrant(string? value)
+    {
+        var fe = Session.Record!.FuelElectric;
+        var before = fe.FuelOrder.FundingSource;
+        fe.FuelOrder.FundingSource = value;
+        if (!string.IsNullOrWhiteSpace(value) && (string.IsNullOrWhiteSpace(fe.Invoice.FundingSource) || fe.Invoice.FundingSource == before))
+            fe.Invoice.FundingSource = value;
+    }
+
     private IReadOnlyList<string> FuelVendorNames => Session.Vendors.FuelVendors.Select(v => v.DisplayName).ToList();
     private IReadOnlyList<string> ElectricNames => Session.Vendors.ElectricProviders.Select(v => v.DisplayName).ToList();
 }

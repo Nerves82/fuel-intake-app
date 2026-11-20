@@ -11,6 +11,7 @@
         <button class="@(tab == 0 ? "active" : "")" @onclick="() => tab = 0">Staff (@staff.Count)</button>
         <button class="@(tab == 1 ? "active" : "")" @onclick="() => tab = 1">Vendors (@vendors.Count)</button>
         <button class="@(tab == 2 ? "active" : "")" @onclick="() => tab = 2">Agency settings</button>
+        <button class="@(tab == 4 ? "active" : "")" @onclick="() => tab = 4">Grant sources (@grants.Count(g => g.Active))</button>
         <button class="@(tab == 3 ? "active" : "")" @onclick="() => tab = 3">Data folder</button>
     </nav>
 
@@ -159,6 +160,41 @@
             <button @onclick="SaveSettings">Save agency settings</button>
         </div>
     }
+    else if (tab == 4)
+    {
+        <section class="card">
+            <h2>Grant / funding sources</h2>
+            <p class="note">Offered in the <strong>Grant/funding source</strong> dropdowns on the Fuel Order, the invoice and the
+                Electric Pledge. The name is what prints on the forms. Picking a source on the Fuel Order fills the invoice too.
+                A limit makes the Review tab warn when an order or pledge goes over it. Untick <strong>Active</strong> to stop
+                offering a source without changing older files.</p>
+            <table class="edit grants">
+                <thead><tr><th>Name (as it prints)</th><th>Code</th><th>Fuel</th><th>Electric</th><th>Limit per assist $</th><th>Active</th><th>Notes</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var g in grants)
+                    {
+                        <tr class="@(g.Active ? "" : "inactive")">
+                            <td><input @bind="g.Name" placeholder="Grant name" /></td>
+                            <td class="narrow"><input @bind="g.Code" placeholder="optional" /></td>
+                            <td class="narrow center"><input type="checkbox" @bind="g.ForFuel" aria-label="Used for fuel" /></td>
+                            <td class="narrow center"><input type="checkbox" @bind="g.ForElectric" aria-label="Used for electric" /></td>
+                            <td class="narrow"><input @bind="g.MaxText" placeholder="no limit" class="@(g.MaxOk ? "" : "bad")" />
+                                @if (!g.MaxOk) { <div class="problem small">Dollar amount</div> }</td>
+                            <td class="narrow center"><input type="checkbox" @bind="g.Active" aria-label="Active" /></td>
+                            <td><input @bind="g.Notes" placeholder="e.g. one per season" /></td>
+                            <td class="narrow"><button class="link danger" @onclick="() => grants.Remove(g)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (grants.Count == 0) { <p class="note">No grant sources yet. Until you add some, the funding source is typed by hand.</p> }
+            <div class="actions">
+                <button class="secondary" @onclick="() => grants.Add(new GrantRow())">+ Add grant source</button>
+                <span class="spacer"></span>
+                <button @onclick="SaveGrants">Save grant sources</button>
+            </div>
+        </section>
+    }
     else if (tab == 3)
     {
         <DataFolderCard Changed="ReloadFromFolder" />
@@ -190,6 +226,7 @@
 
     private void LoadFromSession()
     {
+        grants = Session.Settings.GrantSources.Select(GrantRow.From).ToList();
         staff = Session.Staff.Members.Select(StaffRow.From).ToList();
         vendors = Session.Vendors.Vendors.Select(VendorRow.From).ToList();
         var s = Session.Settings;
@@ -255,9 +292,61 @@
             DefaultInvoiceEmail = Blank(invoiceEmail), DefaultInvoicePhone = Blank(invoicePhone),
             TemplateFolder = templateFolder?.Trim() ?? "",
             TemplateFiles = (templateFiles ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            GrantSources = s.GrantSources,
             ClientsRootFolderName = s.ClientsRootFolderName, FolderNameSeparator = s.FolderNameSeparator, FileDateFormat = s.FileDateFormat,
         };
         await Run(() => Session.SaveSettingsAsync(updated), "Agency settings saved.");
+    }
+
+    private List<GrantRow> grants = [];
+
+    private async Task SaveGrants()
+    {
+        if (grants.Any(g => !g.MaxOk)) { Say("Enter each limit as a dollar amount, or leave it blank.", true); return; }
+        var list = grants.Where(g => !string.IsNullOrWhiteSpace(g.Name) || !string.IsNullOrWhiteSpace(g.Code) || !string.IsNullOrWhiteSpace(g.Notes))
+                         .Select(g => g.ToModel()).ToList();
+        var problems = GrantSources.ListProblems(list);
+        if (problems.Count > 0) { Say(string.Join(" ", problems), true); return; }
+        var s = Session.Settings;
+        var updated = new AgencySettings
+        {
+            IncomeLimit = s.IncomeLimit, PovertyGuidelines = s.PovertyGuidelines,
+            DefaultInvoiceEmail = s.DefaultInvoiceEmail, DefaultInvoicePhone = s.DefaultInvoicePhone,
+            TemplateFolder = s.TemplateFolder, TemplateFiles = s.TemplateFiles,
+            ClientsRootFolderName = s.ClientsRootFolderName, FolderNameSeparator = s.FolderNameSeparator, FileDateFormat = s.FileDateFormat,
+            GrantSources = list,
+        };
+        await Run(() => Session.SaveSettingsAsync(updated), "Grant sources saved.");
+        grants = Session.Settings.GrantSources.Select(GrantRow.From).ToList();
+    }
+
+    private sealed class GrantRow
+    {
+        public string? Name { get; set; }
+        public string? Code { get; set; }
+        public bool ForFuel { get; set; } = true;
+        public bool ForElectric { get; set; } = true;
+        public string? MaxText { get; set; }
+        public bool Active { get; set; } = true;
+        public string? Notes { get; set; }
+
+        public bool MaxOk => string.IsNullOrWhiteSpace(MaxText) || ParseMax() is >= 0;
+
+        private decimal? ParseMax() =>
+            decimal.TryParse((MaxText ?? "").Replace("$", "").Replace(",", "").Trim(), System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out var d) ? Math.Round(d, 2) : null;
+
+        public static GrantRow From(GrantSource g) => new()
+        {
+            Name = g.Name, Code = g.Code, ForFuel = g.ForFuel, ForElectric = g.ForElectric, Active = g.Active, Notes = g.Notes,
+            MaxText = g.MaxPerAssist?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+        };
+
+        public GrantSource ToModel() => new()
+        {
+            Name = Name?.Trim() ?? "", Code = Blank(Code), ForFuel = ForFuel, ForElectric = ForElectric, Active = Active,
+            Notes = Blank(Notes), MaxPerAssist = string.IsNullOrWhiteSpace(MaxText) ? null : ParseMax(),
+        };
     }
 
     private async Task Run(Func<Task> save, string done)
