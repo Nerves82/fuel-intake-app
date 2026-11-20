@@ -60,13 +60,8 @@ public static class DevServices
 
         public Task<StaffDirectory> GetStaffAsync(CancellationToken ct = default) => Task.FromResult(new StaffDirectory(staff));
 
-        public Task<VendorDirectory> GetVendorsAsync(CancellationToken ct = default) => Task.FromResult(new VendorDirectory(vendors ??= [
-            new Vendor("Example Oil", "St. Johnsbury", "orders@exampleoil.test", "802-555-0111", "Oil, Kerosene", "100 gal", "$150", "$85", "Call before noon"),
-            new Vendor("Example Oil", "Lancaster NH", "nh@exampleoil.test", "603-555-0112", "Oil"),
-            new Vendor("Sample Propane", "Lyndonville", "gas@samplepropane.test", "802-555-0113", "Propane", "150 gal"),
-            new Vendor("Pretend Power", null, "billing@pretendpower.test\nhelp@pretendpower.test", "800-555-0114", "Electric"),
-            new Vendor("Mock Municipal Electric", "Lyndonville", "mme@example.test", "802-555-0115", "Electric"),
-        ]));
+        public Task<VendorDirectory> GetVendorsAsync(CancellationToken ct = default) =>
+            Task.FromResult(new VendorDirectory(vendors ??= VendorCsv.BuiltIn().Vendors.ToList()));
 
         public Task<AgencySettings> GetSettingsAsync(CancellationToken ct = default) => Task.FromResult(settings);
     }

@@ -119,6 +119,10 @@ Small deliberate changes from the workbook:
   3025 Crisis Fuel site). Columns used: Vender Name, Location, Contact Emails,
   Contact Phone Numbers, Fuel Offered, Minimum Delivery, Emergency Trip Fee,
   Preassure Test/Leak Check Fee, Notes (spellings as in the List).
+  - A copy of the List (CSV export, Nov 2026) ships in `src/FuelIntake.Core/Data/` and seeds
+    vendors.json when it's missing or empty. Staff update it with Settings → Vendors → import CSV.
+  - Rows with no Vender Name are skipped (with a warning). The pressure-test fee exports as a Number:
+    0 means "not set". 10-digit phones print as (802) 555-0123.
   - Fuel vendor dropdown: entries not offering only Electric.
   - Electric provider dropdown: entries whose Fuel Offered includes Electric.
   - Fuel Order: emails on contact line 1, phones on line 2. Electric Pledge the same.

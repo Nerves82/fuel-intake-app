@@ -7,4 +7,9 @@
     <RootNamespace>FuelIntake.Core</RootNamespace>
   </PropertyGroup>
 
+  <!-- Built-in starting vendor list (Microsoft Lists CSV export). Staff can re-import a newer export in Settings. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Fuel_Team_Vendor_List.csv" LogicalName="Fuel_Team_Vendor_List.csv" />
+  </ItemGroup>
+
 </Project>

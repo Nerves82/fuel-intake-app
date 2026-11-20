@@ -102,7 +102,7 @@ public class IntakeCalculationsTests
         r.FuelElectric.ElectricProvider = "Sample Power";
         var c = Calc(r);
         Assert.Equal("orders@exampleoil.test", c.VendorEmails);
-        Assert.Equal("802-555-0101", c.VendorPhones);
+        Assert.Equal("(802) 555-0101", c.VendorPhones);
         Assert.Equal("billing@samplepower.test", c.ElectricEmails);
 
         r.FuelElectric.VendorPhoneOverride = "802-555-0222";

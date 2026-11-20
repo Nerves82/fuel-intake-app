@@ -42,3 +42,46 @@ public class VendorCsvTests
     [InlineData("Oil, Wood", "Oil, Wood")]
     public void Choices_AreCleaned(string raw, string expected) => Assert.Equal(expected, VendorCsv.CleanChoices(raw));
 }
+
+/// <summary>The real Fuel Team Vendor List export bundled with the app.</summary>
+public class BuiltInVendorListTests
+{
+    private static readonly VendorCsv.Result List = VendorCsv.BuiltIn();
+    private static readonly VendorDirectory Dir = new(List.Vendors);
+
+    [Fact]
+    public void Reads_AllNamedVendors_SkippingTheSchemaLine()
+    {
+        Assert.Equal(38, List.Vendors.Count);
+        Assert.DoesNotContain(List.Vendors, v => v.Name.StartsWith("ListSchema"));
+        Assert.Contains(List.Warnings, w => w.Contains("no Vender Name") && w.Contains("Lyndon"));
+    }
+
+    [Fact]
+    public void ElectricProviders_AreTheFourUtilities() =>
+        Assert.Equal(["Green Mountain Power", "Lyndonville Electric - Lyndonville", "VT Electric Coop", "Washington Electric"],
+            Dir.ElectricProviders.Select(v => v.DisplayName));
+
+    [Fact]
+    public void DuplicateNames_AreKeptApartByLocation()
+    {
+        Assert.NotNull(Dir.Find("CN Brown - St. Johnsbury"));
+        Assert.NotNull(Dir.Find("CN Brown - Lancaster NH"));
+        Assert.NotNull(Dir.Find("CN Brown - Colebrook NH"));
+        Assert.Equal(3, Dir.Vendors.Count(v => v.Name == "Fred's Propane"));
+        Assert.Equal(Dir.Vendors.Count, Dir.Vendors.Select(v => v.DisplayName).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void MultiLineContacts_AndFees_ComeThrough()
+    {
+        var dr = Dir.Find("Dead River - St. Johnsbury")!;
+        Assert.Equal("Karie.finn@deadriver.com, Kelly.winget@deadriver.com", Vendor.JoinLines(dr.ContactEmails));
+        Assert.Equal("(802) 748-8934, (802) 748-1393", Vendor.FormatPhones(dr.ContactPhones));
+        Assert.Equal("$100", dr.PressureTestFee);
+        Assert.Equal("Oil, Propane", dr.FuelOffered);
+        Assert.Contains("OUT OF ROUTE FEE", dr.Notes);
+        Assert.Null(Dir.Find("Bournes - Lyndonville")!.PressureTestFee); // 0 = not set
+        Assert.Equal("(802) 626-9859", Vendor.FormatPhones(Dir.Find("Bournes - Lyndonville")!.ContactPhones));
+    }
+}

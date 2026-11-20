@@ -166,11 +166,11 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
     public string VendorEmails => Override(r.FuelElectric.VendorEmailOverride, FuelVendor?.ContactEmails);
 
     /// <summary>Fuel Order contact line 2: override, else vendor list phones.</summary>
-    public string VendorPhones => Override(r.FuelElectric.VendorPhoneOverride, FuelVendor?.ContactPhones);
+    public string VendorPhones => Blank(r.FuelElectric.VendorPhoneOverride) ? Vendor.FormatPhones(FuelVendor?.ContactPhones) : T(r.FuelElectric.VendorPhoneOverride);
 
     public string ElectricEmails => Override(r.FuelElectric.ElectricEmailOverride, ElectricVendor?.ContactEmails);
 
-    public string ElectricPhones => Override(r.FuelElectric.ElectricPhoneOverride, ElectricVendor?.ContactPhones);
+    public string ElectricPhones => Blank(r.FuelElectric.ElectricPhoneOverride) ? Vendor.FormatPhones(ElectricVendor?.ContactPhones) : T(r.FuelElectric.ElectricPhoneOverride);
 
     // ------------------------------------------------------------------ order totals (blank when nothing entered)
 

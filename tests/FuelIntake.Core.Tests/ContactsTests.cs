@@ -39,9 +39,9 @@ public class ContactsTests
     [Fact]
     public void Dropdowns_SplitFuelAndElectric()
     {
-        Assert.Equal(["Example Oil - St. Johnsbury", "Example Oil - Lancaster NH", "Mixed Co - Derby", "Blank Offer Co - Barton"],
+        Assert.Equal(["Blank Offer Co - Barton", "Example Oil - Lancaster NH", "Example Oil - St. Johnsbury", "Mixed Co - Derby"],
             Vendors.FuelVendors.Select(v => v.DisplayName));
-        Assert.Equal(["Sample Power", "Mixed Co - Derby"], Vendors.ElectricProviders.Select(v => v.DisplayName));
+        Assert.Equal(["Mixed Co - Derby", "Sample Power"], Vendors.ElectricProviders.Select(v => v.DisplayName));
     }
 
     [Fact]
