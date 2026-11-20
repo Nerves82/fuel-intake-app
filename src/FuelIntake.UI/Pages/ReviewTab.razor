@@ -57,7 +57,7 @@ else
                 <div>
                     <strong>@e.At.ToLocalTime().ToString("MMM d, h:mm tt")</strong> — @e.By.Name
                     @if (other) { <span class="badge other-staff">other staff</span> }
-                    · @(e.Action == "Created" ? "created the intake" : $"changed {e.Changes.Count} field{(e.Changes.Count == 1 ? "" : "s")}")
+                    · @(e.Action switch { "Created" => "created the intake", "Edited" => $"changed {e.Changes.Count} field{(e.Changes.Count == 1 ? "" : "s")}", _ => e.Action.ToLowerInvariant() })
                 </div>
                 @if (e.Changes.Count > 0)
                 {

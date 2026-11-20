@@ -12,6 +12,7 @@
 @code {
     [SupplyParameterFromQuery] public int? Sample { get; set; }
     [SupplyParameterFromQuery(Name = "screen")] public string? ScreenName { get; set; }
+    [SupplyParameterFromQuery(Name = "notes")] public int? ShowNotes { get; set; }
     private bool ready;
 
     protected override async Task OnInitializedAsync()
@@ -25,6 +26,12 @@
             r.FuelElectric.Vendor ??= Session.Vendors.FuelVendors.FirstOrDefault()?.DisplayName;
             r.FuelElectric.ElectricProvider ??= Session.Vendors.ElectricProviders.FirstOrDefault()?.DisplayName;
             Session.Changed();
+        }
+        if (ShowNotes == 1 && Session.Record is { } rec)
+        {
+            FuelIntake.Core.Activity.ActivityLog.AddNote(rec, new("Sam Placeholder", null), DateTimeOffset.Now.AddHours(-3), "Client called: tank at 1/8, delivery needed before the weekend.");
+            FuelIntake.Core.Activity.ActivityLog.AddNote(rec, Session.Me, DateTimeOffset.Now.AddMinutes(-20), "Left voicemail with Example Oil about a Friday delivery.\nWill follow up at 3.");
+            Session.ToggleNotes();
         }
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);
         ready = true;

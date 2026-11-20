@@ -82,3 +82,45 @@ public class ActivityTests
         Assert.Equal("ac@example.org", calc.InvoiceEmail);
     }
 }
+
+public class NotesTests
+{
+    private static readonly StaffStamp Pat = new("Pat Example", "pexample@example.org");
+    private static readonly StaffStamp Sam = new("Sam Placeholder", "splaceholder@example.org");
+    private static readonly DateTimeOffset T0 = new(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(-5));
+
+    [Fact]
+    public void AddNote_IsStampedAndLogged()
+    {
+        var r = new IntakeRecord();
+        var n = ActivityLog.AddNote(r, Pat, T0, "  Called client, left voicemail  ");
+        Assert.Equal("Called client, left voicemail", n.Text);
+        Assert.Equal(Pat, n.By);
+        Assert.Equal(T0, n.At);
+        Assert.Equal("Added a note", Assert.Single(r.Activity).Action);
+    }
+
+    [Fact]
+    public void DeleteNote_RemovesIt_ButTheLogKeepsWhoAndWhat()
+    {
+        var r = new IntakeRecord();
+        var n = ActivityLog.AddNote(r, Pat, T0, "Vendor said Tuesday delivery");
+        Assert.True(ActivityLog.DeleteNote(r, n.Id, Sam, T0.AddHours(1)));
+        Assert.Empty(r.Notes);
+        var log = r.Activity.Last();
+        Assert.Equal("Deleted a note", log.Action);
+        Assert.Equal(Sam, log.By);
+        Assert.Contains("Pat Example", log.Changes[0].Field);
+        Assert.Equal("Vendor said Tuesday delivery", log.Changes[0].From);
+        Assert.False(ActivityLog.DeleteNote(r, n.Id, Sam, T0));
+    }
+
+    [Fact]
+    public void Notes_AreNotDoubleLoggedByTheFieldDiff()
+    {
+        var r = FakeIntake.Family();
+        var before = ActivityLog.Snapshot(r);
+        ActivityLog.AddNote(r, Pat, T0, "hello");
+        Assert.Empty(ActivityLog.Diff(before, ActivityLog.Snapshot(r)));
+    }
+}

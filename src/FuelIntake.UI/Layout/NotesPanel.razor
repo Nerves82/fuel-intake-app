@@ -1,0 +1,76 @@
+@* Staff notes for the open client: stays open across tabs. Newest first. *@
+@implements IDisposable
+@inject IntakeSession Session
+
+@if (Session.Record is { } r && Session.NotesOpen)
+{
+    <aside class="notes-panel" aria-label="Notes">
+        <div class="row-between">
+            <h2>Notes</h2>
+            <button class="link" @onclick="Session.ToggleNotes" title="Hide notes">Hide ✕</button>
+        </div>
+        <textarea rows="4" placeholder="Add a note… (Ctrl+Enter to save)" @bind="draft" @bind:event="oninput" @onkeydown="Key"></textarea>
+        <div class="actions">
+            <span class="note">Signed as @Session.Me.Name</span>
+            <span class="spacer"></span>
+            <button disabled="@(busy || string.IsNullOrWhiteSpace(draft))" @onclick="Add">Add note</button>
+        </div>
+
+        @if (r.Notes.Count == 0)
+        {
+            <p class="note">No notes yet.</p>
+        }
+        <ul class="notes-list">
+            @foreach (var n in Enumerable.Reverse(r.Notes))
+            {
+                var note = n;
+                <li>
+                    <div class="meta">
+                        <strong>@note.By.Name</strong>
+                        <span>@note.At.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
+                    </div>
+                    <div class="text">@note.Text</div>
+                    @if (confirmId == note.Id)
+                    {
+                        <div class="confirm">Delete this note?
+                            <button class="small danger" @onclick="() => Delete(note.Id)">Delete</button>
+                            <button class="small secondary" @onclick="() => confirmId = null">Keep</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button class="link danger small" @onclick="() => confirmId = note.Id">Delete</button>
+                    }
+                </li>
+            }
+        </ul>
+    </aside>
+}
+
+@code {
+    private string? draft, confirmId;
+    private bool busy;
+
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+    private void OnState() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Session.StateChanged -= OnState;
+
+    private async Task Key(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && e.CtrlKey) await Add();
+    }
+
+    private async Task Add()
+    {
+        if (string.IsNullOrWhiteSpace(draft) || busy) return;
+        busy = true;
+        try { await Session.AddNoteAsync(draft); draft = ""; }
+        finally { busy = false; }
+    }
+
+    private async Task Delete(string id)
+    {
+        confirmId = null;
+        await Session.DeleteNoteAsync(id);
+    }
+}
