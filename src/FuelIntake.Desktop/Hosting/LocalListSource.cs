@@ -31,6 +31,24 @@ public sealed class LocalListSource(string dataFolder) : IListSource
     public Task<AgencySettings> GetSettingsAsync(CancellationToken ct = default) =>
         ReadAsync("settings.json", new AgencySettings(), ct);
 
+    public Task SaveStaffAsync(IEnumerable<StaffMember> staff, CancellationToken ct = default) =>
+        WriteAsync("staff.json", staff.ToList(), ct);
+
+    public Task SaveVendorsAsync(IEnumerable<Vendor> vendors, CancellationToken ct = default) =>
+        WriteAsync("vendors.json", vendors.ToList(), ct);
+
+    public Task SaveSettingsAsync(AgencySettings settings, CancellationToken ct = default) =>
+        WriteAsync("settings.json", settings, ct);
+
+    private async Task WriteAsync<T>(string name, T value, CancellationToken ct)
+    {
+        Directory.CreateDirectory(DataFolder);
+        var path = Path.Combine(DataFolder, name);
+        var temp = path + ".saving";
+        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(value, Json), ct);
+        File.Move(temp, path, overwrite: true);
+    }
+
     private async Task<T> ReadAsync<T>(string name, T fallback, CancellationToken ct)
     {
         var path = Path.Combine(DataFolder, name);

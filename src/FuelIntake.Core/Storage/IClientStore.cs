@@ -38,4 +38,8 @@ public interface IListSource
     Task<Contacts.StaffDirectory> GetStaffAsync(CancellationToken ct = default);
     Task<Contacts.VendorDirectory> GetVendorsAsync(CancellationToken ct = default);
     Task<AgencySettings> GetSettingsAsync(CancellationToken ct = default);
+
+    Task SaveStaffAsync(IEnumerable<Contacts.StaffMember> staff, CancellationToken ct = default);
+    Task SaveVendorsAsync(IEnumerable<Contacts.Vendor> vendors, CancellationToken ct = default);
+    Task SaveSettingsAsync(AgencySettings settings, CancellationToken ct = default);
 }

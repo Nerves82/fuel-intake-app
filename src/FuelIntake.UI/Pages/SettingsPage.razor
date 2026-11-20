@@ -1,0 +1,293 @@
+@using FuelIntake.Core.Contacts
+@using FuelIntake.Core.Eligibility
+@using Microsoft.AspNetCore.Components.Forms
+@inject IntakeSession Session
+
+<main class="page">
+    <h1>Staff, vendors &amp; settings</h1>
+    <p class="lead">Lists used by every client. Changes are saved when you click Save in each section.</p>
+
+    <nav class="subtabs">
+        <button class="@(tab == 0 ? "active" : "")" @onclick="() => tab = 0">Staff (@staff.Count)</button>
+        <button class="@(tab == 1 ? "active" : "")" @onclick="() => tab = 1">Vendors (@vendors.Count)</button>
+        <button class="@(tab == 2 ? "active" : "")" @onclick="() => tab = 2">Agency settings</button>
+    </nav>
+
+    @if (message is not null) { <p class="@(messageIsError ? "problem" : "ok")">@message</p> }
+
+    @if (tab == 0)
+    {
+        <section class="card">
+            <h2>Staff</h2>
+            <p class="note">Names appear in the Staff dropdown on tab 1. Picking one fills initials, phone and email on the forms.
+                The app also picks you automatically on new clients when your email matches your Windows sign-in
+                (@(Session.User.Email ?? "not detected")).</p>
+            <table class="edit">
+                <thead><tr><th>Name (as it should print)</th><th>Initials</th><th>Phone</th><th>Email</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var s in staff)
+                    {
+                        <tr>
+                            <td><input @bind="s.Name" placeholder="First Last" /></td>
+                            <td class="narrow"><input @bind="s.Initials" placeholder="@StaffDirectory.AutoInitials(s.Name)" /></td>
+                            <td>
+                                <input @bind="s.Phone" placeholder="802-555-0123" class="@(PhoneOk(s.Phone) ? "" : "bad")" />
+                                @if (!PhoneOk(s.Phone)) { <div class="problem small">Needs 10 digits</div> }
+                            </td>
+                            <td><input @bind="s.Email" placeholder="name@nekcavt.org" /></td>
+                            <td class="narrow"><button class="link danger" @onclick="() => staff.Remove(s)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="actions">
+                <button class="secondary" @onclick="AddMe">+ Add me</button>
+                <button class="secondary" @onclick="() => staff.Add(new StaffRow())">+ Add person</button>
+                <span class="spacer"></span>
+                <button @onclick="SaveStaff">Save staff list</button>
+            </div>
+        </section>
+    }
+    else if (tab == 1)
+    {
+        <section class="card">
+            <h2>Import from the Fuel Team Vendor List</h2>
+            <p class="note">In Microsoft Lists, open <strong>Fuel Team Vendor List</strong> → <strong>Export</strong> → <strong>Export to CSV</strong>,
+                then choose the downloaded file here. Columns are matched by name. Importing replaces the list below.</p>
+            <InputFile OnChange="ImportCsv" accept=".csv,text/csv" />
+            @if (importWarnings.Count > 0)
+            {
+                <ul class="warnings">@foreach (var w in importWarnings) { <li>@w</li> }</ul>
+            }
+        </section>
+
+        <section class="card">
+            <div class="row-between">
+                <h2>Vendors</h2>
+                <span class="note">@vendors.Count(v => v.IsFuel) fuel vendors · @vendors.Count(v => v.IsElectric) electric providers</span>
+            </div>
+            <p class="note">Put "Electric" in Fuel Offered for electric providers. Separate several emails or phones with commas.</p>
+            <table class="edit">
+                <thead><tr><th>Name</th><th>Location</th><th>Fuel offered</th><th>Contact emails</th><th>Contact phones</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var v in vendors)
+                    {
+                        <tr>
+                            <td><input @bind="v.Name" /></td>
+                            <td><input @bind="v.Location" /></td>
+                            <td><input @bind="v.FuelOffered" placeholder="Oil, Propane" /></td>
+                            <td><input @bind="v.ContactEmails" /></td>
+                            <td><input @bind="v.ContactPhones" /></td>
+                            <td class="narrow">
+                                <button class="link" @onclick="() => v.Expanded = !v.Expanded">@(v.Expanded ? "Less" : "More")</button>
+                                <button class="link danger" @onclick="() => vendors.Remove(v)">Remove</button>
+                            </td>
+                        </tr>
+                        @if (v.Expanded)
+                        {
+                            <tr class="more">
+                                <td colspan="6">
+                                    <div class="grid">
+                                        <div class="field"><label>Minimum delivery</label><input @bind="v.MinimumDelivery" /></div>
+                                        <div class="field"><label>Emergency trip fee</label><input @bind="v.EmergencyTripFee" /></div>
+                                        <div class="field"><label>Pressure test / leak check fee</label><input @bind="v.PressureTestFee" /></div>
+                                        <div class="field wide"><label>Notes</label><input @bind="v.Notes" /></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <div class="actions">
+                <button class="secondary" @onclick="() => vendors.Add(new VendorRow { Expanded = true })">+ Add vendor</button>
+                <span class="spacer"></span>
+                <button @onclick="SaveVendors">Save vendor list</button>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="card">
+            <h2>Eligibility</h2>
+            <div class="grid">
+                <div class="field">
+                    <label>Crisis Fuel income limit (% of FPL)</label>
+                    <div class="inline"><input type="number" min="1" step="1" @bind="limitPercent" /><span>%</span></div>
+                    <div class="hint">Eligible when under this percent.</div>
+                </div>
+            </div>
+            <h2 class="sub">HHS poverty guidelines (100% FPL, $/year)</h2>
+            <p class="note">Update each January when HHS publishes new guidelines.</p>
+            <div class="grid">
+                <div class="field"><label>Guideline year</label><input type="number" @bind="fplYear" /></div>
+                <div class="field wide"><label>Region</label><input @bind="fplRegion" /></div>
+                @for (var i = 0; i < fplAmounts.Length; i++)
+                {
+                    var index = i;
+                    <div class="field"><label>Household of @(index + 1)</label>
+                        <div class="money"><span>$</span><input type="number" min="0" step="1" @bind="fplAmounts[index]" /></div></div>
+                }
+                <div class="field"><label>Each additional person</label>
+                    <div class="money"><span>$</span><input type="number" min="0" step="1" @bind="fplExtra" /></div></div>
+                <div class="field wide"><label>Source</label><input @bind="fplSource" /></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Fuel Order "send invoice to"</h2>
+            <p class="note">Used only when the staff member on the client has no email or phone.</p>
+            <div class="grid">
+                <div class="field"><label>Default invoice email</label><input @bind="invoiceEmail" /></div>
+                <div class="field"><label>Default invoice phone</label><input @bind="invoicePhone" placeholder="802-555-0123" /></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Client folders &amp; templates</h2>
+            <div class="grid">
+                <div class="field wide"><label>Template folder (inside your user folder)</label><input @bind="templateFolder" /></div>
+                <div class="field wide"><label>Templates copied into each new client folder (one file name per line)</label>
+                    <textarea rows="3" @bind="templateFiles"></textarea>
+                    <div class="hint">Forms the app doesn't print itself, like the consent forms.</div></div>
+            </div>
+        </section>
+
+        <div class="actions">
+            <span class="spacer"></span>
+            <button @onclick="SaveSettings">Save agency settings</button>
+        </div>
+    }
+</main>
+
+@code {
+    private int tab;
+    private string? message;
+    private bool messageIsError;
+    private List<StaffRow> staff = [];
+    private List<VendorRow> vendors = [];
+    private List<string> importWarnings = [];
+
+    private int limitPercent, fplYear;
+    private string? fplRegion, fplSource, invoiceEmail, invoicePhone, templateFolder, templateFiles;
+    private decimal[] fplAmounts = new decimal[8];
+    private decimal fplExtra;
+
+    protected override void OnInitialized()
+    {
+        staff = Session.Staff.Members.Select(StaffRow.From).ToList();
+        vendors = Session.Vendors.Vendors.Select(VendorRow.From).ToList();
+        var s = Session.Settings;
+        limitPercent = (int)Math.Round(s.IncomeLimit * 100);
+        var g = s.PovertyGuidelines;
+        fplYear = g.Year; fplRegion = g.Region; fplSource = g.Source; fplExtra = g.EachAdditionalPerson;
+        fplAmounts = Enumerable.Range(0, 8).Select(i => i < g.BySize.Count ? g.BySize[i] : 0m).ToArray();
+        invoiceEmail = s.DefaultInvoiceEmail; invoicePhone = s.DefaultInvoicePhone;
+        templateFolder = s.TemplateFolder; templateFiles = string.Join("\n", s.TemplateFiles);
+    }
+
+    private static bool PhoneOk(string? p) => string.IsNullOrWhiteSpace(p) || Phone.IsValid(p);
+
+    private void AddMe()
+    {
+        var u = Session.User;
+        if (staff.Any(s => string.Equals(s.Email, u.Email, StringComparison.OrdinalIgnoreCase) && u.Email is not null)) { Say("You're already on the list."); return; }
+        staff.Add(new StaffRow { Name = u.DisplayName, Email = u.Email });
+    }
+
+    private async Task SaveStaff()
+    {
+        var bad = staff.Where(s => !string.IsNullOrWhiteSpace(s.Name) && !PhoneOk(s.Phone)).Select(s => s.Name).ToList();
+        if (bad.Count > 0) { Say("Fix the phone number for: " + string.Join(", ", bad), true); return; }
+        var dupes = staff.Where(s => !string.IsNullOrWhiteSpace(s.Name)).GroupBy(s => s.Name!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (dupes.Count > 0) { Say("Each name can appear only once: " + string.Join(", ", dupes), true); return; }
+        await Run(() => Session.SaveStaffAsync(staff.Where(s => !string.IsNullOrWhiteSpace(s.Name)).Select(s => s.ToModel())), "Staff list saved.");
+    }
+
+    private async Task ImportCsv(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            using var reader = new StreamReader(e.File.OpenReadStream(maxAllowedSize: 5_000_000));
+            var result = VendorCsv.Parse(await reader.ReadToEndAsync());
+            importWarnings = result.Warnings.ToList();
+            if (result.Vendors.Count == 0) { Say("Nothing imported.", true); return; }
+            vendors = result.Vendors.Select(VendorRow.From).ToList();
+            Say($"Read {vendors.Count} vendors from {e.File.Name}. Check them, then click Save vendor list.");
+        }
+        catch (Exception ex) { Say("Couldn't read that file: " + ex.Message, true); }
+    }
+
+    private async Task SaveVendors()
+    {
+        var dupes = vendors.Where(v => !string.IsNullOrWhiteSpace(v.Name)).Select(v => v.ToModel().DisplayName)
+            .GroupBy(n => n, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (dupes.Count > 0) { Say("Two vendors have the same name and location: " + string.Join(", ", dupes), true); return; }
+        await Run(() => Session.SaveVendorsAsync(vendors.Where(v => !string.IsNullOrWhiteSpace(v.Name)).Select(v => v.ToModel())), "Vendor list saved.");
+    }
+
+    private async Task SaveSettings()
+    {
+        if (limitPercent <= 0) { Say("Enter an income limit above 0%.", true); return; }
+        if (fplAmounts.Any(a => a <= 0) || fplExtra <= 0) { Say("Fill in every poverty guideline amount.", true); return; }
+        if (!PhoneOk(invoicePhone)) { Say("The default invoice phone needs 10 digits.", true); return; }
+        var s = Session.Settings;
+        var updated = new AgencySettings
+        {
+            IncomeLimit = limitPercent / 100m,
+            PovertyGuidelines = new PovertyGuidelines(fplYear, fplRegion?.Trim() ?? "", fplAmounts.ToList(), fplExtra, fplSource?.Trim() ?? ""),
+            DefaultInvoiceEmail = Blank(invoiceEmail), DefaultInvoicePhone = Blank(invoicePhone),
+            TemplateFolder = templateFolder?.Trim() ?? "",
+            TemplateFiles = (templateFiles ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            ClientsRootFolderName = s.ClientsRootFolderName, FolderNameSeparator = s.FolderNameSeparator, FileDateFormat = s.FileDateFormat,
+        };
+        await Run(() => Session.SaveSettingsAsync(updated), "Agency settings saved.");
+    }
+
+    private async Task Run(Func<Task> save, string done)
+    {
+        try { await save(); Say(done); }
+        catch (Exception ex) { Say("Couldn't save: " + ex.Message, true); }
+    }
+
+    private void Say(string text, bool error = false) { message = text; messageIsError = error; }
+    private static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    private sealed class StaffRow
+    {
+        public string? Name { get; set; }
+        public string? Initials { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public static StaffRow From(StaffMember m) => new() { Name = m.Name, Initials = m.Initials, Phone = m.Phone, Email = m.Email };
+        public StaffMember ToModel() => new(Name!.Trim(), Blank(Initials)?.ToUpperInvariant(), Blank(Phone), Blank(Email));
+    }
+
+    private sealed class VendorRow
+    {
+        public string? Name { get; set; }
+        public string? Location { get; set; }
+        public string? ContactEmails { get; set; }
+        public string? ContactPhones { get; set; }
+        public string? FuelOffered { get; set; }
+        public string? MinimumDelivery { get; set; }
+        public string? EmergencyTripFee { get; set; }
+        public string? PressureTestFee { get; set; }
+        public string? Notes { get; set; }
+        public bool Expanded { get; set; }
+        public bool IsFuel => ToModel().OffersFuel;
+        public bool IsElectric => ToModel().OffersElectric;
+
+        // multi-line emails/phones from the List are shown joined with commas for editing
+        public static VendorRow From(Vendor v) => new()
+        {
+            Name = v.Name, Location = v.Location, ContactEmails = Vendor.JoinLines(v.ContactEmails),
+            ContactPhones = Vendor.JoinLines(v.ContactPhones), FuelOffered = v.FuelOffered, MinimumDelivery = v.MinimumDelivery,
+            EmergencyTripFee = v.EmergencyTripFee, PressureTestFee = v.PressureTestFee, Notes = v.Notes,
+        };
+
+        public Vendor ToModel() => new((Name ?? "").Trim(), Blank(Location), Blank(ContactEmails), Blank(ContactPhones), Blank(FuelOffered),
+            Blank(MinimumDelivery), Blank(EmergencyTripFee), Blank(PressureTestFee), Blank(Notes));
+    }
+}
