@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject IntakeSession Session
+
+<nav class="tabs">
+    @foreach (var (screen, title) in Tabs)
+    {
+        var count = Session.Issues.Count(i => i.Section == SectionOf(screen) && i.Severity == FuelIntake.Core.Validation.IssueSeverity.Error);
+        <button class="@(Session.Screen == screen ? "active" : "")" @onclick="() => Session.Go(screen)">
+            @title
+            @if (count > 0) { <span class="count error" title="Errors to fix">@count</span> }
+        </button>
+    }
+    <button class="@(Session.Screen == Screen.Review ? "active" : "") review" @onclick="() => Session.Go(Screen.Review)">
+        Review
+        @if (Session.Issues.Count > 0) { <span class="count">@Session.Issues.Count</span> }
+    </button>
+</nav>
+
+@code {
+    private static readonly (Screen, string)[] Tabs =
+    [
+        (Screen.Client, "1 · Client"),
+        (Screen.Household, "2 · Household"),
+        (Screen.Application, "3 · Application"),
+        (Screen.IncomeExpenses, "4 · Income & Expenses"),
+        (Screen.FuelElectric, "5 · Fuel & Electric"),
+    ];
+
+    /// <summary>Validator section name for each tab.</summary>
+    public static string SectionOf(Screen s) => s switch
+    {
+        Screen.Client => "Client",
+        Screen.Household => "Household",
+        Screen.Application => "Application",
+        Screen.IncomeExpenses => "Income & Expenses",
+        Screen.FuelElectric => "Fuel & Electric",
+        _ => "",
+    };
+
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+    private void OnState() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Session.StateChanged -= OnState;
+}

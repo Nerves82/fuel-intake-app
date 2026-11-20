@@ -1,0 +1,22 @@
+@using System.Globalization
+@inherits FieldBase<DateOnly?>
+<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@Problem">
+    <div class="inline">
+        <input id="@Id" type="date" value="@(Value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" @onchange="OnChange" />
+        @if (ShowToday)
+        {
+            <button type="button" class="small" @onclick="() => SetAsync(Session.Today)" title="Use today's date">Today</button>
+        }
+    </div>
+</Field>
+
+@code {
+    [Parameter] public bool ShowToday { get; set; } = true;
+    [Parameter] public bool NotInFuture { get; set; }
+
+    protected override string? Problem =>
+        NotInFuture && Value > Session.Today ? "This date is in the future." : null;
+
+    private Task OnChange(ChangeEventArgs e) =>
+        SetAsync(DateOnly.TryParseExact(e.Value as string, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null);
+}

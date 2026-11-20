@@ -14,3 +14,10 @@ public static class Money
     public static decimal? SumOrNull(params decimal?[] amounts) =>
         amounts.Any(a => a.HasValue) ? amounts.Sum(a => a ?? 0m) : null;
 }
+
+/// <summary>Percent as printed: 93%.</summary>
+public static class Percent
+{
+    public static string Format(decimal? fraction) =>
+        fraction is null ? "" : (fraction.Value * 100m).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+}

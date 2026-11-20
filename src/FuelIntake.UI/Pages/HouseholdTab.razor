@@ -1,0 +1,81 @@
+@inject IntakeSession Session
+@{ var r = Session.Record!; var calc = Session.Calc!; }
+
+<h1>2 · Household members</h1>
+<p class="lead">One card per person. Member 1 is the client; name and date of birth come from tab 1.
+    Members 1–10 fill Intake page 1, 1–4 fill ACCESS.</p>
+
+<div class="summary-strip">
+    <span><strong>@calc.HouseholdSize</strong> in household</span>
+    <span>Income column total <strong>@Money.Format(calc.HouseholdIncomeColumnTotal)</strong>/mo</span>
+    @if (!calc.HouseholdIncomeMatchesWorksheet)
+    {
+        <span class="problem">Doesn't match the Income &amp; Expenses total (@Money.Format(calc.IncomeTotal))</span>
+    }
+</div>
+
+@foreach (var m in calc.Members)
+{
+    var member = m.Data;
+    var number = m.Number;
+    <section class="card member">
+        <div class="row-between">
+            <h2>@number. @(m.FullName.Length > 0 ? m.FullName : "New member")
+                @if (calc.AgeOf(m) is int age) { <span class="note"> · age @age</span> }
+            </h2>
+            @if (number > 1)
+            {
+                <button class="link danger" @onclick="() => Remove(member)">Remove</button>
+            }
+        </div>
+        <div class="grid">
+            @if (number == 1)
+            {
+                <CalcValue Label="Last name" Value="@m.LastName" Hint="From tab 1" />
+                <CalcValue Label="First name" Value="@m.FirstName" Hint="From tab 1" />
+                <CalcValue Label="Date of birth" Value="@(m.DateOfBirth?.ToString("MM/dd/yyyy"))" Hint="From tab 1" />
+            }
+            else
+            {
+                <TextBox Label="Last name" @bind-Value="member.LastName" />
+                <TextBox Label="First name" @bind-Value="member.FirstName" />
+                <DateBox Label="Date of birth" @bind-Value="member.DateOfBirth" ShowToday="false" NotInFuture="true" />
+            }
+            <SsnBox Label="SSN" @bind-Value="member.Ssn" />
+            <SelectBox Label="Gender identity" @bind-Value="member.Gender" Options="ChoiceLists.Gender" />
+            <RadioGroup Label="Disabled" @bind-Value="member.Disabled" Options="ChoiceLists.YesNoLetter" />
+            <SelectBox Label="Last grade completed" @bind-Value="member.Education" Options="ChoiceLists.Education" />
+            <SelectBox Label="Race" @bind-Value="member.Race" Options="ChoiceLists.Race" />
+            <SelectBox Label="Hispanic/Latino?" @bind-Value="member.Hispanic" Options="ChoiceLists.Hispanic" />
+            <SelectBox Label="Health insurance source" @bind-Value="member.HealthInsurance" Options="ChoiceLists.HealthInsurance" />
+            <SelectBox Label="Military status" @bind-Value="member.MilitaryStatus" Options="ChoiceLists.Military" />
+            <SelectBox Label="Occupation (14+)" @bind-Value="member.Occupation" Options="ChoiceLists.Occupation"
+                       Hint="N/A for members under 14" />
+            <MoneyBox Label="Income per month" @bind-Value="member.IncomePerMonth" />
+            <SelectBox Label="Income source" @bind-Value="member.IncomeSource" Options="ChoiceLists.IncomeSource" />
+            <DateBox Label="Income verified in ACCESS" @bind-Value="member.IncomeVerifiedDate" />
+        </div>
+    </section>
+}
+
+<div class="actions">
+    <button class="secondary" @onclick="Add">+ Add household member</button>
+</div>
+
+<NextTab Next="Screen.Application" />
+
+@code {
+    private void Add()
+    {
+        var r = Session.Record!;
+        if (r.Household.Count == 0) r.Household.Add(new HouseholdMember()); // member 1 (the client)
+        r.Household.Add(new HouseholdMember());
+        Session.Changed();
+    }
+
+    private void Remove(HouseholdMember member)
+    {
+        Session.Record!.Household.Remove(member);
+        Session.Changed();
+    }
+}

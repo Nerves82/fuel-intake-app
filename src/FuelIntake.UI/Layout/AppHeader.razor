@@ -1,0 +1,47 @@
+@implements IDisposable
+@inject IntakeSession Session
+
+<header class="app-header">
+    <div class="brand">Fuel Assistance Intake</div>
+    @if (Session.Record is { } r)
+    {
+        <div class="client-name">
+            @if (r.IsTestData) { <span class="badge test">TEST</span> }
+            @Session.Calc?.ClientFullName
+        </div>
+        <div class="save-state">
+            @if (Session.SaveError is not null)
+            {
+                <span class="problem" title="@Session.SaveError">Not saved: @Session.SaveError</span>
+            }
+            else if (Session.HasUnsavedChanges)
+            {
+                <span>Saving…</span>
+            }
+            else if (Session.LastSaved is { } t)
+            {
+                <span>Saved @t.ToLocalTime().ToString("h:mm tt")</span>
+            }
+        </div>
+        <button class="secondary" @onclick="Session.CloseAsync">Close client</button>
+    }
+    else
+    {
+        <div class="spacer"></div>
+        <span class="user">@Session.User.DisplayName</span>
+        @if (Session.Screen == Screen.Check)
+        {
+            <button class="secondary" @onclick="() => Session.Go(Screen.Clients)">Back to clients</button>
+        }
+        else
+        {
+            <button class="link" @onclick="() => Session.Go(Screen.Check)">Check this computer</button>
+        }
+    }
+</header>
+
+@code {
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+    private void OnState() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Session.StateChanged -= OnState;
+}

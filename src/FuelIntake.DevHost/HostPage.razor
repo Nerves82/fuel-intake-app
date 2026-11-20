@@ -1,0 +1,22 @@
+@* Dev preview page. Offline (no package downloads) it renders statically: good for screenshots, no clicking. *@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Fuel Assistance Intake (preview)</title>
+    <link href="_content/FuelIntake.UI/app.css" rel="stylesheet" />
+</head>
+<body>
+    @if (Preview.Offline)
+    {
+        <Routes />
+    }
+    else
+    {
+        <Routes @rendermode="Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer" />
+        <script src="_framework/blazor.web.js"></script>
+    }
+</body>
+</html>

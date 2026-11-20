@@ -1,0 +1,27 @@
+@using System.Globalization
+@inherits FieldBase<decimal?>
+<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@problem" Wide="Wide">
+    <div class="money">
+        <span>$</span>
+        <input id="@Id" type="text" inputmode="decimal" value="@(Value?.ToString("#,##0.00", CultureInfo.GetCultureInfo("en-US")))" @onchange="OnChange" />
+    </div>
+</Field>
+
+@code {
+    private string? problem;
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        var text = (e.Value as string ?? "").Replace("$", "").Replace(",", "").Trim();
+        if (text.Length == 0) { problem = null; await SetAsync(null); return; }
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var d) && d >= 0)
+        {
+            problem = null;
+            await SetAsync(Math.Round(d, 2));
+        }
+        else
+        {
+            problem = "Enter a dollar amount like 291 or 291.50.";
+        }
+    }
+}

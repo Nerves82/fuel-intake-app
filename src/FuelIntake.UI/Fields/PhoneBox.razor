@@ -1,0 +1,12 @@
+@using FuelIntake.Core.Formatting
+@inherits FieldBase<string?>
+<Field Label="@Label" For="@Id" Hint="@(Hint ?? PrintsAs)" Problem="@Problem">
+    <input id="@Id" type="tel" value="@Value" placeholder="802-555-0123" @onchange="e => SetAsync(e.Value as string)" />
+</Field>
+
+@code {
+    private string? PrintsAs => string.IsNullOrWhiteSpace(Value) ? "10 digits, dashes OK" : $"Prints as {Phone.Format(Value)}";
+
+    protected override string? Problem =>
+        !string.IsNullOrWhiteSpace(Value) && !Phone.IsValid(Value) ? "Needs 10 digits, e.g. 802-555-0123." : null;
+}

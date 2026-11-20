@@ -1,0 +1,26 @@
+@using System.Globalization
+@* Compact money input for table cells (no label line). The parent records the change. *@
+<div class="money cell @(problem ? "has-problem" : "")">
+    <span>$</span>
+    <input type="text" inputmode="decimal" aria-label="@Label" title="@(problem ? "Enter a dollar amount like 291.50" : null)"
+           value="@(Value?.ToString("#,##0.00", CultureInfo.GetCultureInfo("en-US")))" @onchange="OnChange" />
+</div>
+
+@code {
+    [Parameter] public decimal? Value { get; set; }
+    [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    private bool problem;
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        var text = (e.Value as string ?? "").Replace("$", "").Replace(",", "").Trim();
+        if (text.Length == 0) { problem = false; await ValueChanged.InvokeAsync(null); return; }
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var d) && d >= 0)
+        {
+            problem = false;
+            await ValueChanged.InvokeAsync(Math.Round(d, 2));
+        }
+        else problem = true;
+    }
+}

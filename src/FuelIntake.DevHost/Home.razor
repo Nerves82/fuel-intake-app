@@ -1,0 +1,32 @@
+@page "/"
+@using FuelIntake.Core.TestData
+@using FuelIntake.UI.Services
+@inject IntakeSession Session
+
+@* Preview shortcuts: /?sample=0&screen=Household opens a test client on that screen. *@
+@if (ready)
+{
+    <FuelIntake.UI.AppRoot />
+}
+
+@code {
+    [SupplyParameterFromQuery] public int? Sample { get; set; }
+    [SupplyParameterFromQuery(Name = "screen")] public string? ScreenName { get; set; }
+    private bool ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.InitializeAsync();
+        if (Sample is int i && i >= 0 && i < SampleIntakes.All.Count)
+            await Session.CreateAsync("Testy", "Sampleton" + (i + 1), SampleIntakes.All[i].Build);
+        if (Session.Record is { } r && Sample is not null)
+        {
+            // show the vendor details in the preview
+            r.FuelElectric.Vendor ??= Session.Vendors.FuelVendors.FirstOrDefault()?.DisplayName;
+            r.FuelElectric.ElectricProvider ??= Session.Vendors.ElectricProviders.FirstOrDefault()?.DisplayName;
+            Session.Changed();
+        }
+        if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);
+        ready = true;
+    }
+}

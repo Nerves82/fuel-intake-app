@@ -1,0 +1,13 @@
+@using System.Globalization
+@inherits FieldBase<TimeOnly?>
+<Field Label="@Label" For="@Id" Hint="@Hint">
+    <div class="inline">
+        <input id="@Id" type="time" value="@(Value?.ToString("HH:mm", CultureInfo.InvariantCulture))" @onchange="OnChange" />
+        <button type="button" class="small" @onclick="() => SetAsync(TimeOnly.FromDateTime(DateTime.Now))" title="Use the current time">Now</button>
+    </div>
+</Field>
+
+@code {
+    private Task OnChange(ChangeEventArgs e) =>
+        SetAsync(TimeOnly.TryParseExact(e.Value as string, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var t) ? t : null);
+}

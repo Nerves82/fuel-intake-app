@@ -24,4 +24,14 @@ public sealed class AgencySettings
 
     /// <summary>Date format used in file names, e.g. 11_20_26.</summary>
     public string FileDateFormat { get; set; } = "MM_dd_yy";
+
+    /// <summary>
+    /// Template folder, relative to the user's profile folder (phase 1). Forms the app doesn't draw
+    /// itself (the consent forms) are copied from here into each new client folder.
+    /// </summary>
+    public string TemplateFolder { get; set; } =
+        @"Northeast Kingdom Community Action, Inc\3025 Crisis Fuel (07 31) - General\Navigator\Masters\Fuel Assistance - Applications and Forms";
+
+    /// <summary>Template files copied into each new client folder (exact names).</summary>
+    public List<string> TemplateFiles { get; set; } = ["FA (pg. 2.3-2.6) - Consent Forms.pdf"];
 }

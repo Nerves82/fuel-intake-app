@@ -1,0 +1,38 @@
+@inherits FieldBase<string?>
+@* A dropdown. With AllowOther, the user can also type a value that isn't on the list (shown with a note). *@
+<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@Problem" Wide="Wide">
+    @if (AllowOther)
+    {
+        <input id="@Id" type="text" list="@(Id + "-list")" value="@Value" placeholder="Pick or type…" @onchange="e => SetAsync(e.Value as string)" />
+        <datalist id="@(Id + "-list")">
+            @foreach (var o in Options)
+            {
+                <option value="@o"></option>
+            }
+        </datalist>
+    }
+    else
+    {
+        <select id="@Id" value="@(Value ?? "")" @onchange="e => SetAsync(string.IsNullOrEmpty(e.Value as string) ? null : (string?)e.Value)">
+            <option value="">—</option>
+            @if (!string.IsNullOrEmpty(Value) && !Options.Contains(Value))
+            {
+                <option value="@Value">@Value (not on list)</option>
+            }
+            @foreach (var o in Options)
+            {
+                <option value="@o">@o</option>
+            }
+        </select>
+    }
+</Field>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Options { get; set; } = [];
+    [Parameter] public bool AllowOther { get; set; }
+    [Parameter] public string? NotOnListNote { get; set; }
+
+    protected override string? Problem =>
+        AllowOther && !string.IsNullOrWhiteSpace(Value) && !Options.Contains(Value.Trim(), StringComparer.OrdinalIgnoreCase)
+            ? NotOnListNote : null;
+}

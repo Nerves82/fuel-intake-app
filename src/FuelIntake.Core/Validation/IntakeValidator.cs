@@ -59,7 +59,7 @@ public static class IntakeValidator
                 $"Household income column ({Money.Format(calc.HouseholdIncomeColumnTotal)}) doesn't match the worksheet total ({Money.Format(calc.IncomeTotal)}).");
         if (calc.UnderIncomeLimit == false)
             Add(IssueSeverity.Warning, "Income & Expenses", "FPL",
-                $"Household is at {calc.FplPercent:P0} of FPL, over the program limit.");
+                $"Household is at {Percent.Format(calc.FplPercent)} of FPL, over the program limit.");
         if (r.IncomeExpenses.IncomeChangeNextMonth == "Yes" && string.IsNullOrWhiteSpace(r.IncomeExpenses.IncomeChangeExplanation))
             Add(IssueSeverity.Warning, "Income & Expenses", "Income change", "Income changes next month: add an explanation.");
 

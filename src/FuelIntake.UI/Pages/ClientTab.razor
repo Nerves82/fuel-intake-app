@@ -1,0 +1,104 @@
+@inject IntakeSession Session
+@{ var r = Session.Record!; var c = r.Client; var calc = Session.Calc!; }
+
+<h1>1 · Client &amp; household info</h1>
+<p class="lead">Fill in once per client. These answers fill the Intake, Fuel Order and Electric Pledge forms.</p>
+
+<Section Title="Application & staff">
+    <DateBox Label="Application date" @bind-Value="r.Staff.AppDate" Hint="Used as the date on every form." />
+    <TextBox Label="Case / file # (GoEngage)" @bind-Value="r.Staff.CaseNumber" Hint="Optional. Prints on the cover sheet." />
+    <SelectBox Label="Staff name" @bind-Value="r.Staff.StaffName" Options="StaffNames" AllowOther="true"
+               NotOnListNote="Not on the Staff list: phone and email won't fill in." />
+    <CalcValue Label="Staff initials (used on forms)" Value="@calc.StaffInitials" />
+    <CalcValue Label="Staff phone (used on forms)" Value="@Phone.Format(calc.StaffPhone)" />
+    <CalcValue Label="Staff email (used on forms)" Value="@calc.StaffEmail" />
+</Section>
+
+<details class="card overrides">
+    <summary>Staff details different for this client?</summary>
+    <div class="grid">
+        <TextBox Label="Staff initials (only if different)" @bind-Value="r.Staff.InitialsOverride" />
+        <PhoneBox Label="Staff phone (only if different)" @bind-Value="r.Staff.PhoneOverride" />
+        <TextBox Label="Staff email (only if different)" @bind-Value="r.Staff.EmailOverride" />
+    </div>
+</details>
+
+<Section Title="Client">
+    <TextBox Label="First name" @bind-Value="c.FirstName" />
+    <TextBox Label="Last name" @bind-Value="c.LastName" />
+    <DateBox Label="Date of birth" @bind-Value="c.DateOfBirth" ShowToday="false" NotInFuture="true"
+             Hint="Also fills household member 1." />
+    <TextBox Label="Legal representative (if any)" @bind-Value="c.LegalRepName" Hint="ESD 3SquaresVT release only." />
+</Section>
+
+<Section Title="Contact (Intake page 1)">
+    <TextBox Label="Physical address" @bind-Value="c.AddressPhysical" Placeholder="123 Main St" Wide="true" />
+    <TextBox Label="City/Town" @bind-Value="c.City" />
+    <TextBox Label="State" @bind-Value="c.State" />
+    <ZipBox Label="Zip" @bind-Value="c.Zip" />
+    <CalcValue Label="City/Town, State, Zip (as printed)" Value="@calc.CityStateZip" />
+    <SelectBox Label="County" @bind-Value="c.County" Options="ChoiceLists.County" Hint="For GoEngage (not on paper forms)" />
+    <SelectBox Label="School district" @bind-Value="c.SchoolDistrict" Options="ChoiceLists.SchoolDistrict" Hint="For GoEngage (not on paper forms)" />
+    <TextBox Label="Mailing address (if different)" @bind-Value="c.AddressMailing" Wide="true" />
+    <PhoneBox Label="Phone number" @bind-Value="c.Phone" />
+    <TextBox Label="Email (optional)" @bind-Value="c.Email" />
+    <TextBox Label="Primary language" @bind-Value="c.PrimaryLanguage" Placeholder="English" />
+    <TextBox Label="Other language (specify)" @bind-Value="c.LanguageOther" />
+    <TextBox Label="English fluency (if applicable)" @bind-Value="c.EnglishFluency" />
+    <RadioGroup Label="Translator needed?" @bind-Value="c.TranslatorNeeded" Options="ChoiceLists.YesNoLetter" />
+</Section>
+
+<Section Title="Service address" Note="Used on ACCESS, the Fuel Order and the Electric Pledge. Leave blank to use the address above.">
+    <TextBox Label="Service address line 1" @bind-Value="c.ServiceAddressLine1" Placeholder="@calc.ServiceAddressLine1" />
+    <TextBox Label="Service address line 2" @bind-Value="c.ServiceAddressLine2" Placeholder="@calc.ServiceAddressLine2" />
+</Section>
+
+<Section Title="Housing & household type (Intake page 2)">
+    <SelectBox Label="Housing type" @bind-Value="c.HousingType" Options="ChoiceLists.Housing"
+               Hint="@($"Ticks on paper: {Box(calc.HousingBox)}")" />
+    <SelectBox Label="Household type" @bind-Value="c.HouseholdType" Options="ChoiceLists.HouseholdType"
+               Hint="@($"Ticks on paper: {Box(calc.HouseholdTypeBox)}")" />
+</Section>
+
+<Section Title="Benefits received (Intake page 2)">
+    <CheckBox Label="SNAP" @bind-Value="c.Benefits.Snap" />
+    @if (c.Benefits.Snap)
+    {
+        <MoneyBox Label="SNAP amount" @bind-Value="c.Benefits.SnapAmount" />
+        <RadioGroup Label="SNAP amount per" @bind-Value="c.Benefits.SnapPeriod" Options="ChoiceLists.SnapPeriod" />
+        <DateBox Label="SNAP verified in ACCESS (date)" @bind-Value="c.Benefits.SnapVerifiedDate" Hint="Fills the ACCESS non-income line." />
+        <CalcValue Label="ACCESS non-income line" Value="@calc.AccessNonIncomeLine" />
+    }
+    <CheckBox Label="WIC" @bind-Value="c.Benefits.Wic" />
+    <CheckBox Label="LIHEAP" @bind-Value="c.Benefits.Liheap" />
+    <CheckBox Label="Housing Choice Voucher" @bind-Value="c.Benefits.HousingChoiceVoucher" />
+    <CheckBox Label="Public Housing" @bind-Value="c.Benefits.PublicHousing" />
+    <CheckBox Label="Permanent Supportive Housing" @bind-Value="c.Benefits.PermanentSupportiveHousing" />
+    <CheckBox Label="HUD-VASH" @bind-Value="c.Benefits.HudVash" />
+    <CheckBox Label="Childcare Voucher" @bind-Value="c.Benefits.ChildcareVoucher" />
+    <CheckBox Label="Affordable Care Act Subsidy" @bind-Value="c.Benefits.AcaSubsidy" />
+</Section>
+
+<Section Title="Programs / services of interest (Intake page 2)">
+    <CheckBox Label="Food / Clothing" @bind-Value="c.Interests.FoodClothing" />
+    <CheckBox Label="Housing Support" @bind-Value="c.Interests.HousingSupport" />
+    <CheckBox Label="Fuel Assistance" @bind-Value="c.Interests.FuelAssistance" />
+    <CheckBox Label="Economic Programs (VITA, MicroBusiness, Coaching)" @bind-Value="c.Interests.EconomicPrograms" />
+    <CheckBox Label="Youth Programs" @bind-Value="c.Interests.YouthPrograms" />
+    <CheckBox Label="Parent/Family Supports" @bind-Value="c.Interests.FamilySupports" />
+    <CheckBox Label="TEFAP/USDA" @bind-Value="c.Interests.Tefap" />
+    <CheckBox Label="Community Justice Programs" @bind-Value="c.Interests.CommunityJustice" />
+    <CheckBox Label="Other" @bind-Value="c.Interests.Other" />
+    @if (c.Interests.Other)
+    {
+        <TextBox Label="Other (specify)" @bind-Value="c.Interests.OtherText" />
+    }
+</Section>
+
+<NextTab Next="Screen.Household" />
+
+@code {
+    private IReadOnlyList<string> StaffNames => Session.Staff.Members.Select(m => m.Name).ToList();
+    private static string Box<T>(T? box) where T : struct, Enum => box?.ToString() is { } s ? Words(s) : "—";
+    private static string Words(string pascal) => System.Text.RegularExpressions.Regex.Replace(pascal, "(?<=[a-z])(?=[A-Z])", " ");
+}
