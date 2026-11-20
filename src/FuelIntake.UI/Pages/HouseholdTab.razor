@@ -28,6 +28,7 @@
                 <button class="link danger" @onclick="() => Remove(member)">Remove</button>
             }
         </div>
+        <CascadingValue Value="@(Scope?.Within($"Member {number}"))">
         <div class="grid">
             @if (number == 1)
             {
@@ -55,6 +56,7 @@
             <SelectBox Label="Income source" @bind-Value="member.IncomeSource" Options="ChoiceLists.IncomeSource" />
             <DateBox Label="Income verified in ACCESS" @bind-Value="member.IncomeVerifiedDate" />
         </div>
+        </CascadingValue>
     </section>
 }
 
@@ -65,6 +67,8 @@
 <NextTab Next="Screen.Application" />
 
 @code {
+    [CascadingParameter] public FieldScope? Scope { get; set; }
+
     private void Add()
     {
         var r = Session.Record!;

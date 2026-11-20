@@ -83,11 +83,12 @@ public static partial class ActivityLog
     }
 
     /// <summary>Adds a note by <paramref name="by"/> and logs it.</summary>
-    public static StaffNote AddNote(IntakeRecord r, StaffStamp by, DateTimeOffset at, string text)
+    public static StaffNote AddNote(IntakeRecord r, StaffStamp by, DateTimeOffset at, string text, NoteFieldRef? about = null)
     {
-        var note = new StaffNote { At = at, By = by, Text = text.Trim() };
+        var note = new StaffNote { At = at, By = by, Text = text.Trim(), About = about };
         r.Notes.Add(note);
-        r.Activity.Add(new ActivityEntry { At = at, By = by, Action = "Added a note", Changes = [new("Note", null, Preview(note.Text))] });
+        r.Activity.Add(new ActivityEntry { At = at, By = by, Action = "Added a note",
+            Changes = [new(about is null ? "Note" : $"Note about {about.Label}", null, Preview(note.Text))] });
         return note;
     }
 

@@ -58,7 +58,15 @@ public sealed class StaffNote
     public DateTimeOffset At { get; set; }
     public StaffStamp By { get; set; } = new("", null);
     public string Text { get; set; } = "";
+    /// <summary>The field this note is about (right-click → Add note), or null for a general note.</summary>
+    public NoteFieldRef? About { get; set; }
 }
+
+/// <summary>
+/// Points a note at a field. <see cref="Screen"/> is the tab name, <see cref="Key"/> identifies the field
+/// on that tab, <see cref="Label"/> is what staff see ("Household › Member 2 › SSN").
+/// </summary>
+public sealed record NoteFieldRef(string Screen, string Key, string Label);
 
 /// <summary>A person who worked on the intake.</summary>
 public sealed record StaffStamp(string Name, string? Email);

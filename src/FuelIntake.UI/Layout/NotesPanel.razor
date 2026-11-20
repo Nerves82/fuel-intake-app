@@ -1,6 +1,7 @@
 @* Staff notes for the open client: stays open across tabs. Newest first. *@
 @implements IDisposable
 @inject IntakeSession Session
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 @if (Session.Record is { } r && Session.NotesOpen)
 {
@@ -9,7 +10,12 @@
             <h2>Notes</h2>
             <button class="link" @onclick="Session.ToggleNotes" title="Hide notes">Hide ✕</button>
         </div>
-        <textarea rows="4" placeholder="Add a note… (Ctrl+Enter to save)" @bind="draft" @bind:event="oninput" @onkeydown="Key"></textarea>
+        @if (Session.PendingNoteRef is { } about)
+        {
+            <div class="about-chip">About: <strong>@about.Label</strong>
+                <button class="link small" title="Make this a general note" @onclick="Session.ClearPendingNoteRef">✕</button></div>
+        }
+        <textarea id="note-draft" rows="4" placeholder="Add a note… (Ctrl+Enter to save)" @bind="draft" @bind:event="oninput" @onkeydown="Key"></textarea>
         <div class="actions">
             <span class="note">Signed as @Session.Me.Name</span>
             <span class="spacer"></span>
@@ -29,6 +35,10 @@
                         <strong>@note.By.Name</strong>
                         <span>@note.At.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
                     </div>
+                    @if (note.About is { } a)
+                    {
+                        <button class="link about-link" title="Go to this field" @onclick="() => Session.RevealField(a)">↳ @a.Label</button>
+                    }
                     <div class="text">@note.Text</div>
                     @if (confirmId == note.Id)
                     {
@@ -52,6 +62,14 @@
     private bool busy;
 
     protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!Session.FocusNoteBox || !Session.NotesOpen) return;
+        Session.FocusNoteBox = false;
+        try { await JS.InvokeVoidAsync("fuelIntake.focus", "note-draft"); }
+        catch (Exception) { /* no JS in static preview */ }
+    }
     private void OnState() => InvokeAsync(StateHasChanged);
     public void Dispose() => Session.StateChanged -= OnState;
 

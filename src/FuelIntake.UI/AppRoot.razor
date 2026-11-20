@@ -1,6 +1,7 @@
 @* Root component shared by the desktop and web hosts. *@
 @implements IDisposable
 @inject IntakeSession Session
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 @if (loadError is not null)
 {
@@ -39,6 +40,7 @@ else
     }
     <NotesPanel />
     <main class="page @(Session.NotesOpen ? "with-notes" : "")">
+        <CascadingValue Value="@(new FieldScope(Session.Screen))">
         @switch (Session.Screen)
         {
             case Screen.Client: <ClientTab /> break;
@@ -49,11 +51,49 @@ else
             case Screen.Review: <ReviewTab /> break;
             case Screen.Print: <PrintTab /> break;
         }
+        </CascadingValue>
     </main>
+}
+
+@if (Session.FieldMenu is { } menu)
+{
+    <div class="ctx-backdrop" @onclick="Session.CloseFieldMenu" @oncontextmenu="Session.CloseFieldMenu" @oncontextmenu:preventDefault="true"></div>
+    <div class="ctx-menu" style="@($"left:{menu.X:0}px; top:{menu.Y:0}px")">
+        <button @onclick="() => Session.StartNoteAbout(menu.Ref)">📝 Add note about this field</button>
+        <div class="ctx-label">@menu.Ref.Label</div>
+        <div class="ctx-hint">Shift+right-click for copy/paste menu</div>
+    </div>
 }
 
 @code {
     private bool ready;
+    private Microsoft.JSInterop.DotNetObjectReference<AppRoot>? self;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                self = Microsoft.JSInterop.DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("fuelIntake.init", self);
+            }
+            if (Session.PendingReveal is { } r)
+            {
+                Session.PendingReveal = null;
+                await JS.InvokeAsync<bool>("fuelIntake.reveal", FieldScope.ElementId(r));
+            }
+        }
+        catch (Microsoft.JSInterop.JSException) { /* helper script missing: right-click notes just won't open */ }
+        catch (InvalidOperationException) { /* static preview rendering: no JS available */ }
+    }
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void OpenFieldMenu(string screen, string key, string label, double x, double y) =>
+        Session.ShowFieldMenu(new NoteFieldRef(screen, key, label), x, y);
+
+    [Microsoft.JSInterop.JSInvokable]
+    public void CloseFieldMenu() => Session.CloseFieldMenu();
     private string? loadError;
 
     protected override async Task OnInitializedAsync()
@@ -66,5 +106,9 @@ else
 
     private void OnState() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Session.StateChanged -= OnState;
+    public void Dispose()
+    {
+        Session.StateChanged -= OnState;
+        self?.Dispose();
+    }
 }

@@ -30,7 +30,7 @@ See [PROJECT_NOTES.md](PROJECT_NOTES.md) for decisions and rules.
 [Download FuelIntake-win-x64.zip](https://github.com/Nerves82/fuel-intake-app/releases/latest/download/FuelIntake-win-x64.zip)
 · [All releases](https://github.com/Nerves82/fuel-intake-app/releases)
 
-Unzip it and run `FuelIntake.exe`. Windows may say "unknown publisher" the first time:
+Unzip it (you get a `FuelIntake-<version>` folder) and run `FuelIntake.exe`. Windows may say "unknown publisher" the first time:
 choose **More info → Run anyway**.
 
 Test builds of branches that aren't merged yet: Actions → **Build** → pick a run → **Artifacts**.
