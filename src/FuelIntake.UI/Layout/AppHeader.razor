@@ -1,10 +1,12 @@
 @implements IDisposable
 @inject IntakeSession Session
+@inject HostInfo Host
 
 <header class="app-header">
     <div class="brand">
         <img src="_content/FuelIntake.UI/nekca-logo.png" alt="NEKCA" />
         <span>Fuel Assistance Intake</span>
+        <span class="version" title="@($"Version {Host.AppVersion}")">v@(ShortVersion)</span>
     </div>
     @if (Session.Record is { } r)
     {
@@ -52,6 +54,9 @@
 </header>
 
 @code {
+    /// <summary>"0.1.29" from "0.1.29 (a1b2c3d)".</summary>
+    private string ShortVersion => Host.AppVersion.Split(' ', '+')[0];
+
     protected override void OnInitialized() => Session.StateChanged += OnState;
     private void OnState() => InvokeAsync(StateHasChanged);
     public void Dispose() => Session.StateChanged -= OnState;

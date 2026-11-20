@@ -22,6 +22,7 @@ h2 { font-size: 16px; color: var(--navy); margin: 0 0 12px; }
 .app-header .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 16px; color: var(--green); }
 .app-header .brand img { height: 42px; width: auto; display: block; }
 .app-header .brand span { padding-left: 12px; border-left: 1px solid var(--line); }
+.app-header .brand span.version { border: none; padding: 1px 6px; font-size: 11px; font-weight: 600; color: var(--quiet); background: var(--calc); border-radius: 4px; }
 .app-header .client-name { font-size: 15px; flex: 1; color: var(--brand-navy); font-weight: 600; }
 .app-header .spacer { flex: 1; }
 .app-header .save-state { font-size: 12px; color: var(--quiet); }

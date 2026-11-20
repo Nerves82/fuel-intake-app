@@ -41,6 +41,7 @@ public partial class MainWindow : Window
         provider = services.BuildServiceProvider();
         Resources.Add("services", provider);
         InitializeComponent();
+        Title = $"NEKCA Fuel Assistance Intake — v{provider.GetRequiredService<HostInfo>().AppVersion.Split(' ', '+')[0]}";
         Closing += (_, _) => SavePending();
     }
 

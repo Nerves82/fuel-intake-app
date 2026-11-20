@@ -16,7 +16,7 @@ public static class DevServices
         services.AddSingleton<IListSource, FakeLists>();
         services.AddSingleton<ICurrentUser>(new FakeUser());
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton(new HostInfo("dev preview", "Web (preview)", Environment.MachineName, contentRoot,
+        services.AddSingleton(new HostInfo("0.0.0-dev (preview)", "Web (preview)", Environment.MachineName, contentRoot,
             System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, "Browser"));
         services.AddSingleton<IEnumerable<CheckTarget>>([new CheckTarget("Temp folder", Path.GetTempPath())]);
         services.AddScoped<IntakeSession>();
