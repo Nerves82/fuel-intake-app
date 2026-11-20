@@ -8,5 +8,7 @@
     <Product>Fuel Assistance Intake</Product>
     <!-- CI overrides Version with the build number, e.g. 0.1.42 -->
     <Version>0.1.0</Version>
+    <!-- CI already puts the short commit id in InformationalVersion; don't append the full one too. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 </Project>

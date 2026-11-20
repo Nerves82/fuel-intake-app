@@ -19,6 +19,16 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 | Distribution (phase 1) | Portable folder in the Crisis Fuel SharePoint library, synced by OneDrive; a launcher copies it locally before running |
 | Repo | Private GitHub repo; currently `Nerves82/fuel-intake-app`, to move to a NEKCA organization later |
 
+## Laptop test results
+
+- 2026-11-20, build 0.1.3, NEKCA laptop: runs without admin rights. SmartScreen shows
+  "Unknown publisher" the first time (More info → Run anyway). Ran from Downloads and from
+  the synced Crisis Fuel folder. WebView2 present (157.x). Write access OK to Documents,
+  the client files folder, OneDrive and the synced Crisis Fuel team folder.
+- Lesson: the desktop project must target a Windows 10 SDK TFM
+  (`net10.0-windows10.0.19041.0`), or WebView2 fails at start-up with a missing
+  `Microsoft.Windows.SDK.NET` assembly.
+
 ## Architecture rules
 
 - Screens never call Windows-only features directly. Anything host-specific goes behind
