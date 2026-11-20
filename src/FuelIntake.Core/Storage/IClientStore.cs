@@ -22,6 +22,15 @@ public interface IClientStore
 
     Task SaveAsync(string clientId, IntakeRecord record, CancellationToken ct = default);
 
+    /// <summary>Names of the files in the client's folder (subfolders end in "\"), shown before deleting.</summary>
+    Task<IReadOnlyList<string>> ListFilesAsync(string clientId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes the client's folder and everything in it. Phase 1 moves it to the Windows Recycle Bin
+    /// (and, for a synced SharePoint folder, SharePoint's recycle bin), so it can be restored.
+    /// </summary>
+    Task DeleteClientAsync(string clientId, CancellationToken ct = default);
+
     /// <summary>When intake.json was last saved by anyone (to spot two people editing at once), or null if never.</summary>
     Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default);
 }

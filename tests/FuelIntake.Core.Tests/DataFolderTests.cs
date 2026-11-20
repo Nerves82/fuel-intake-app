@@ -39,3 +39,18 @@ public class DataFolderTests
         Assert.NotNull(DataFolderRules.Warning(Synced + @"\_TEST Sampleton, Testy", hasIntakeFile: true));
     }
 }
+
+public class DeleteClientTests
+{
+    [Theory]
+    [InlineData("Sampleton", "Sampleton", true)]
+    [InlineData("  sampleton ", "Sampleton", true)]
+    [InlineData("Van  Example", "Van Example", true)]
+    [InlineData("_TEST Sampleton", "Sampleton", true)]
+    [InlineData("Sample", "Sampleton", false)]
+    [InlineData("", "Sampleton", false)]
+    [InlineData("", "", false)]
+    [InlineData(null, null, false)]
+    public void DeleteConfirmed_NeedsTheLastName(string? typed, string? last, bool ok) =>
+        Assert.Equal(ok, FuelIntake.Core.Storage.ClientFolders.DeleteConfirmed(typed, last));
+}

@@ -102,7 +102,67 @@ else
     </ul>
 </section>
 
+<section class="card danger-zone">
+    <h2>Delete this client</h2>
+    @if (!deleteOpen)
+    {
+        <p class="note">Removes the whole client folder, including the PDFs and any other files in it.</p>
+        <button class="secondary danger-outline" @onclick="StartDelete">Delete client…</button>
+    }
+    else
+    {
+        var rec = Session.Record!;
+        <p>This moves the folder <strong>@Session.Folder?.DisplayName</strong> and everything in it to the Recycle Bin.
+            @if (deleteFiles is { Count: > 0 } files)
+            {
+                <span>It holds @files.Count item@(files.Count == 1 ? "" : "s"):</span>
+            }
+        </p>
+        @if (deleteFiles is { Count: > 0 } list)
+        {
+            <ul class="delete-files">
+                @foreach (var f in list.Take(15)) { <li>@f</li> }
+                @if (list.Count > 15) { <li class="note">…and @(list.Count - 15) more</li> }
+            </ul>
+        }
+        @if (!rec.IsTestData)
+        {
+            <p class="warn">This is a real client's file. Check your agency's record-keeping rules before deleting it.</p>
+        }
+        <div class="field">
+            <label for="del-confirm">Type the client's last name (<strong>@rec.Client.LastName</strong>) to confirm</label>
+            <input id="del-confirm" autocomplete="off" @bind="deleteTyped" @bind:event="oninput" />
+        </div>
+        @if (deleteError is not null) { <p class="problem">@deleteError</p> }
+        <div class="actions">
+            <button class="danger" disabled="@(deleting || !FuelIntake.Core.Storage.ClientFolders.DeleteConfirmed(deleteTyped, rec.Client.LastName))"
+                    @onclick="Delete">@(deleting ? "Deleting…" : "Move folder to Recycle Bin")</button>
+            <button class="secondary" disabled="@deleting" @onclick="() => { deleteOpen = false; deleteTyped = null; deleteError = null; }">Cancel</button>
+        </div>
+    }
+</section>
+
 @code {
+    private bool deleteOpen, deleting;
+    private string? deleteTyped, deleteError;
+    private IReadOnlyList<string>? deleteFiles;
+
+    private async Task StartDelete()
+    {
+        deleteOpen = true; deleteTyped = null; deleteError = null;
+        try { deleteFiles = await Session.ClientFilesAsync(); }
+        catch (Exception ex) { deleteFiles = null; deleteError = "Couldn't list the folder: " + ex.Message; }
+    }
+
+    private async Task Delete()
+    {
+        if (!FuelIntake.Core.Storage.ClientFolders.DeleteConfirmed(deleteTyped, Session.Record?.Client.LastName)) return;
+        deleting = true; deleteError = null;
+        try { await Session.DeleteCurrentClientAsync(); }
+        catch (Exception ex) { deleteError = "Couldn't delete: " + ex.Message; }
+        finally { deleting = false; }
+    }
+
     private string? setName, setDescription, setMessage;
     private bool savingSet, setSaved;
 
