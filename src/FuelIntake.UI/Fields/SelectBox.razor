@@ -69,7 +69,7 @@
         }
     }
 
-    private void Toggle() { if (open) Close(); else Open(); }
+    private async Task Toggle() { if (open) await Close(); else Open(); }
 
     private void Open()
     {
