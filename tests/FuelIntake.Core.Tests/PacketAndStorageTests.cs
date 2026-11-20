@@ -63,3 +63,23 @@ public class TemplateNameTests
         Assert.Equal("T_Sampleton_FA (pg. 2.3-2.6) - Consent Forms_11_20_26.pdf",
             ClientFolders.TemplateCopyName("FA (pg. 2.3-2.6) - Consent Forms.pdf", "Testy", "Sampleton", new DateOnly(2026, 11, 20)));
 }
+
+public class RecentClientTests
+{
+    private static ClientFolderInfo C(string name) => new($"/clients/{name}", name, null, true);
+    private static readonly DateTimeOffset T0 = new(2026, 11, 20, 9, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void Touch_MovesToTop_NoDuplicates_KeepsTen()
+    {
+        var list = new List<RecentClient>();
+        for (var i = 0; i < 12; i++) list = RecentClientList.Touch(list, C($"Client{i}"), T0.AddMinutes(i));
+        Assert.Equal(10, list.Count);
+        Assert.Equal("Client11", list[0].DisplayName);
+
+        list = RecentClientList.Touch(list, C("Client5"), T0.AddHours(1));
+        Assert.Equal("Client5", list[0].DisplayName);
+        Assert.Single(list, r => r.DisplayName == "Client5");
+        Assert.Equal(10, list.Count);
+    }
+}

@@ -19,6 +19,7 @@ public static class DevServices
         services.AddSingleton(new HostInfo("0.0.0-dev (preview)", "Web (preview)", Environment.MachineName, contentRoot,
             System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, "Browser"));
         services.AddSingleton<IEnumerable<CheckTarget>>([new CheckTarget("Temp folder", Path.GetTempPath())]);
+        services.AddSingleton<IRecentClients, MemoryRecent>();
         services.AddScoped<IntakeSession>();
         services.AddScoped<FuelIntake.UI.Printing.PacketRenderer>();
         services.AddSingleton<IPdfPrinter, NoPdf>();
@@ -36,6 +37,14 @@ public static class DevServices
     {
         public Task<string> SaveAsync(string clientId, string fileName, byte[] content, CancellationToken ct = default) => Task.FromResult(fileName);
         public Task OpenAsync(string location, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private sealed class MemoryRecent : IRecentClients
+    {
+        private List<RecentClient> list = [];
+        public Task<IReadOnlyList<RecentClient>> GetAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<RecentClient>>(list);
+        public Task TouchAsync(ClientFolderInfo client, DateTimeOffset at, CancellationToken ct = default)
+        { list = RecentClientList.Touch(list, client, at); return Task.CompletedTask; }
     }
 
     private sealed class FakeUser : ICurrentUser

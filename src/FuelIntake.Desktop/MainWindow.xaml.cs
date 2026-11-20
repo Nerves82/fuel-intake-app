@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         services.AddSingleton<IListSource>(lists);
         services.AddSingleton<IClientStore>(new LocalFolderClientStore(clientsRoot, lists));
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IRecentClients>(new LocalRecentClients(Path.Combine(StartupLog.AppDataFolder, "recent-clients.json")));
         services.AddSingleton<IntakeSession>();
         services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
         // PDFs reuse the main window's WebView2 environment (a second, different environment on the same data folder is refused)
