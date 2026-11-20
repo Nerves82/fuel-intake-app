@@ -34,6 +34,19 @@ public static class ClientFolders
     /// <summary>Test clients get this prefix so they can never be mistaken for real clients.</summary>
     public const string TestPrefix = "_TEST ";
 
+    /// <summary>
+    /// Deleting a client asks staff to type the client's last name: true when <paramref name="typed"/> matches it
+    /// (case, extra spaces and a "_TEST " prefix don't matter). A blank last name never matches.
+    /// </summary>
+    public static bool DeleteConfirmed(string? typed, string? lastName)
+    {
+        static string Norm(string? s) => string.Join(' ', (s ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+        var want = Norm(lastName);
+        var got = Norm(typed);
+        if (got.StartsWith(Norm(TestPrefix) + " ", StringComparison.Ordinal)) got = got[(Norm(TestPrefix).Length + 1)..];
+        return want.Length > 0 && got == want;
+    }
+
     /// <summary>The data file in each client folder.</summary>
     public const string IntakeFileName = "intake.json";
 }

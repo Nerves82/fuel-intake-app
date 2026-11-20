@@ -273,3 +273,11 @@ table.edit.grants tr.inactive input:not([type=checkbox]) { color: var(--quiet); 
 .app-header button.theme-toggle { background: none; border: 1px solid var(--line); color: var(--ink); width: 34px; height: 34px;
     padding: 0; border-radius: 50%; font-size: 16px; line-height: 1; flex-shrink: 0; }
 .app-header button.theme-toggle:hover:not(:disabled) { background: var(--secondary-hover); }
+
+/* delete client (Review tab) */
+.danger-zone { border-color: var(--error-line); }
+.danger-zone h2 { color: var(--bad); }
+.danger-zone .warn { color: var(--warn); font-weight: 600; }
+button.secondary.danger-outline { color: var(--bad); border-color: var(--bad); }
+.delete-files { margin: 4px 0 8px; padding-left: 20px; font-size: 13px; max-height: 12rem; overflow-y: auto; }
+.inline-banner { border: 1px solid var(--banner-line); border-radius: 6px; margin-bottom: 12px; }

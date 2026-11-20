@@ -121,5 +121,15 @@ public static class DevServices
 
         public Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default) =>
             Task.FromResult<DateTimeOffset?>(files.TryGetValue(clientId, out var f) ? f.Saved : null);
+
+        public Task<IReadOnlyList<string>> ListFilesAsync(string clientId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<string>>(files.ContainsKey(clientId) ? [ClientFolders.IntakeFileName] : []);
+
+        public Task DeleteClientAsync(string clientId, CancellationToken ct = default)
+        {
+            files.TryRemove(clientId, out _);
+            folders.TryRemove(clientId, out _);
+            return Task.CompletedTask;
+        }
     }
 }

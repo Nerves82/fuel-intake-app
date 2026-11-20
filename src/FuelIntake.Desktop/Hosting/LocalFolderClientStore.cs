@@ -44,12 +44,46 @@ public sealed class LocalFolderClientStore(LocalDataFolder folder, IListSource l
 
     public async Task SaveAsync(string clientId, IntakeRecord record, CancellationToken ct = default)
     {
-        Directory.CreateDirectory(clientId);
+        // never re-create a folder someone deleted (or that OneDrive removed) while this client was open
+        if (!Directory.Exists(clientId))
+            throw new DirectoryNotFoundException("This client's folder no longer exists (it may have been deleted). Changes weren't saved.");
         var file = Path.Combine(clientId, ClientFolders.IntakeFileName);
         var temp = file + ".saving";
         // write to a temp file first so a crash never leaves a half-written intake.json
         await File.WriteAllTextAsync(temp, IntakeJson.Serialize(record), ct);
         File.Move(temp, file, overwrite: true);
+    }
+
+    public Task<IReadOnlyList<string>> ListFilesAsync(string clientId, CancellationToken ct = default)
+    {
+        var dir = new DirectoryInfo(CheckClientFolder(clientId));
+        IReadOnlyList<string> names = dir.Exists
+            ? dir.GetDirectories().Select(d => d.Name + "\\").Concat(dir.GetFiles().Select(f => f.Name))
+                 .OrderBy(n => n, StringComparer.CurrentCultureIgnoreCase).ToList()
+            : [];
+        return Task.FromResult(names);
+    }
+
+    public Task DeleteClientAsync(string clientId, CancellationToken ct = default)
+    {
+        var path = CheckClientFolder(clientId);
+        if (!Directory.Exists(path)) return Task.CompletedTask;
+        RecycleBin.Send(path);
+        StartupLog.Write("A client folder was moved to the Recycle Bin"); // no client name in the log
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Only a folder directly inside the client files folder (not the settings folder) can be listed or deleted.</summary>
+    private string CheckClientFolder(string clientId)
+    {
+        var full = Path.GetFullPath(clientId).TrimEnd('\\', '/');
+        var parent = Path.GetDirectoryName(full);
+        var name = Path.GetFileName(full);
+        if (parent is null || !string.Equals(Path.GetFullPath(ClientsRoot).TrimEnd('\\', '/'), parent, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrEmpty(name)
+            || (name.StartsWith(ClientFolders.HiddenPrefix, StringComparison.Ordinal) && !name.StartsWith(ClientFolders.TestPrefix, StringComparison.Ordinal)))
+            throw new InvalidOperationException("That isn't a client folder in the client files folder.");
+        return full;
     }
 
     public Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default)

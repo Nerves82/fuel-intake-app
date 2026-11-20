@@ -121,6 +121,14 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   `fuelintake.js` sets `data-theme` before the first render. Printed forms (`forms.css`) and the
   print preview always stay black on white.
 
+## Deleting a client
+- Review tab → **Delete this client**: lists what's in the folder, then needs the client's last name
+  typed to confirm. Real (non-test) clients get a reminder about record-keeping rules.
+- The whole folder goes to the Windows Recycle Bin (SharePoint's recycle bin too, when synced), so it
+  can be restored. Only folders directly inside the client files folder can be deleted, never `_Fuel
+  Intake Settings`. The app log records that a folder was deleted, without the client's name.
+- Saving never re-creates a deleted folder: someone else still editing that client gets a "not saved" message.
+
 ## Architecture rules
 
 - Screens never call Windows-only features directly. Anything host-specific goes behind

@@ -5,6 +5,10 @@
 @inject IDataFolder Folder
 
 <main class="page narrow">
+    @if (Session.Notice is not null)
+    {
+        <div class="banner inline-banner">@Session.Notice <button class="link" @onclick="Session.DismissNotice">Dismiss</button></div>
+    }
     <section class="hero">
         <img src="_content/FuelIntake.UI/nekca-logo.png" alt="NEKCA — Together We Grow" />
         <div>

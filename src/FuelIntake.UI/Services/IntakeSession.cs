@@ -241,6 +241,34 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         await SaveAsync();
     }
 
+    public Task<IReadOnlyList<string>> ClientFilesAsync() =>
+        Folder is null ? Task.FromResult<IReadOnlyList<string>>([]) : store.ListFilesAsync(Folder.Id);
+
+    /// <summary>
+    /// Deletes the open client's folder (to the Recycle Bin on the desktop) without saving first,
+    /// then goes back to the client list with a notice.
+    /// </summary>
+    public async Task DeleteCurrentClientAsync()
+    {
+        if (Folder is null) return;
+        var folder = Folder;
+        saveDelay?.Cancel();
+        await saveLock.WaitAsync(); // let a save in progress finish, and stop new ones
+        try
+        {
+            await store.DeleteClientAsync(folder.Id);
+            Folder = null; Record = null; Calc = null; Issues = [];
+            HasUnsavedChanges = false; SaveConflict = false; SaveError = null;
+        }
+        finally
+        {
+            saveLock.Release();
+        }
+        Notice = $"Deleted {folder.DisplayName}. The folder is in the Recycle Bin if you need it back.";
+        Screen = Screen.Clients;
+        Notify();
+    }
+
     public async Task CloseAsync()
     {
         if (Record is not null && HasUnsavedChanges && !SaveConflict) await SaveAsync();
