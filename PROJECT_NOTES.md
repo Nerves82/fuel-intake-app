@@ -83,6 +83,9 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   if missing.
 - If intake.json changed on disk since it was opened (another computer saved), the app stops
   saving and tells the user to reopen, instead of overwriting.
+- The Review tab's Activity list groups each uninterrupted run by one person on one day into a
+  single item (time range, summary, net field changes, notes added/deleted). The saved log keeps
+  every entry; grouping is display only (`ActivityLog.Group`).
 
 ## Notes
 
