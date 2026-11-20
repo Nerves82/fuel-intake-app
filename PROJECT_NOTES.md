@@ -46,6 +46,18 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePreview=true`
 (static rendering only: good for screenshots, not clicking).
 
+## Multiple staff on one intake
+
+- Any staff member can open and edit any client. Each save logs who changed which fields
+  (old → new, SSNs masked) in `intake.json` → `activity`; edits by the same person within
+  15 minutes merge into one entry. The Review tab shows the history and flags edits by
+  someone other than the creator.
+- The assigned staff member's Staff-list details are copied into the file (`staff.staffSnapshot`),
+  so forms print correctly on any computer; opening the file adds them to the local Staff list
+  if missing.
+- If intake.json changed on disk since it was opened (another computer saved), the app stops
+  saving and tells the user to reopen, instead of overwriting.
+
 ## Printing (phase 1c)
 
 - Forms are Razor components in `FuelIntake.UI/Printing/Forms`, styled by `forms.css`

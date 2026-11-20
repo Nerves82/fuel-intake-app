@@ -38,6 +38,44 @@ else
     }
 }
 
+<section class="card">
+    <h2>Activity</h2>
+    @{ var r = Session.Record!; }
+    @if (r.CreatedBy is { } creator)
+    {
+        <p class="note">Created by <strong>@creator.Name</strong> @(r.CreatedAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</p>
+    }
+    @if (r.Activity.Count == 0)
+    {
+        <p class="note">No changes recorded yet.</p>
+    }
+    <ul class="activity">
+        @foreach (var e in Enumerable.Reverse(r.Activity))
+        {
+            var other = r.CreatedBy is { } c && !FuelIntake.Core.Activity.ActivityLog.SamePerson(c, e.By);
+            <li class="@(other ? "other" : "")">
+                <div>
+                    <strong>@e.At.ToLocalTime().ToString("MMM d, h:mm tt")</strong> — @e.By.Name
+                    @if (other) { <span class="badge other-staff">other staff</span> }
+                    · @(e.Action == "Created" ? "created the intake" : $"changed {e.Changes.Count} field{(e.Changes.Count == 1 ? "" : "s")}")
+                </div>
+                @if (e.Changes.Count > 0)
+                {
+                    <details>
+                        <summary>Show changes</summary>
+                        <table class="changes">
+                            @foreach (var ch in e.Changes)
+                            {
+                                <tr><td>@ch.Field</td><td class="from">@(string.IsNullOrEmpty(ch.From) ? "(blank)" : ch.From)</td><td>→</td><td>@(string.IsNullOrEmpty(ch.To) ? "(blank)" : ch.To)</td></tr>
+                            }
+                        </table>
+                    </details>
+                }
+            </li>
+        }
+    </ul>
+</section>
+
 @code {
     private static string Title(IssueSeverity s) => s switch
     {

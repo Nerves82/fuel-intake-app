@@ -96,5 +96,8 @@ public static class DevServices
             files[clientId] = (IntakeJson.Serialize(record), DateTimeOffset.Now);
             return Task.CompletedTask;
         }
+
+        public Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default) =>
+            Task.FromResult<DateTimeOffset?>(files.TryGetValue(clientId, out var f) ? f.Saved : null);
     }
 }

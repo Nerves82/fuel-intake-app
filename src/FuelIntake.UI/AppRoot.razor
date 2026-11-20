@@ -29,6 +29,14 @@ else
 {
     <AppHeader />
     <TabBar />
+    @if (Session.SaveConflict)
+    {
+        <div class="banner error">@Session.SaveError</div>
+    }
+    @if (Session.Notice is not null)
+    {
+        <div class="banner">@Session.Notice <button class="link" @onclick="Session.DismissNotice">Dismiss</button></div>
+    }
     <main class="page">
         @switch (Session.Screen)
         {

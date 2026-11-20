@@ -1,3 +1,4 @@
+using FuelIntake.Core.Activity;
 using FuelIntake.Core.Contacts;
 using FuelIntake.Core.Hosting;
 using FuelIntake.Core.Model;
@@ -29,6 +30,16 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public AgencySettings Settings { get; private set; } = new();
     public StaffDirectory Staff { get; private set; } = StaffDirectory.Empty;
     public VendorDirectory Vendors { get; private set; } = VendorDirectory.Empty;
+
+    /// <summary>A one-off message for the user (e.g. a staff member was added to the Staff list).</summary>
+    public string? Notice { get; private set; }
+    public void DismissNotice() { Notice = null; Notify(); }
+
+    /// <summary>Another computer saved this client after we opened it; we stop saving to avoid overwriting their work.</summary>
+    public bool SaveConflict { get; private set; }
+
+    private string baseline = "";           // record as last saved, for the activity log
+    private DateTimeOffset? loadedVersion;  // intake.json time when we last read or wrote it
 
     public bool HasUnsavedChanges { get; private set; }
     public DateTimeOffset? LastSaved { get; private set; }
@@ -81,12 +92,18 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public async Task OpenAsync(ClientFolderInfo folder)
     {
         await CloseAsync();
-        var record = await store.LoadAsync(folder.Id) ?? NewRecordFor(folder.DisplayName);
+        var loaded = await store.LoadAsync(folder.Id);
+        var record = loaded ?? NewRecordFor(folder.DisplayName);
         Folder = folder;
         Record = record;
         HasUnsavedChanges = false;
         SaveError = null;
+        SaveConflict = false;
         LastSaved = folder.LastModified;
+        loadedVersion = await store.GetLastSavedAsync(folder.Id);
+        baseline = ActivityLog.Snapshot(record);
+        if (loaded is null) ActivityLog.RecordCreated(record, Me, clock.GetLocalNow());
+        await AddSnapshotStaffAsync(record);
         Recalculate();
         Screen = Screen.Client;
         Notify();
@@ -107,6 +124,11 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         if (existing is null) StampStaff(record);
         Folder = folder;
         Record = record;
+        SaveConflict = false;
+        SaveError = null;
+        loadedVersion = await store.GetLastSavedAsync(folder.Id);
+        baseline = ActivityLog.Snapshot(record);
+        if (existing is null) ActivityLog.RecordCreated(record, Me, clock.GetLocalNow());
         Recalculate();
         Screen = Screen.Client;
         await SaveAsync();
@@ -114,9 +136,10 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
 
     public async Task CloseAsync()
     {
-        if (Record is not null && HasUnsavedChanges) await SaveAsync();
+        if (Record is not null && HasUnsavedChanges && !SaveConflict) await SaveAsync();
         saveDelay?.Cancel();
         Folder = null; Record = null; Calc = null; Issues = [];
+        SaveConflict = false; SaveError = null; Notice = null;
         Screen = Screen.Clients;
         Notify();
     }
@@ -135,22 +158,73 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     {
         if (Record is null || Folder is null) return;
         saveDelay?.Cancel();
+        await saveLock.WaitAsync();
         try
         {
+            var onDisk = await store.GetLastSavedAsync(Folder.Id);
+            if (onDisk is not null && loadedVersion is not null && onDisk > loadedVersion.Value.AddSeconds(1))
+            {
+                SaveConflict = true;
+                SaveError = "Someone else saved this client after you opened it. Your latest changes were NOT saved. " +
+                            "Note them down, close the client and open it again to see their changes.";
+                Notify();
+                return;
+            }
+            UpdateStaffSnapshot(Record);
+            var now = clock.GetLocalNow();
+            ActivityLog.Record(Record, Me, now, ActivityLog.Diff(baseline, ActivityLog.Snapshot(Record)));
             await store.SaveAsync(Folder.Id, Record);
+            baseline = ActivityLog.Snapshot(Record);
+            loadedVersion = await store.GetLastSavedAsync(Folder.Id);
             HasUnsavedChanges = false;
             SaveError = null;
-            LastSaved = clock.GetLocalNow();
+            LastSaved = now;
         }
         catch (Exception ex)
         {
             SaveError = ex.Message;
         }
+        finally
+        {
+            saveLock.Release();
+        }
         Notify();
+    }
+
+    private readonly SemaphoreSlim saveLock = new(1, 1);
+
+    /// <summary>The signed-in person, named as on the Staff list when they're on it.</summary>
+    public StaffStamp Me =>
+        Staff.FindByEmail(user.Email) is { } m ? new StaffStamp(m.Name, user.Email) : new StaffStamp(user.DisplayName, user.Email);
+
+    /// <summary>Keeps a copy of the assigned staff member's details in the client file.</summary>
+    private void UpdateStaffSnapshot(IntakeRecord r)
+    {
+        if (Staff.FindByName(r.Staff.StaffName) is { } m)
+            r.Staff.StaffSnapshot = new StaffContact(m.Name, m.Initials, m.Phone, m.Email);
+        else if (r.Staff.StaffSnapshot is { } s && !string.Equals(s.Name, r.Staff.StaffName?.Trim(), StringComparison.OrdinalIgnoreCase))
+            r.Staff.StaffSnapshot = null; // staff changed to someone not on the list
+    }
+
+    /// <summary>When a client was filled out by someone not on this computer's Staff list, add them.</summary>
+    private async Task AddSnapshotStaffAsync(IntakeRecord r)
+    {
+        if (r.Staff.StaffSnapshot is not { } s || string.IsNullOrWhiteSpace(s.Name) || Staff.FindByName(s.Name) is not null) return;
+        try
+        {
+            await lists.SaveStaffAsync(Staff.Members.Append(new StaffMember(s.Name, s.Initials, s.Phone, s.Email)));
+            Staff = await lists.GetStaffAsync();
+            Notice = $"Added {s.Name} to your Staff list (from this client's file).";
+        }
+        catch (Exception ex)
+        {
+            Notice = $"This client was filled out by {s.Name}, who isn't on your Staff list (couldn't add them: {ex.Message}).";
+        }
     }
 
     private void ScheduleSave()
     {
+        if (SaveConflict) return;
         saveDelay?.Cancel();
         var cts = saveDelay = new CancellationTokenSource();
         _ = Task.Delay(TimeSpan.FromSeconds(2), cts.Token).ContinueWith(async t =>
