@@ -90,6 +90,22 @@ public class NotesTests
     private static readonly DateTimeOffset T0 = new(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(-5));
 
     [Fact]
+    public void NotesAbout_FindsOnlyThatField()
+    {
+        var r = new IntakeRecord();
+        var ssn = new NoteFieldRef("Household", "member-1-ssn", "Household › Member 1 › SSN");
+        ActivityLog.AddNote(r, Pat, T0, "general note");
+        ActivityLog.AddNote(r, Pat, T0, "check the last digit", ssn);
+        ActivityLog.AddNote(r, Sam, T0.AddMinutes(5), "confirmed with card", ssn with { Label = "renamed label" });
+        ActivityLog.AddNote(r, Pat, T0, "other member", ssn with { Key = "member-2-ssn" });
+        ActivityLog.AddNote(r, Pat, T0, "other tab, same key", ssn with { Screen = "Client" });
+
+        var found = ActivityLog.NotesAbout(r, "Household", "member-1-ssn");
+        Assert.Equal(["check the last digit", "confirmed with card"], found.Select(n => n.Text));
+        Assert.Empty(ActivityLog.NotesAbout(r, "Household", "member-3-ssn"));
+    }
+
+    [Fact]
     public void AddNote_IsStampedAndLogged()
     {
         var r = new IntakeRecord();

@@ -1,6 +1,6 @@
 @* A calculated (read-only) value, shown in blue like the workbook's calculated cells. *@
 <div class="field calc @(Wide ? "wide" : "")" @attributes="Scope?.Attributes(Label)">
-    <label>@Label</label>
+    <label>@Label<NoteMarker Label="@Label" /></label>
     <div class="calc-value @(Strong ? "strong" : "")">@(string.IsNullOrEmpty(Value) ? "—" : Value)</div>
     @if (!string.IsNullOrEmpty(Hint))
     {

@@ -30,7 +30,7 @@
             @foreach (var n in Enumerable.Reverse(r.Notes))
             {
                 var note = n;
-                <li>
+                <li id="note-@note.Id">
                     <div class="meta">
                         <strong>@note.By.Name</strong>
                         <span>@note.At.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
@@ -65,6 +65,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (Session.HighlightNoteIds is { } ids && Session.NotesOpen && Session.Record is not null)
+        {
+            Session.HighlightNoteIds = null;
+            try { await JS.InvokeVoidAsync("fuelIntake.flashNotes", ids.Select(i => "note-" + i).ToArray()); }
+            catch (Exception) { /* no JS in static preview */ }
+        }
         if (!Session.FocusNoteBox || !Session.NotesOpen) return;
         Session.FocusNoteBox = false;
         try { await JS.InvokeVoidAsync("fuelIntake.focus", "note-draft"); }

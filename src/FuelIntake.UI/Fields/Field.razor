@@ -1,6 +1,6 @@
 @* Layout wrapper: label on top, control, then a hint or problem line. *@
 <div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem")" @attributes="Scope?.Attributes(Label)">
-    <label for="@For">@Label</label>
+    <label for="@For">@Label<NoteMarker Label="@Label" /></label>
     @ChildContent
     @if (Problem is not null)
     {

@@ -1,7 +1,7 @@
 @inherits FieldBase<bool>
 <label class="check" @attributes="Scope?.Attributes(Label)">
     <input type="checkbox" checked="@Value" @onchange="e => SetAsync(e.Value is true)" />
-    <span>@Label</span>
+    <span>@Label</span><NoteMarker Label="@Label" />
     @if (!string.IsNullOrEmpty(Hint))
     {
         <small>@Hint</small>

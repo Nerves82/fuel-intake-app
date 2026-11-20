@@ -1,5 +1,10 @@
 @inherits FieldBase<string?>
-@* A dropdown. With AllowOther, the user can also type a value that isn't on the list (shown with a note). *@
+@inject IJSRuntime JS
+@*
+  A dropdown. With AllowOther, the user can also type a value that isn't on the list (shown with a note).
+  The plain dropdown draws its own list in the page instead of using the browser's <select> popup: in the
+  desktop app (WebView2 inside WPF) the native popup of long lists could close as soon as it opened.
+*@
 <Field Label="@Label" For="@Id" Hint="@Hint" Problem="@Problem" Wide="Wide">
     @if (AllowOther)
     {
@@ -13,17 +18,28 @@
     }
     else
     {
-        <select id="@Id" value="@(Value ?? "")" @onchange="e => SetAsync(string.IsNullOrEmpty(e.Value as string) ? null : (string?)e.Value)">
-            <option value="">—</option>
-            @if (!string.IsNullOrEmpty(Value) && !Options.Contains(Value))
+        var items = Items;
+        <div class="picker @(open ? "open" : "")">
+            <button type="button" id="@Id" class="picker-button" aria-haspopup="listbox" aria-expanded="@(open ? "true" : "false")"
+                    @onclick="Toggle" @onkeydown="Key" @onkeydown:preventDefault="open">
+                <span class="picker-value @(string.IsNullOrEmpty(Value) ? "empty" : "")">@(string.IsNullOrEmpty(Value) ? "—" : Value)</span>
+                <span class="picker-caret" aria-hidden="true">▾</span>
+            </button>
+            @if (open)
             {
-                <option value="@Value">@Value (not on list)</option>
+                <div class="picker-backdrop" @onclick="Close"></div>
+                <ul class="picker-list" id="@(Id + "-list")" role="listbox" aria-labelledby="@Id">
+                    @for (var i = 0; i < items.Count; i++)
+                    {
+                        var index = i;
+                        var item = items[i];
+                        <li role="option" aria-selected="@(item.Value == Value ? "true" : "false")"
+                            class="@(index == active ? "active" : "") @(item.Value == Value ? "chosen" : "") @(item.Value is null ? "none" : "")"
+                            @onclick="() => Pick(item.Value)" @onmousemove="() => Hover(index)">@item.Text</li>
+                    }
+                </ul>
             }
-            @foreach (var o in Options)
-            {
-                <option value="@o">@o</option>
-            }
-        </select>
+        </div>
     }
 </Field>
 
@@ -32,7 +48,101 @@
     [Parameter] public bool AllowOther { get; set; }
     [Parameter] public string? NotOnListNote { get; set; }
 
+    private bool open, place;
+    private int active;
+
     protected override string? Problem =>
         AllowOther && !string.IsNullOrWhiteSpace(Value) && !Options.Contains(Value.Trim(), StringComparer.OrdinalIgnoreCase)
             ? NotOnListNote : null;
+
+    private sealed record Item(string? Value, string Text);
+
+    /// <summary>"—" (blank), then a saved value that's no longer on the list, then the options.</summary>
+    private List<Item> Items
+    {
+        get
+        {
+            var list = new List<Item> { new(null, "—") };
+            if (!string.IsNullOrEmpty(Value) && !Options.Contains(Value)) list.Add(new(Value, Value + " (not on list)"));
+            list.AddRange(Options.Select(o => new Item(o, o)));
+            return list;
+        }
+    }
+
+    private async Task Toggle() { if (open) await Close(); else Open(); }
+
+    private void Open()
+    {
+        var i = Items.FindIndex(x => x.Value == (string.IsNullOrEmpty(Value) ? null : Value));
+        active = Math.Max(0, i);
+        open = true;
+        place = true;
+    }
+
+    private async Task Close()
+    {
+        open = false;
+        await Focus();
+    }
+
+    private void Hover(int index) { if (active != index) active = index; }
+
+    private async Task Pick(string? value)
+    {
+        open = false;
+        if (value != (string.IsNullOrEmpty(Value) ? null : Value)) await SetAsync(value);
+        await Focus();
+    }
+
+    private async Task Key(KeyboardEventArgs e)
+    {
+        var items = Items;
+        if (!open)
+        {
+            // Enter and Space reach the button as a click, which opens the list
+            if (e.Key is "ArrowDown" or "ArrowUp" or "Down" or "Up" || (e.Key.Length == 1 && e.Key != " " && !e.CtrlKey && !e.AltKey))
+            {
+                Open();
+                if (e.Key.Length == 1) Jump(items, e.Key);
+            }
+            return;
+        }
+        switch (e.Key)
+        {
+            case "ArrowDown" or "Down": active = Math.Min(items.Count - 1, active + 1); place = true; break;
+            case "ArrowUp" or "Up": active = Math.Max(0, active - 1); place = true; break;
+            case "Home": active = 0; place = true; break;
+            case "End": active = items.Count - 1; place = true; break;
+            case "PageDown": active = Math.Min(items.Count - 1, active + 8); place = true; break;
+            case "PageUp": active = Math.Max(0, active - 8); place = true; break;
+            case "Enter" or " ": await Pick(items[active].Value); break;
+            case "Escape" or "Esc" or "Tab": await Close(); break;
+            default:
+                if (e.Key.Length == 1 && !e.CtrlKey && !e.AltKey) Jump(items, e.Key);
+                break;
+        }
+    }
+
+    /// <summary>Type a letter to jump to the next option starting with it.</summary>
+    private void Jump(List<Item> items, string letter)
+    {
+        for (var step = 1; step <= items.Count; step++)
+        {
+            var i = (active + step) % items.Count;
+            if (items[i].Value?.StartsWith(letter, StringComparison.OrdinalIgnoreCase) == true) { active = i; place = true; return; }
+        }
+    }
+
+    private async Task Focus()
+    {
+        try { await JS.InvokeVoidAsync("fuelIntake.focus", Id); } catch (JSException) { } catch (InvalidOperationException) { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!open || !place) return;
+        place = false;
+        try { await JS.InvokeVoidAsync("fuelIntake.placeList", Id + "-list", active); }
+        catch (JSException) { } catch (InvalidOperationException) { }
+    }
 }
