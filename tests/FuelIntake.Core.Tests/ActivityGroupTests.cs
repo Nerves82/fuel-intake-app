@@ -18,9 +18,9 @@ public class ActivityGroupTests
     {
         var r = new IntakeRecord();
         ActivityLog.RecordCreated(r, Pat, Morning);
-        r.Activity.Add(Edit(Pat, Morning.AddHours(1), new("Phone", null, "802-555-0100"), new("Zip", "05819", "05820")));
+        r.Activity.Add(Edit(Pat, Morning.AddHours(1), new FieldChange("Phone", null, "802-555-0100"), new FieldChange("Zip", "05819", "05820")));
         ActivityLog.AddNote(r, Pat, Morning.AddHours(2), "called client");
-        r.Activity.Add(Edit(Pat, Morning.AddHours(5), new("Phone", "802-555-0100", "802-555-0142"), new("Zip", "05820", "05819")));
+        r.Activity.Add(Edit(Pat, Morning.AddHours(5), new FieldChange("Phone", "802-555-0100", "802-555-0142"), new FieldChange("Zip", "05820", "05819")));
 
         var g = Assert.Single(ActivityLog.Group(r.Activity, Vermont));
         Assert.True(g.Created);
@@ -37,11 +37,11 @@ public class ActivityGroupTests
     {
         var entries = new List<ActivityEntry>
         {
-            Edit(Pat, Morning, new("A", null, "1")),
-            Edit(Sam, Morning.AddHours(1), new("B", null, "2")),
-            Edit(Pat, Morning.AddHours(2), new("C", null, "3")),
-            Edit(Pat, Morning.AddHours(3), new("D", null, "4")),
-            Edit(Pat, Morning.AddDays(1), new("E", null, "5")),
+            Edit(Pat, Morning, new FieldChange("A", null, "1")),
+            Edit(Sam, Morning.AddHours(1), new FieldChange("B", null, "2")),
+            Edit(Pat, Morning.AddHours(2), new FieldChange("C", null, "3")),
+            Edit(Pat, Morning.AddHours(3), new FieldChange("D", null, "4")),
+            Edit(Pat, Morning.AddDays(1), new FieldChange("E", null, "5")),
         };
         var groups = ActivityLog.Group(entries, Vermont);
         Assert.Equal(["Pat Example", "Sam Placeholder", "Pat Example", "Pat Example"], groups.Select(g => g.By.Name));
@@ -53,7 +53,7 @@ public class ActivityGroupTests
     {
         // 11:30 pm and 12:30 am local are different days even though they're the same UTC day
         var late = new DateTimeOffset(2026, 11, 20, 23, 30, 0, TimeSpan.FromHours(-5));
-        var groups = ActivityLog.Group([Edit(Pat, late, new("A", null, "1")), Edit(Pat, late.AddHours(1), new("B", null, "2"))], Vermont);
+        var groups = ActivityLog.Group([Edit(Pat, late, new FieldChange("A", null, "1")), Edit(Pat, late.AddHours(1), new FieldChange("B", null, "2"))], Vermont);
         Assert.Equal(2, groups.Count);
     }
 }
