@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject IntakeSession Session
 @inject HostInfo Host
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <header class="app-header">
     <div class="brand">
@@ -36,6 +37,7 @@
             Notes@(r.Notes.Count > 0 ? $" ({r.Notes.Count})" : "")
         </button>
         <button class="secondary" @onclick="Session.CloseAsync">Close client</button>
+        @ThemeButton
     }
     else
     {
@@ -50,6 +52,7 @@
             <button class="link" @onclick="() => Session.Go(Screen.Settings)">Staff, vendors &amp; settings</button>
             <button class="link" @onclick="() => Session.Go(Screen.Check)">Check this computer</button>
         }
+        @ThemeButton
     }
 </header>
 
@@ -58,6 +61,33 @@
     private string ShortVersion => Host.AppVersion.Split(' ', '+')[0];
 
     protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    // ---- light / dark mode: System → Light → Dark → System …
+    private string? theme; // null until the script answers (static preview: no button)
+
+    private RenderFragment ThemeButton => @<button class="theme-toggle" title="@ThemeTitle" aria-label="@ThemeTitle" @onclick="NextTheme">@ThemeIcon</button>;
+
+    private string ThemeIcon => theme switch { "light" => "☀", "dark" => "☾", _ => "◐" };
+    private string ThemeTitle => theme switch
+    {
+        "light" => "Light mode (click for dark)",
+        "dark" => "Dark mode (click to follow Windows)",
+        _ => "Following Windows light/dark setting (click for light)",
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { theme = await JS.InvokeAsync<string>("fuelIntake.getTheme"); StateHasChanged(); }
+        catch (Exception) { /* static preview: no script */ }
+    }
+
+    private async Task NextTheme()
+    {
+        var next = theme switch { "system" => "light", "light" => "dark", _ => "system" };
+        try { await JS.InvokeAsync<string>("fuelIntake.setTheme", next); theme = next; }
+        catch (Exception) { }
+    }
     private void OnState() => InvokeAsync(StateHasChanged);
     public void Dispose() => Session.StateChanged -= OnState;
 }
