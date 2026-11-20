@@ -138,6 +138,7 @@ public class TestDataSetTests
         Assert.Equal("Person", made.Client.LastName);
         Assert.Equal(FakeIntake.Today.AddDays(3), made.Staff.AppDate);
         Assert.Equal(4, made.Household.Count);
+        Assert.All(made.Household.Skip(1), m => Assert.Equal("Person", m.LastName)); // family shares the new last name
         Assert.Equal(389.12m, made.FuelElectric.ElectricPledge.AmountRequired);
     }
 

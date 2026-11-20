@@ -30,7 +30,7 @@
         <details class="test-tools">
             <summary>Practice with test data</summary>
             <p class="note">Creates a <strong>_TEST</strong> folder filled with made-up data. Never use this for a real client.</p>
-            <p class="note">Uses the name above, or Testy Sampleton if it's blank.</p>
+            <p class="note">Uses the name typed above for the client (a blank first or last name becomes Testy / Sampleton).</p>
             <h3>Built-in cases</h3>
             <ul class="sample-list">
                 @foreach (var s in SampleIntakes.All)
@@ -177,7 +177,12 @@
     private async Task Create(SampleIntakes.Sample? sample)
     {
         var f = first?.Trim() ?? ""; var l = last?.Trim() ?? "";
-        if (sample is not null && (f.Length == 0 || l.Length == 0)) { f = "Testy"; l = "Sampleton"; }
+        if (sample is not null)
+        {
+            // test data: use whatever name was typed; only a missing part gets the made-up default
+            if (f.Length == 0) f = "Testy";
+            if (l.Length == 0) l = "Sampleton";
+        }
         if (f.Length == 0 || l.Length == 0) { nameProblem = "Enter both first and last name."; return; }
         if (ClientFolders.SafeName(f) != f || ClientFolders.SafeName(l) != l)
         {
