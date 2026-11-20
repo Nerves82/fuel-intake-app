@@ -1,2 +1,55 @@
-@* Root component. For now it shows the "It works" check page; the intake screens come in phase 1b. *@
-<CheckPage />
+@* Root component shared by the desktop and web hosts. *@
+@implements IDisposable
+@inject IntakeSession Session
+
+@if (loadError is not null)
+{
+    <main class="page"><h1>Couldn't start</h1><p class="problem">@loadError</p></main>
+}
+else if (!ready)
+{
+    <main class="page"><p class="note">Loading…</p></main>
+}
+else if (Session.Screen == Screen.Check)
+{
+    <AppHeader />
+    <CheckPage />
+}
+else if (Session.Record is null)
+{
+    <AppHeader />
+    <ClientsPage />
+}
+else
+{
+    <AppHeader />
+    <TabBar />
+    <main class="page">
+        @switch (Session.Screen)
+        {
+            case Screen.Client: <ClientTab /> break;
+            case Screen.Household: <HouseholdTab /> break;
+            case Screen.Application: <ApplicationTab /> break;
+            case Screen.IncomeExpenses: <IncomeExpensesTab /> break;
+            case Screen.FuelElectric: <FuelElectricTab /> break;
+            case Screen.Review: <ReviewTab /> break;
+        }
+    </main>
+}
+
+@code {
+    private bool ready;
+    private string? loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.StateChanged += OnState;
+        try { await Session.InitializeAsync(); }
+        catch (Exception ex) { loadError = "The staff, vendor or settings lists couldn't be read: " + ex.Message; }
+        ready = true;
+    }
+
+    private void OnState() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Session.StateChanged -= OnState;
+}

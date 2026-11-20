@@ -1,0 +1,108 @@
+@using FuelIntake.Core.Contacts
+@inject IntakeSession Session
+@{ var fe = Session.Record!.FuelElectric; var calc = Session.Calc!; var o = fe.FuelOrder; var inv = fe.Invoice; var p = fe.ElectricPledge;
+   var crisis = Session.Record!.Application.CrisisType; }
+
+<h1>5 · Seasonal Fuel, Fuel Order &amp; Electric Pledge</h1>
+<p class="lead">Fills the ACCESS vendor section, the NEKCA Fuel Order and the NEKCA Electric Pledge.
+    @if (crisis is not null) { <span>Crisis type: <strong>@crisis</strong>.</span> }</p>
+
+<Section Title="Seasonal Fuel & accounts (ACCESS)">
+    <MoneyBox Label="Seasonal Fuel amount granted" @bind-Value="fe.SeasonalFuelAmountGranted" />
+    <DateBox Label="Seasonal Fuel date granted" @bind-Value="fe.SeasonalFuelDateGranted" />
+    <SelectBox Label="Fuel type" @bind-Value="fe.FuelType" Options="ChoiceLists.FuelType" />
+    <TextBox Label="ACCESS notes" @bind-Value="fe.AccessNotes" Multiline="true" Wide="true" />
+</Section>
+
+<Section Title="Fuel vendor">
+    <SelectBox Label="Fuel vendor" @bind-Value="fe.Vendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
+               NotOnListNote="Not on the vendor list: contact details won't fill in." />
+    <VendorDetails Vendor="calc.FuelVendor" />
+    <CalcValue Label="Contact email(s) (used on forms)" Value="@calc.VendorEmails" />
+    <CalcValue Label="Phone(s) (used on forms)" Value="@calc.VendorPhones" />
+    <TextBox Label="Vendor account #" @bind-Value="fe.VendorAccount" />
+    <details class="overrides wide">
+        <summary>Different contact for this order?</summary>
+        <div class="grid">
+            <TextBox Label="Contact email(s) (only if different)" @bind-Value="fe.VendorEmailOverride" />
+            <TextBox Label="Phone(s) (only if different)" @bind-Value="fe.VendorPhoneOverride" />
+        </div>
+    </details>
+</Section>
+
+<Section Title="Electric provider">
+    <SelectBox Label="Electric provider" @bind-Value="fe.ElectricProvider" Options="ElectricNames" AllowOther="true" Wide="true"
+               NotOnListNote="Not on the vendor list: contact details won't fill in." />
+    <CalcValue Label="Contact email(s) (used on forms)" Value="@calc.ElectricEmails" />
+    <CalcValue Label="Phone(s) (used on forms)" Value="@calc.ElectricPhones" />
+    <TextBox Label="Electric account #" @bind-Value="fe.ElectricAccount" />
+    <details class="overrides wide">
+        <summary>Different contact for this pledge?</summary>
+        <div class="grid">
+            <TextBox Label="Contact email(s) (only if different)" @bind-Value="fe.ElectricEmailOverride" />
+            <TextBox Label="Phone(s) (only if different)" @bind-Value="fe.ElectricPhoneOverride" />
+        </div>
+    </details>
+</Section>
+
+@if (crisis != CrisisTypes.DisconnectNotice)
+{
+    <Section Title="Fuel Order">
+        <CheckBox Label="Authorized" @bind-Value="o.Authorized" />
+        <DateBox Label="Date" @bind-Value="o.Date" />
+        <TimeBox Label="Time" @bind-Value="o.Time" />
+        <MoneyBox Label="SFB remaining" @bind-Value="o.SfbRemaining" />
+        <TextBox Label="Size of tank" @bind-Value="o.TankSize" Placeholder="275 gal" />
+        <TextBox Label="Fuel remaining" @bind-Value="o.FuelRemaining" />
+        <TextBox Label="Time fuel will last" @bind-Value="o.FuelLasts" Placeholder="2 days" />
+        <MoneyBox Label="Fuel $" @bind-Value="o.Fuel" />
+        <TextBox Label="Quantity (gallons)" @bind-Value="o.Gallons" />
+        <MoneyBox Label="Special Trip $" @bind-Value="o.SpecialTrip" />
+        <MoneyBox Label="Pressure Test $" @bind-Value="o.PressureTest" />
+        <MoneyBox Label="Start Up $" @bind-Value="o.StartUp" />
+        <CalcValue Label="Total $" Value="@Money.Format(calc.FuelOrderTotal)" Strong="true" />
+        <DateBox Label="Est. delivery date" @bind-Value="o.EstimatedDelivery" />
+        <TextBox Label="Grant/funding source" @bind-Value="o.FundingSource" />
+        <CalcValue Label="Send invoice to" Value="@(string.Join("  ·  ", new[] { calc.InvoiceEmail, calc.InvoicePhone }.Where(s => s.Length > 0)))"
+                   Hint="Staff contact from tab 1, else the agency default" Wide="true" />
+    </Section>
+
+    <Section Title="Fuel Order — after invoice received">
+        <CheckBox Label="Invoice received" @bind-Value="inv.Received" />
+        <MoneyBox Label="Fuel $" @bind-Value="inv.Fuel" />
+        <TextBox Label="Quantity (gallons)" @bind-Value="inv.Gallons" />
+        <MoneyBox Label="Special Trip $" @bind-Value="inv.SpecialTrip" />
+        <MoneyBox Label="Pressure Test $" @bind-Value="inv.PressureTest" />
+        <MoneyBox Label="Start Up $" @bind-Value="inv.StartUp" />
+        <CalcValue Label="Total $ (enter in GoEngage as the actual fuel cost)" Value="@Money.Format(calc.InvoiceTotal)" Strong="true" />
+        <DateBox Label="Delivery date" @bind-Value="inv.DeliveryDate" />
+        <TextBox Label="Grant/funding source" @bind-Value="inv.FundingSource" />
+    </Section>
+}
+
+@if (crisis != CrisisTypes.LowOnFuel)
+{
+    <Section Title="Electric Pledge">
+        <CheckBox Label="Authorized" @bind-Value="p.Authorized" />
+        <DateBox Label="Date" @bind-Value="p.Date" />
+        <TimeBox Label="Time" @bind-Value="p.Time" />
+        <CheckBox Label="Disconnect notice attached" @bind-Value="p.DisconnectNoticeAttached" />
+        <MoneyBox Label="Amount required $" @bind-Value="p.AmountRequired" />
+        <MoneyBox Label="Reconnection fee $" @bind-Value="p.ReconnectionFee" />
+        <CalcValue Label="Total $" Value="@Money.Format(calc.PledgeTotal)" Strong="true" />
+        <RadioGroup Label="Discount/Forgiveness program" @bind-Value="p.DiscountProgram" Options="ChoiceLists.YesNo" />
+        <DateBox Label="Disconnect date" @bind-Value="p.DisconnectDate" ShowToday="false" />
+        <TextBox Label="Grant/funding source" @bind-Value="p.FundingSource" />
+        <MoneyBox Label="Remaining balance $" @bind-Value="p.RemainingBalance" />
+        <MoneyBox Label="Next bill $" @bind-Value="p.NextBill" />
+        <DateBox Label="Next bill due by" @bind-Value="p.NextBillDue" ShowToday="false" />
+        <TextBox Label="Responsibilities of the client (notes)" @bind-Value="p.ClientResponsibilities" Multiline="true" Wide="true" />
+    </Section>
+}
+
+<NextTab Next="Screen.Review" />
+
+@code {
+    private IReadOnlyList<string> FuelVendorNames => Session.Vendors.FuelVendors.Select(v => v.DisplayName).ToList();
+    private IReadOnlyList<string> ElectricNames => Session.Vendors.ElectricProviders.Select(v => v.DisplayName).ToList();
+}

@@ -3,7 +3,10 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using FuelIntake.Core.Hosting;
+using FuelIntake.Core.Model;
+using FuelIntake.Core.Storage;
 using FuelIntake.Desktop.Hosting;
+using FuelIntake.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Web.WebView2.Core;
 
@@ -19,13 +22,39 @@ public partial class MainWindow : Window
         services.AddBlazorWebViewDeveloperTools();
 #endif
         // Phase 1 implementations of the Core interfaces (phase 2 swaps these for Microsoft 365 versions).
+        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var clientsRoot = Path.Combine(documents, new AgencySettings().ClientsRootFolderName);
+        var lists = new LocalListSource(Path.Combine(clientsRoot, "_Fuel Intake Settings"));
+        services.AddSingleton<IListSource>(lists);
+        services.AddSingleton<IClientStore>(new LocalFolderClientStore(clientsRoot, lists));
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IntakeSession>();
         services.AddSingleton<ICurrentUser, WindowsCurrentUser>();
         services.AddSingleton(BuildHostInfo());
         foreach (var target in CheckTargets())
             services.AddSingleton(target);
 
-        Resources.Add("services", services.BuildServiceProvider());
+        provider = services.BuildServiceProvider();
+        Resources.Add("services", provider);
         InitializeComponent();
+        Closing += (_, _) => SavePending();
+    }
+
+    private readonly ServiceProvider provider;
+
+    /// <summary>Saves any unsaved edits before the window closes (runs off the UI thread to avoid a deadlock).</summary>
+    private void SavePending()
+    {
+        try
+        {
+            var session = provider.GetRequiredService<IntakeSession>();
+            if (session.HasUnsavedChanges)
+                Task.Run(session.SaveAsync).Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Save on close failed", ex);
+        }
     }
 
     private static HostInfo BuildHostInfo()

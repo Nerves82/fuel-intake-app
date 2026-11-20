@@ -1,0 +1,28 @@
+@using FuelIntake.Core.Contacts
+@* Reference details from the vendor list (not printed). *@
+@if (Vendor is not null)
+{
+    <div class="vendor-details wide">
+        @Item("Location", Vendor.Location)
+        @Item("Fuel offered", Vendor.FuelOffered)
+        @Item("Minimum delivery", Vendor.MinimumDelivery)
+        @Item("Emergency trip fee", Vendor.EmergencyTripFee)
+        @Item("Pressure test / leak check fee", Vendor.PressureTestFee)
+        @Item("Notes", Vendor.Notes)
+    </div>
+}
+
+@code {
+    [Parameter] public Vendor? Vendor { get; set; }
+
+    private static RenderFragment Item(string label, string? value) => builder =>
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        builder.OpenElement(0, "span");
+        builder.AddContent(1, $"{label}: ");
+        builder.OpenElement(2, "strong");
+        builder.AddContent(3, FuelIntake.Core.Contacts.Vendor.JoinLines(value));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

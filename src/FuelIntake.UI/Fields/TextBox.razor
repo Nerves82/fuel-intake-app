@@ -1,0 +1,16 @@
+@inherits FieldBase<string?>
+<Field Label="@Label" For="@Id" Hint="@Hint" Wide="Wide">
+    @if (Multiline)
+    {
+        <textarea id="@Id" rows="3" value="@Value" placeholder="@Placeholder" @onchange="e => SetAsync(e.Value as string)"></textarea>
+    }
+    else
+    {
+        <input id="@Id" type="text" value="@Value" placeholder="@Placeholder" @onchange="e => SetAsync(e.Value as string)" />
+    }
+</Field>
+
+@code {
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public bool Multiline { get; set; }
+}

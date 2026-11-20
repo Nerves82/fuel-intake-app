@@ -1,0 +1,88 @@
+@using FuelIntake.Core.Storage
+@using FuelIntake.Core.TestData
+@inject IntakeSession Session
+
+<main class="page narrow">
+    <section class="card">
+        <h2>New client</h2>
+        <div class="grid">
+            <div class="field"><label for="nf">First name</label><input id="nf" @bind="first" @bind:event="oninput" /></div>
+            <div class="field"><label for="nl">Last name</label><input id="nl" @bind="last" @bind:event="oninput" /></div>
+        </div>
+        @if (nameProblem is not null) { <p class="problem">@nameProblem</p> }
+        <div class="actions">
+            <button disabled="@busy" @onclick="() => Create(null)">Create client folder</button>
+        </div>
+        <details class="test-tools">
+            <summary>Practice with test data</summary>
+            <p class="note">Creates a <strong>_TEST</strong> folder filled with made-up data. Never use this for a real client.</p>
+            @foreach (var s in SampleIntakes.All)
+            {
+                <button class="secondary" disabled="@busy" @onclick="() => Create(s)">@s.Name</button>
+                <span class="note"> @s.Description</span><br />
+            }
+        </details>
+    </section>
+
+    <section class="card">
+        <div class="row-between">
+            <h2>Clients</h2>
+            <input class="search" placeholder="Search names…" @bind="search" @bind:event="oninput" />
+        </div>
+        @if (clients is null)
+        {
+            <p class="note">Loading…</p>
+        }
+        else if (error is not null)
+        {
+            <p class="problem">@error</p>
+        }
+        else
+        {
+            var shown = clients.Where(c => string.IsNullOrWhiteSpace(search) || c.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (shown.Count == 0)
+            {
+                <p class="note">No client folders yet.</p>
+            }
+            <ul class="client-list">
+                @foreach (var c in shown)
+                {
+                    <li>
+                        <button class="link" @onclick="() => Session.OpenAsync(c)">@c.DisplayName</button>
+                        @if (c.DisplayName.StartsWith(ClientFolders.TestPrefix)) { <span class="badge test">TEST</span> }
+                        @if (!c.HasIntake) { <span class="badge">no intake yet</span> }
+                        <span class="note">@c.LastModified?.ToLocalTime().ToString("MMM d, yyyy")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</main>
+
+@code {
+    private IReadOnlyList<ClientFolderInfo>? clients;
+    private string? error, nameProblem, search, first, last;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { clients = await Session.ListClientsAsync(); }
+        catch (Exception ex) { error = "Couldn't read the client folders: " + ex.Message; clients = []; }
+    }
+
+    private async Task Create(SampleIntakes.Sample? sample)
+    {
+        var f = first?.Trim() ?? ""; var l = last?.Trim() ?? "";
+        if (sample is not null && (f.Length == 0 || l.Length == 0)) { f = "Testy"; l = "Sampleton"; }
+        if (f.Length == 0 || l.Length == 0) { nameProblem = "Enter both first and last name."; return; }
+        if (ClientFolders.SafeName(f) != f || ClientFolders.SafeName(l) != l)
+        {
+            nameProblem = "Names can't contain \\ / : * ? \" < > | # %";
+            return;
+        }
+        nameProblem = null; busy = true;
+        try { await Session.CreateAsync(f, l, sample?.Build); }
+        catch (Exception ex) { nameProblem = ex.Message; }
+        finally { busy = false; }
+    }
+}

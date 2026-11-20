@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- Development preview: runs the shared screens in a browser with fake data (no client data, no Microsoft 365).
+       Used to check screens before a desktop build. Seed of the phase 2 web host. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FuelIntake.DevHost</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- The dev sandbox can't download packages; skip the auto-referenced assets package when offline.
+       Pass -p:OfflinePreview=true locally. CI and normal machines leave it on. -->
+  <PropertyGroup Condition="'$(OfflinePreview)' == 'true'">
+    <DefineConstants>$(DefineConstants);OFFLINE_PREVIEW</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OfflinePreview)' == 'true'">
+    <KnownAspNetCorePack Remove="Microsoft.AspNetCore.App.Internal.Assets" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FuelIntake.UI\FuelIntake.UI.csproj" />
+    <ProjectReference Include="..\FuelIntake.Core\FuelIntake.Core.csproj" />
+  </ItemGroup>
+
+</Project>

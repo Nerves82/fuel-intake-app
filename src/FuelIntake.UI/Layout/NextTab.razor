@@ -1,0 +1,17 @@
+@inject IntakeSession Session
+<div class="next-tab">
+    <button @onclick="() => Session.Go(Next)">Next: @Title →</button>
+</div>
+
+@code {
+    [Parameter] public Screen Next { get; set; }
+    private string Title => Next switch
+    {
+        Screen.Household => "Household",
+        Screen.Application => "Application",
+        Screen.IncomeExpenses => "Income & Expenses",
+        Screen.FuelElectric => "Fuel & Electric",
+        Screen.Review => "Review",
+        _ => Next.ToString(),
+    };
+}

@@ -1,0 +1,22 @@
+@* Layout wrapper: label on top, control, then a hint or problem line. *@
+<div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem")">
+    <label for="@For">@Label</label>
+    @ChildContent
+    @if (Problem is not null)
+    {
+        <div class="problem">@Problem</div>
+    }
+    else if (!string.IsNullOrEmpty(Hint))
+    {
+        <div class="hint">@Hint</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? For { get; set; }
+    [Parameter] public string? Hint { get; set; }
+    [Parameter] public string? Problem { get; set; }
+    [Parameter] public bool Wide { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

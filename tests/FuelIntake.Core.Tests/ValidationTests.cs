@@ -55,3 +55,22 @@ public class SsnValidationTests
         Assert.Contains(issues, i => i.Field == "Demo Sampleton: SSN" && i.Severity == IssueSeverity.Error);
     }
 }
+
+public class SampleIntakeTests
+{
+    [Fact]
+    public void Samples_AreTestData_AndHaveNoErrors()
+    {
+        foreach (var s in FuelIntake.Core.TestData.SampleIntakes.All)
+        {
+            var r = s.Build("Testy", "Sampleton", FakeIntake.Today);
+            Assert.True(r.IsTestData);
+            var issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+            Assert.DoesNotContain(issues, i => i.Severity == IssueSeverity.Error);
+            Assert.True(new IntakeCalculations(r, FakeIntake.Context()).HouseholdIncomeMatchesWorksheet, s.Name);
+        }
+    }
+
+    [Fact]
+    public void Percent_Formats() => Assert.Equal("93%", FuelIntake.Core.Formatting.Percent.Format(0.934m));
+}

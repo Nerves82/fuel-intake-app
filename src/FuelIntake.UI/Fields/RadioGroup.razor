@@ -1,0 +1,20 @@
+@inherits FieldBase<string?>
+<Field Label="@Label" Hint="@Hint" Wide="Wide">
+    <div class="radios" role="radiogroup" aria-label="@Label">
+        @foreach (var o in Options)
+        {
+            <label class="radio">
+                <input type="radio" name="@Id" checked="@(Value == o)" @onchange="() => SetAsync(o)" />
+                <span>@o</span>
+            </label>
+        }
+        @if (!string.IsNullOrEmpty(Value))
+        {
+            <button type="button" class="link small" @onclick="() => SetAsync(null)">clear</button>
+        }
+    </div>
+</Field>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Options { get; set; } = [];
+}

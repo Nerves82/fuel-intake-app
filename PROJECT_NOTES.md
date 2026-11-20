@@ -29,6 +29,23 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
   (`net10.0-windows10.0.19041.0`), or WebView2 fails at start-up with a missing
   `Microsoft.Windows.SDK.NET` assembly.
 
+## Phase 1 data locations (desktop)
+
+- Client folders: `Documents\Client Files - Fuel 26-27\Last, First\intake.json`
+  (existing workbook-era folders show up too; opening one starts a new intake from the folder name).
+- Test clients: folders starting with `_TEST ` (made-up data only).
+- Lists and settings: `Documents\Client Files - Fuel 26-27\_Fuel Intake Settings\`
+  `staff.json`, `vendors.json`, `settings.json` (created empty on first run).
+  Open question: move these to the shared Crisis Fuel folder so the team shares one copy.
+- New client folders get the consent forms copied from the Masters template folder.
+- Logs: `%LOCALAPPDATA%\FuelIntake\logs`.
+
+## Previewing screens without Windows
+
+`dotnet run --project src/FuelIntake.DevHost` serves the screens with fake data at a local URL.
+Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePreview=true`
+(static rendering only: good for screenshots, not clicking).
+
 ## Architecture rules
 
 - Screens never call Windows-only features directly. Anything host-specific goes behind

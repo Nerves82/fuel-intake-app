@@ -1,0 +1,76 @@
+@inject IntakeSession Session
+@{ var a = Session.Record!.Application; var d = a.Determination; var x = a.Referrals; }
+
+<h1>3 · NEKCA Fuel Assistance Application</h1>
+<p class="lead">Client name, signature dates and staff initials come from tab 1.</p>
+
+<Section Title="Request">
+    <RadioGroup Label="Crisis type" @bind-Value="a.CrisisType" Options="ChoiceLists.CrisisType"
+                Hint="Low on Fuel prints the Fuel Order; Disconnect Notice prints the Electric Pledge." Wide="true" />
+    <CheckBox Label="AAA employee applying on behalf — 3103(c)" @bind-Value="a.AaaOnBehalf" />
+    <CheckBox Label="Afterhours follow-up — 3105(i)" @bind-Value="a.AfterHours" />
+    <CheckBox Label="Second crisis assist — 3109(c)" @bind-Value="a.SecondCrisis" />
+    <TextBox Label="Current quantity of fuel" @bind-Value="a.CurrentQuantity" Placeholder="1/8 tank, few bags" />
+    <CheckBox Label="Electric required for heating system" @bind-Value="a.ElectricForHeat" />
+    <CheckBox Label="…or Propane" @bind-Value="a.ElectricPropane" />
+    <TextBox Label="Which heating component does the electric run?" @bind-Value="a.ElectricComponent" Placeholder="Pellet stove" />
+    <RadioGroup Label="Landlord Verification form 204VEF required? — 3107(c)" @bind-Value="a.LandlordVerification" Options="ChoiceLists.YesNo" />
+    <CheckBox Label="Heat included in rent" @bind-Value="a.HeatInRent" />
+    <CheckBox Label="…AND meets rule exception 3102(d)" @bind-Value="a.RuleException" />
+    <CheckBox Label="Life-threatening crisis (medical documentation) — 3103" @bind-Value="a.LifeThreatening" />
+    <TextBox Label="Unforeseen / extenuating circumstance — 3102(c)6" @bind-Value="a.Circumstance" Multiline="true" Wide="true"
+             Placeholder="Medical - recent relocation" />
+    <RadioGroup Label="Seasonal Fuel status" @bind-Value="a.SeasonalFuelStatus" Options="ChoiceLists.SeasonalFuelStatus" />
+    <CheckBox Label="Appeal notice provided — 3112" @bind-Value="a.AppealNotice" />
+    <CheckBox Label="Phone application — 3104(b)" @bind-Value="a.PhoneApplication" />
+    @if (a.PhoneApplication)
+    {
+        <TextBox Label="Phone application reason" @bind-Value="a.PhoneApplicationReason" />
+    }
+</Section>
+
+<Section Title="Referrals">
+    <CheckBox Label="Weatherization/NETO" @bind-Value="x.Neto" />
+    <CheckBox Label="Agency on Aging" @bind-Value="x.AgencyOnAging" />
+    <CheckBox Label="Financial Coaching" @bind-Value="x.FinancialCoaching" />
+    <CheckBox Label="Community Connections" @bind-Value="x.CommunityConnections" />
+    <CheckBox Label="Whole Family Approach" @bind-Value="x.WholeFamily" />
+    <CheckBox Label="VITA" @bind-Value="x.Vita" />
+</Section>
+
+<Section Title="Determination (staff)">
+    <CheckBox Label="Denied" @bind-Value="d.Denied" />
+    @if (d.Denied)
+    {
+        <CheckBox Label="Obtained Expedited SFA" @bind-Value="d.DenyExpeditedSfa" />
+        <CheckBox Label="Over 200% FPL" @bind-Value="d.DenyOver200" />
+        <CheckBox Label="Not receiving SFB" @bind-Value="d.DenyNoSfb" />
+        <CheckBox Label="Other – Did not return with documentation" @bind-Value="d.DenyNoDocs" />
+        <CheckBox Label="No home heating crisis" @bind-Value="d.DenyNoCrisis" />
+        <CheckBox Label="Accessible Resources" @bind-Value="d.DenyResources" />
+        <CheckBox Label="Max # of Grants" @bind-Value="d.DenyMaxGrants" />
+        <CheckBox Label="No unforeseen/extenuating circumstance" @bind-Value="d.DenyNoCircumstance" />
+        <CheckBox Label="Use of funds over the past 30 days" @bind-Value="d.DenyFundsUse" />
+        <CheckBox Label="Did not meet conditions of prior crisis assist" @bind-Value="d.DenyPriorConditions" />
+    }
+    <CheckBox Label="Warmth eligible" @bind-Value="d.WarmthEligible" />
+    @if (d.WarmthEligible) { <DateBox Label="Warmth eligible date" @bind-Value="d.WarmthDate" /> }
+    <CheckBox Label="VLITE eligible" @bind-Value="d.VliteEligible" />
+    @if (d.VliteEligible) { <DateBox Label="VLITE eligible date" @bind-Value="d.VliteDate" /> }
+    <CheckBox Label="Crisis Fuel eligible — 3108(d)" @bind-Value="d.CrisisEligible" />
+    @if (d.CrisisEligible)
+    {
+        <DateBox Label="Crisis Fuel eligible date" @bind-Value="d.CrisisEligibleDate" />
+        <TimeBox Label="Crisis Fuel eligible time" @bind-Value="d.CrisisEligibleTime" />
+    }
+</Section>
+
+<Section Title="Checklist">
+    <CheckBox Label="NEKCA Intake forms complete" @bind-Value="d.CheckIntake" />
+    <CheckBox Label="ACCESS Verification complete" @bind-Value="d.CheckAccess" />
+    <CheckBox Label="Consent forms complete" @bind-Value="d.CheckConsents" />
+    <CheckBox Label="Circumstance included in Service Note" @bind-Value="d.CheckServiceNote" />
+    <CheckBox Label="Missing documents exception — 3107(e)" @bind-Value="d.CheckMissingDocs" />
+</Section>
+
+<NextTab Next="Screen.IncomeExpenses" />

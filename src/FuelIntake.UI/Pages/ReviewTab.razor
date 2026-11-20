@@ -1,0 +1,57 @@
+@using FuelIntake.Core.Validation
+@inject IntakeSession Session
+@{ var calc = Session.Calc!; }
+
+<h1>Review</h1>
+<p class="lead">Fix errors before printing. Warnings are worth a look; notes are just information.</p>
+
+<section class="card">
+    <div class="summary-strip">
+        <span>Household <strong>@calc.HouseholdSize</strong></span>
+        <span>Income <strong>@Money.Format(calc.IncomeTotal)</strong>/mo</span>
+        <span>FPL <strong>@(calc.FplPercent is null ? "—" : Percent.Format(calc.FplPercent))</strong></span>
+        <span>Under limit <strong>@(calc.UnderIncomeLimit switch { true => "Yes", false => "No", _ => "—" })</strong></span>
+        <span>Crisis <strong>@(Session.Record!.Application.CrisisType ?? "—")</strong></span>
+    </div>
+</section>
+
+@if (Session.Issues.Count == 0)
+{
+    <section class="card"><p class="ok">No problems found.</p></section>
+}
+else
+{
+    @foreach (var group in Session.Issues.OrderByDescending(i => i.Severity).GroupBy(i => i.Severity))
+    {
+        <section class="card">
+            <h2 class="@group.Key.ToString().ToLowerInvariant()">@Title(group.Key) (@group.Count())</h2>
+            <ul class="issues">
+                @foreach (var i in group)
+                {
+                    <li>
+                        <button class="link" @onclick="() => Session.Go(ScreenFor(i.Section))">@i.Section</button>
+                        <span>@i.Message</span>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}
+
+@code {
+    private static string Title(IssueSeverity s) => s switch
+    {
+        IssueSeverity.Error => "Errors",
+        IssueSeverity.Warning => "Warnings",
+        _ => "Notes",
+    };
+
+    private static Screen ScreenFor(string section) => section switch
+    {
+        "Household" => Screen.Household,
+        "Application" => Screen.Application,
+        "Income & Expenses" => Screen.IncomeExpenses,
+        "Fuel & Electric" => Screen.FuelElectric,
+        _ => Screen.Client,
+    };
+}

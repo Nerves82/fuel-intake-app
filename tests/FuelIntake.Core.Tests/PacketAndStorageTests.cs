@@ -55,3 +55,11 @@ public class PacketAndStorageTests
     [Fact]
     public void Json_RejectsGarbage() => Assert.Throws<IntakeFormatException>(() => IntakeJson.Deserialize("not json"));
 }
+
+public class TemplateNameTests
+{
+    [Fact]
+    public void TemplateCopy_MatchesOldScript() =>
+        Assert.Equal("T_Sampleton_FA (pg. 2.3-2.6) - Consent Forms_11_20_26.pdf",
+            ClientFolders.TemplateCopyName("FA (pg. 2.3-2.6) - Consent Forms.pdf", "Testy", "Sampleton", new DateOnly(2026, 11, 20)));
+}
