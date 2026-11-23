@@ -34,6 +34,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     /// <summary>A one-off message for the user (e.g. a staff member was added to the Staff list).</summary>
     public string? Notice { get; private set; }
     public void DismissNotice() { Notice = null; Notify(); }
+    public void ShowNotice(string text) { Notice = text; Notify(); }
 
     /// <summary>Another computer saved this client after we opened it; we stop saving to avoid overwriting their work.</summary>
     public bool SaveConflict { get; private set; }
@@ -105,10 +106,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Notify();
     }
 
-    /// <summary>The right-click menu on a field, if open.</summary>
-    public (NoteFieldRef Ref, double X, double Y)? FieldMenu { get; private set; }
-
-    /// <summary>The field the next note will be about (set by right-click → Add note).</summary>
+    /// <summary>The field the next note will be about (set by a field's "add note" button).</summary>
     public NoteFieldRef? PendingNoteRef { get; private set; }
 
     /// <summary>A field to scroll to and highlight after the next render.</summary>
@@ -117,13 +115,8 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     /// <summary>Put the cursor in the note box after the next render.</summary>
     public bool FocusNoteBox { get; set; }
 
-    public void ShowFieldMenu(NoteFieldRef r, double x, double y) { FieldMenu = (r, x, y); Notify(); }
-
-    public void CloseFieldMenu() { if (FieldMenu is null) return; FieldMenu = null; Notify(); }
-
     public void StartNoteAbout(NoteFieldRef r)
     {
-        FieldMenu = null;
         PendingNoteRef = r;
         NotesOpen = true;
         FocusNoteBox = true;
@@ -149,7 +142,6 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         if (Record is null) return;
         var ids = ActivityLog.NotesAbout(Record, r.Screen, r.Key).Select(n => n.Id).ToList();
         if (ids.Count == 0) return;
-        FieldMenu = null;
         NotesOpen = true;
         HighlightNoteIds = ids;
         Notify();
@@ -269,20 +261,24 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     {
         if (Folder is null || Record is null) return null;
         var files = await store.ListFilesAsync(Folder.Id);
-        return ClientRename.Plan(Folder.DisplayName, Record.Client.FirstName ?? "", Record.Client.LastName ?? "",
+        var plan = ClientRename.Plan(Folder.DisplayName, Record.Client.FirstName ?? "", Record.Client.LastName ?? "",
             files.Where(f => !f.EndsWith('\\')), Settings.FolderNameSeparator);
+        if (plan is null || ClientRename.ParseFolderName(Folder.DisplayName, Settings.FolderNameSeparator) is not { } old) return plan;
+        return plan with { Members = ClientRename.MatchingMembers(Record, old.Last, Record.Client.LastName ?? "") };
     }
 
     /// <summary>
     /// Renames the folder and the chosen files, logs it in the activity, and saves. Throws if the folder
     /// couldn't be renamed (nothing changed then).
     /// </summary>
-    public async Task<ClientRenameResult> RenameClientAsync(ClientRenamePlan plan, IReadOnlyList<FileRename> files)
+    public async Task<ClientRenameResult> RenameClientAsync(ClientRenamePlan plan, IReadOnlyList<FileRename> files,
+        IReadOnlyList<MemberRename>? members = null)
     {
         if (Folder is null || Record is null) throw new InvalidOperationException("No client is open.");
         if (HasUnsavedChanges) await SaveAsync();
         if (SaveConflict || SaveError is not null) throw new InvalidOperationException("Save the client first: " + SaveError);
         ClientRenameResult result;
+        var membersRenamed = 0;
         saveDelay?.Cancel();
         await saveLock.WaitAsync();
         try
@@ -290,18 +286,22 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
             result = await store.RenameClientAsync(Folder.Id, plan.FolderTo, files);
             Folder = result.Folder;
             ActivityLog.RecordRename(Record, Me, clock.GetLocalNow(), plan.FolderFrom, plan.FolderTo, result.Renamed);
+            // household members' last names: logged as ordinary edits when saved below
+            membersRenamed = ClientRename.ApplyMembers(Record, members ?? []);
             HasUnsavedChanges = true;
         }
         finally
         {
             saveLock.Release();
         }
+        Recalculate();
         await SaveAsync();
         await RememberAsync(Folder);
-        Notice = result.Problems.Count == 0
+        var who = membersRenamed > 0 ? $" Updated the last name of {membersRenamed} household member{(membersRenamed == 1 ? "" : "s")}." : "";
+        Notice = (result.Problems.Count == 0
             ? $"Renamed the folder to {plan.FolderTo}" + (result.Renamed.Count > 0 ? $" and {result.Renamed.Count} file{(result.Renamed.Count == 1 ? "" : "s")}." : ".")
             : $"Renamed the folder to {plan.FolderTo}. {result.Problems.Count} file{(result.Problems.Count == 1 ? "" : "s")} couldn't be renamed: " +
-              string.Join("; ", result.Problems);
+              string.Join("; ", result.Problems)) + who;
         Notify();
         return result;
     }

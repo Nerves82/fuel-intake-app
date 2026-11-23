@@ -5,7 +5,7 @@ namespace FuelIntake.UI.Services;
 
 /// <summary>
 /// Where a field lives (tab + section/card), cascaded down so every field can name itself for
-/// "right-click → Add note" and be found again when the note's link is clicked.
+/// the "add note" button and be found again when the note's link is clicked.
 /// </summary>
 public sealed record FieldScope(Screen Screen, string? Context = null)
 {
@@ -18,7 +18,7 @@ public sealed record FieldScope(Screen Screen, string? Context = null)
         return new NoteFieldRef(Screen.ToString(), key, string.Join(" › ", parts));
     }
 
-    /// <summary>Attributes put on a field's wrapper so the right-click menu and the note links can find it.</summary>
+    /// <summary>Attributes put on a field's wrapper so note links can find it.</summary>
     public Dictionary<string, object> Attributes(string label)
     {
         var r = RefFor(label);

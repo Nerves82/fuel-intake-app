@@ -92,9 +92,10 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - Staff notes live in `intake.json` → `notes` (id, time, author, text). The Notes panel opens from the
   header and stays open across tabs. Anyone can delete a note (with a confirm); adding and deleting
   are logged in the activity history with the note text, so a deleted note is still traceable.
-- Right-click a field → "Add note about this field" attaches `about` (tab, field key, label) to the note;
-  the note's link switches tab, scrolls to the field and flashes it. Shift+right-click keeps the normal
-  browser menu. Field keys come from the cascaded `FieldScope` (tab › section/card › label), so
+- Hover over a field (or put the cursor in it) and a small **+ note** button shows by its label; it opens
+  the notes panel with a note about that field (`about` = tab, field key, label). The note's link switches
+  tab, scrolls to the field and flashes it. Right-click is left alone (the normal copy/paste menu); the
+  earlier right-click "Add note" menu was removed because it got in the way. Field keys come from the cascaded `FieldScope` (tab › section/card › label), so
   renaming a section or label breaks old links (they then just open the tab). Household references
   are by member number: removing a member shifts later members' links.
 - A field with notes about it shows a small 📝 marker by its label (with a count when more than one).
@@ -126,6 +127,11 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   `fuelintake.js` sets `data-theme` before the first render. Printed forms (`forms.css`) and the
   print preview always stay black on white.
 
+## Household last names
+- Tab 2: new members start with the client's last name. A member whose last name differs (or is blank)
+  gets a **Use "Smith"** link; the summary strip has **Use "Smith" for all N other members**, with
+  **Undo** right after. (`HouseholdNames`)
+
 ## Correcting a client's name
 - Fix the spelling on tab 1. Once it saves, a banner says the name doesn't match the folder and offers
   **Rename folder and files…**. The preview lists the folder (old → new) and every file whose name has
@@ -137,6 +143,8 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - The folder is renamed first; if Windows can't (a file is open, or a folder with the new name exists),
   nothing changes. Files that can't be renamed are skipped and listed. The rename is in the activity log
   (folder and each file, old → new); the app log records only counts, no names.
+- The preview also lists household members (tab 2, member 2+) whose last name is the old spelling, ticked;
+  their last names change with the rename and show in the activity as ordinary edits.
 
 ## Deleting a client
 - Review tab → **Delete this client**: lists what's in the folder, then needs the client's last name

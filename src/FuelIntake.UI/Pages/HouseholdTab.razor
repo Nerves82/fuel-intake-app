@@ -7,6 +7,17 @@
 
 <div class="summary-strip">
     <span><strong>@calc.HouseholdSize</strong> in household</span>
+    @if (HouseholdNames.ClientLast(r) is { } clientLast && HouseholdNames.Different(r) is { Count: > 0 } diff)
+    {
+        <button class="secondary small" @onclick="ApplyAll"
+                title="@($"Sets the last name of {string.Join(", ", diff.Select(x => string.IsNullOrWhiteSpace(x.FirstName) ? "a new member" : x.FirstName))} to {clientLast}")">
+            Use “@clientLast” for @(diff.Count == 1 ? "1 other member" : $"all {diff.Count} other members")</button>
+    }
+    @if (undo is { Count: > 0 })
+    {
+        <span class="note">Changed @undo.Count last name@(undo.Count == 1 ? "" : "s").
+            <button class="link" @onclick="UndoApply">Undo</button></span>
+    }
     <span>Income column total <strong>@Money.Format(calc.HouseholdIncomeColumnTotal)</strong>/mo</span>
     @if (!calc.HouseholdIncomeMatchesWorksheet)
     {
@@ -25,7 +36,13 @@
             </h2>
             @if (number > 1)
             {
-                <button class="link danger" @onclick="() => Remove(member)">Remove</button>
+                <span class="card-actions">
+                    @if (HouseholdNames.ClientLast(r) is { } cl && !HouseholdNames.Same(member.LastName, cl))
+                    {
+                        <button class="link" @onclick="() => ApplyOne(member)" title="Set this member's last name to the client's">Use “@cl”</button>
+                    }
+                    <button class="link danger" @onclick="() => Remove(member)">Remove</button>
+                </span>
             }
         </div>
         <CascadingValue Value="@(Scope?.Within($"Member {number}"))">
@@ -69,16 +86,42 @@
 @code {
     [CascadingParameter] public FieldScope? Scope { get; set; }
 
+    private IReadOnlyList<(HouseholdMember Member, string? Before)>? undo;
+
     private void Add()
     {
         var r = Session.Record!;
         if (r.Household.Count == 0) r.Household.Add(new HouseholdMember()); // member 1 (the client)
-        r.Household.Add(new HouseholdMember());
+        // new members start with the client's last name (easy to change)
+        r.Household.Add(new HouseholdMember { LastName = HouseholdNames.ClientLast(r) });
+        undo = null;
+        Session.Changed();
+    }
+
+    private void ApplyAll()
+    {
+        var r = Session.Record!;
+        undo = HouseholdNames.Apply(r, HouseholdNames.Different(r));
+        Session.Changed();
+    }
+
+    private void ApplyOne(HouseholdMember member)
+    {
+        undo = HouseholdNames.Apply(Session.Record!, [member]);
+        Session.Changed();
+    }
+
+    private void UndoApply()
+    {
+        if (undo is null) return;
+        HouseholdNames.Undo(undo);
+        undo = null;
         Session.Changed();
     }
 
     private void Remove(HouseholdMember member)
     {
+        undo = null;
         Session.Record!.Household.Remove(member);
         Session.Changed();
     }

@@ -1,4 +1,5 @@
-@* A small marker next to a field's label when staff notes are about that field. Click: show them in the notes panel. *@
+@* Next to a field's label: a marker when staff notes are about that field (click: show them in the notes
+   panel), and a small "add note" button that appears when the field is hovered or has the cursor. *@
 @implements IDisposable
 @inject IntakeSession Session
 
@@ -7,6 +8,12 @@
     <button type="button" class="note-marker" title="@(count == 1 ? "1 note about this field — show it" : $"{count} notes about this field — show them")"
             aria-label="@($"Show {count} note{(count == 1 ? "" : "s")} about {Label}")"
             @onclick="() => Session.ShowNotesAbout(r)" @onclick:stopPropagation="true" @onclick:preventDefault="true">📝@(count > 1 ? count.ToString() : "")</button>
+}
+@if (reference is { } fr && Session.Record is not null)
+{
+    @* tabindex -1: keeps Tab moving field to field while typing *@
+    <button type="button" class="note-add" tabindex="-1" title="Add a note about this field" aria-label="@($"Add a note about {Label}")"
+            @onclick="() => Session.StartNoteAbout(fr)" @onclick:stopPropagation="true" @onclick:preventDefault="true">+ note</button>
 }
 
 @code {
