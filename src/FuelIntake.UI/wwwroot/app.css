@@ -319,3 +319,10 @@ button.small { padding: 2px 10px; font-size: 13px; }
 .verify-row label.confirm input { width: 18px; height: 18px; }
 .verify-row label.confirm small { font-weight: normal; color: var(--quiet); width: 100%; padding-left: 24px; }
 @media (max-width: 1000px) { .verify-layout { grid-template-columns: 1fr; } .verify-scan { position: static; } }
+
+/* scanned files above the viewer: one row that scrolls sideways; long names are shortened */
+.verify-scan .subtabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding-bottom: 6px; max-width: 100%; }
+.verify-scan .subtabs button { flex: 0 0 auto; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.verify-layout > * { min-width: 0; }
+.read-status { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.verify-row .unsure { color: var(--warn); font-size: 12px; font-weight: 600; margin-top: 2px; }

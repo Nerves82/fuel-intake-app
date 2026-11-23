@@ -18,6 +18,9 @@ public interface IPendingImports
     Task<PaperImport> GetAsync(string id, CancellationToken ct = default);
     Task SaveAsync(string id, PaperImport import, CancellationToken ct = default);
 
+    /// <summary>Where a scan is on this computer (for reading it), or null if it can't be read from here.</summary>
+    string? ScanLocation(string id, string scanFile);
+
     /// <summary>A link the app can show a scan with (PDFs and images open in the built-in viewer).</summary>
     string? ViewUrl(string id, string scanFile);
 

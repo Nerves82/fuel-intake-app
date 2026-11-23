@@ -26,6 +26,10 @@ public sealed class PaperImport
     public int MemberCount { get; set; } = 1;
 
     public List<ImportField> Fields { get; set; } = [];
+
+    /// <summary>When the scans were read (null until then), and what came of it ("12 fields filled in").</summary>
+    public DateTimeOffset? ReadAt { get; set; }
+    public string? ReadNote { get; set; }
 }
 
 /// <summary>One field on the approval page.</summary>
