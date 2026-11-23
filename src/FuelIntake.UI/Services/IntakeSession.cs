@@ -241,6 +241,71 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         await SaveAsync();
     }
 
+    // ---- correcting a misspelled client name
+
+    /// <summary>Hides the rename banner for the client that's open (until it's closed).</summary>
+    public bool RenameDismissed { get; set; }
+
+    /// <summary>
+    /// The folder name the name on tab 1 calls for, when it differs from the folder's name (the name was
+    /// corrected). Null while typing, when the names are blank, or when the folder isn't named "Last, First".
+    /// </summary>
+    public string? RenameSuggestion
+    {
+        get
+        {
+            if (Folder is null || Record is null || HasUnsavedChanges) return null;
+            var first = Record.Client.FirstName?.Trim(); var last = Record.Client.LastName?.Trim();
+            if (string.IsNullOrEmpty(first) || string.IsNullOrEmpty(last)) return null;
+            var sep = Settings.FolderNameSeparator;
+            if (ClientRename.ParseFolderName(Folder.DisplayName, sep) is not { } old) return null;
+            var want = ClientRename.FolderNameFor(first, last, old.IsTest, sep);
+            return want == Folder.DisplayName ? null : want;
+        }
+    }
+
+    /// <summary>What renaming to the name on tab 1 would change (folder and files).</summary>
+    public async Task<ClientRenamePlan?> PlanRenameAsync()
+    {
+        if (Folder is null || Record is null) return null;
+        var files = await store.ListFilesAsync(Folder.Id);
+        return ClientRename.Plan(Folder.DisplayName, Record.Client.FirstName ?? "", Record.Client.LastName ?? "",
+            files.Where(f => !f.EndsWith('\\')), Settings.FolderNameSeparator);
+    }
+
+    /// <summary>
+    /// Renames the folder and the chosen files, logs it in the activity, and saves. Throws if the folder
+    /// couldn't be renamed (nothing changed then).
+    /// </summary>
+    public async Task<ClientRenameResult> RenameClientAsync(ClientRenamePlan plan, IReadOnlyList<FileRename> files)
+    {
+        if (Folder is null || Record is null) throw new InvalidOperationException("No client is open.");
+        if (HasUnsavedChanges) await SaveAsync();
+        if (SaveConflict || SaveError is not null) throw new InvalidOperationException("Save the client first: " + SaveError);
+        ClientRenameResult result;
+        saveDelay?.Cancel();
+        await saveLock.WaitAsync();
+        try
+        {
+            result = await store.RenameClientAsync(Folder.Id, plan.FolderTo, files);
+            Folder = result.Folder;
+            ActivityLog.RecordRename(Record, Me, clock.GetLocalNow(), plan.FolderFrom, plan.FolderTo, result.Renamed);
+            HasUnsavedChanges = true;
+        }
+        finally
+        {
+            saveLock.Release();
+        }
+        await SaveAsync();
+        await RememberAsync(Folder);
+        Notice = result.Problems.Count == 0
+            ? $"Renamed the folder to {plan.FolderTo}" + (result.Renamed.Count > 0 ? $" and {result.Renamed.Count} file{(result.Renamed.Count == 1 ? "" : "s")}." : ".")
+            : $"Renamed the folder to {plan.FolderTo}. {result.Problems.Count} file{(result.Problems.Count == 1 ? "" : "s")} couldn't be renamed: " +
+              string.Join("; ", result.Problems);
+        Notify();
+        return result;
+    }
+
     public Task<IReadOnlyList<string>> ClientFilesAsync() =>
         Folder is null ? Task.FromResult<IReadOnlyList<string>>([]) : store.ListFilesAsync(Folder.Id);
 
@@ -274,7 +339,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         if (Record is not null && HasUnsavedChanges && !SaveConflict) await SaveAsync();
         saveDelay?.Cancel();
         Folder = null; Record = null; Calc = null; Issues = [];
-        SaveConflict = false; SaveError = null; Notice = null;
+        SaveConflict = false; SaveError = null; Notice = null; RenameDismissed = false;
         Screen = Screen.Clients;
         Notify();
     }

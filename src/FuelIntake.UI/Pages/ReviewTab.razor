@@ -91,7 +91,14 @@ else
                             {
                                 foreach (var ch in n.Changes)
                                 {
-                                    <tr class="note-row"><td>@n.At.ToLocalTime().ToString("h:mm tt") @n.Action.ToLowerInvariant()</td><td colspan="3">@(ch.To ?? ch.From) <span class="note">(@ch.Field)</span></td></tr>
+                                    @if (n.Action == FuelIntake.Core.Activity.ActivityLog.RenamedAction)
+                                    {
+                                        <tr class="note-row"><td>@n.At.ToLocalTime().ToString("h:mm tt") renamed (@ch.Field.ToLowerInvariant())</td><td class="from">@ch.From</td><td>→</td><td>@ch.To</td></tr>
+                                    }
+                                    else
+                                    {
+                                        <tr class="note-row"><td>@n.At.ToLocalTime().ToString("h:mm tt") @n.Action.ToLowerInvariant()</td><td colspan="3">@(ch.To ?? ch.From) <span class="note">(@ch.Field)</span></td></tr>
+                                    }
                                 }
                             }
                         </table>

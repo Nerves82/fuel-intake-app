@@ -14,6 +14,7 @@
     [SupplyParameterFromQuery(Name = "screen")] public string? ScreenName { get; set; }
     [SupplyParameterFromQuery(Name = "notes")] public int? ShowNotes { get; set; }
     [SupplyParameterFromQuery(Name = "tab")] public int? SettingsTab { get; set; }
+    [SupplyParameterFromQuery(Name = "lastname")] public string? NewLast { get; set; }
     private bool ready;
 
     protected override async Task OnInitializedAsync()
@@ -35,6 +36,13 @@
             FuelIntake.Core.Activity.ActivityLog.AddNote(rec, Session.Me, DateTimeOffset.Now.AddMinutes(-5), "Card shows a different last digit — check with client.",
                 new FuelIntake.UI.Services.FieldScope(FuelIntake.UI.Services.Screen.Household).Within("Member 1").RefFor("SSN"));
             Session.ToggleNotes();
+        }
+        if (NewLast is { Length: > 0 } && Session.Record is { } opened)
+        {
+            // preview a corrected spelling: the rename banner appears
+            opened.Client.LastName = NewLast;
+            Session.Changed();
+            await Session.SaveAsync();
         }
         if (SettingsTab is int t) Session.SettingsTab = t;
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);

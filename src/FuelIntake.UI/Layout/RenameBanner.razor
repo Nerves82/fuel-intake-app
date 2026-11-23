@@ -1,0 +1,97 @@
+@using FuelIntake.Core.Storage
+@* Shown when the client's name on tab 1 no longer matches the folder name (a misspelling was corrected).
+   Offers to rename the folder and the files that carry the old name. *@
+@implements IDisposable
+@inject IntakeSession Session
+
+@if (Session.RenameSuggestion is { } suggestion && !Session.RenameDismissed)
+{
+    <div class="banner rename-banner">
+        @if (plan is null)
+        {
+            <span>The client's name doesn't match the folder <strong>@Session.Folder?.DisplayName</strong>.
+                Rename the folder to <strong>@suggestion</strong>?</span>
+            <button class="secondary" disabled="@busy" @onclick="Preview">Rename folder and files…</button>
+            <button class="link" @onclick="() => Session.RenameDismissed = true">Not now</button>
+        }
+        else
+        {
+            <div class="rename-plan">
+                <p><strong>Rename this client</strong></p>
+                <table class="changes">
+                    <tr><td>Folder</td><td class="from">@plan.FolderFrom</td><td>→</td><td><strong>@plan.FolderTo</strong></td></tr>
+                    @foreach (var f in plan.Files)
+                    {
+                        var file = f;
+                        <tr>
+                            <td><label class="check-line"><input type="checkbox" checked="@chosen.Contains(file)"
+                                    @onchange="e => Toggle(file, e.Value is true)" /> File</label></td>
+                            <td class="from">@file.From</td><td>→</td><td>@file.To</td>
+                        </tr>
+                    }
+                </table>
+                @if (plan.Files.Count == 0)
+                {
+                    <p class="note">No files in the folder carry the old name, so only the folder is renamed.</p>
+                }
+                else
+                {
+                    <p class="note">Files are matched by the old first or last name (and the "J_Smith_" start the app uses).
+                        Untick any that shouldn't change.</p>
+                }
+                <p class="note">Close any of this client's files that are open (PDFs, File Explorer) first.</p>
+                @if (error is not null) { <p class="problem">@error</p> }
+                <div class="actions">
+                    <button disabled="@busy" @onclick="Rename">@(busy ? "Renaming…" : "Rename")</button>
+                    <button class="secondary" disabled="@busy" @onclick="() => { plan = null; error = null; }">Cancel</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private ClientRenamePlan? plan;
+    private HashSet<FileRename> chosen = [];
+    private string? error;
+    private bool busy;
+
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    private void OnState()
+    {
+        // the plan is for a particular name: drop it if the name or the client changed
+        if (plan is not null && Session.RenameSuggestion != plan.FolderTo) { plan = null; error = null; }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Preview()
+    {
+        busy = true; error = null;
+        try
+        {
+            plan = await Session.PlanRenameAsync();
+            chosen = plan?.Files.ToHashSet() ?? [];
+            if (plan is null) error = "The folder name isn't in the usual \"Last, First\" form, so it can't be renamed here.";
+        }
+        catch (Exception ex) { error = "Couldn't read the folder: " + ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void Toggle(FileRename f, bool on) { if (on) chosen.Add(f); else chosen.Remove(f); }
+
+    private async Task Rename()
+    {
+        if (plan is null) return;
+        busy = true; error = null;
+        try
+        {
+            await Session.RenameClientAsync(plan, plan.Files.Where(chosen.Contains).ToList());
+            plan = null;
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    public void Dispose() => Session.StateChanged -= OnState;
+}

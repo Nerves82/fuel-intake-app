@@ -121,6 +121,18 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   `fuelintake.js` sets `data-theme` before the first render. Printed forms (`forms.css`) and the
   print preview always stay black on white.
 
+## Correcting a client's name
+- Fix the spelling on tab 1. Once it saves, a banner says the name doesn't match the folder and offers
+  **Rename folder and files…**. The preview lists the folder (old → new) and every file whose name has
+  the old name, each with a checkbox. "Not now" hides it until the client is closed.
+- The old name is read from the folder name ("Last, First", "_TEST " kept for test clients), since tab 1
+  already has the new one. Files match on the app's "J_Smith_…" start (initial follows the first name) and
+  on the whole old first/last name standing alone (so "Al" never changes "all_forms"). A new name that's
+  already taken gets " (2)"; nothing is overwritten. intake.json is never renamed. (`ClientRename`)
+- The folder is renamed first; if Windows can't (a file is open, or a folder with the new name exists),
+  nothing changes. Files that can't be renamed are skipped and listed. The rename is in the activity log
+  (folder and each file, old → new); the app log records only counts, no names.
+
 ## Deleting a client
 - Review tab → **Delete this client**: lists what's in the folder, then needs the client's last name
   typed to confirm. Real (non-test) clients get a reminder about record-keeping rules.

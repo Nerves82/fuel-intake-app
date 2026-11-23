@@ -125,6 +125,18 @@ public static class DevServices
         public Task<IReadOnlyList<string>> ListFilesAsync(string clientId, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(files.ContainsKey(clientId) ? [ClientFolders.IntakeFileName] : []);
 
+        public Task<ClientRenameResult> RenameClientAsync(string clientId, string newFolderName, IReadOnlyList<FileRename> files, CancellationToken ct = default)
+        {
+            if (clientId != newFolderName)
+            {
+                if (folders.ContainsKey(newFolderName)) throw new IOException($"There's already a folder named \"{newFolderName}\".");
+                if (this.files.TryRemove(clientId, out var f)) this.files[newFolderName] = f;
+                folders.TryRemove(clientId, out var when);
+                folders[newFolderName] = when == default ? DateTimeOffset.Now : when;
+            }
+            return Task.FromResult(new ClientRenameResult(new ClientFolderInfo(newFolderName, newFolderName, DateTimeOffset.Now, true), [], []));
+        }
+
         public Task DeleteClientAsync(string clientId, CancellationToken ct = default)
         {
             files.TryRemove(clientId, out _);

@@ -73,6 +73,67 @@ public sealed class LocalFolderClientStore(LocalDataFolder folder, IListSource l
         return Task.CompletedTask;
     }
 
+    public Task<ClientRenameResult> RenameClientAsync(string clientId, string newFolderName, IReadOnlyList<FileRename> files, CancellationToken ct = default)
+    {
+        folder.EnsureAvailable();
+        var from = CheckClientFolder(clientId);
+        if (newFolderName.Length == 0 || ClientFolders.SafeName(newFolderName) != newFolderName
+            || (newFolderName.StartsWith(ClientFolders.HiddenPrefix, StringComparison.Ordinal) && !newFolderName.StartsWith(ClientFolders.TestPrefix, StringComparison.Ordinal)))
+            throw new InvalidOperationException("That isn't a usable folder name.");
+        var to = Path.Combine(Path.GetDirectoryName(from)!, newFolderName);
+
+        // 1. the folder (if this fails, nothing has changed)
+        if (!string.Equals(from, to, StringComparison.Ordinal))
+        {
+            var caseOnly = string.Equals(from, to, StringComparison.OrdinalIgnoreCase);
+            if (!caseOnly && Directory.Exists(to))
+                throw new IOException($"There's already a folder named \"{newFolderName}\". Is this client already in the list under the corrected name?");
+            try
+            {
+                if (caseOnly)
+                {
+                    // Windows can't rename "smith, jane" to "Smith, Jane" in one step
+                    var temp = from + ".renaming-" + Guid.NewGuid().ToString("N")[..6];
+                    Directory.Move(from, temp);
+                    Directory.Move(temp, to);
+                }
+                else Directory.Move(from, to);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new IOException("Windows couldn't rename the folder. Close any files from this client's folder " +
+                                      "(PDFs, File Explorer windows) and try again. (" + ex.Message + ")", ex);
+            }
+        }
+
+        // 2. the files inside it
+        var renamed = new List<FileRename>();
+        var problems = new List<string>();
+        foreach (var f in files)
+        {
+            if (f.From != Path.GetFileName(f.From) || f.To != Path.GetFileName(f.To) || f.To.Length == 0 || ClientFolders.SafeName(f.To) != f.To)
+            {
+                problems.Add($"{f.From}: not a plain file name");
+                continue;
+            }
+            var src = Path.Combine(to, f.From);
+            var dst = Path.Combine(to, f.To);
+            try
+            {
+                if (!File.Exists(src)) { problems.Add($"{f.From}: not found"); continue; }
+                if (File.Exists(dst) && !string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) { problems.Add($"{f.From}: {f.To} already exists"); continue; }
+                File.Move(src, dst);
+                renamed.Add(f);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                problems.Add($"{f.From}: {ex.Message}");
+            }
+        }
+        StartupLog.Write($"A client folder was renamed ({renamed.Count} file(s) renamed, {problems.Count} skipped)"); // no names in the log
+        return Task.FromResult(new ClientRenameResult(Info(new DirectoryInfo(to)), renamed, problems));
+    }
+
     /// <summary>Only a folder directly inside the client files folder (not the settings folder) can be listed or deleted.</summary>
     private string CheckClientFolder(string clientId)
     {
