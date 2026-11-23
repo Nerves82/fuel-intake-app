@@ -121,6 +121,11 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   `fuelintake.js` sets `data-theme` before the first render. Printed forms (`forms.css`) and the
   print preview always stay black on white.
 
+## Household last names
+- Tab 2: new members start with the client's last name. A member whose last name differs (or is blank)
+  gets a **Use "Smith"** link; the summary strip has **Use "Smith" for all N other members**, with
+  **Undo** right after. (`HouseholdNames`)
+
 ## Correcting a client's name
 - Fix the spelling on tab 1. Once it saves, a banner says the name doesn't match the folder and offers
   **Rename folder and files…**. The preview lists the folder (old → new) and every file whose name has
