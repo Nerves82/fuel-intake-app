@@ -154,6 +154,9 @@ public static partial class ScanFieldReader
                 var at = IndexOf(words, label.Split(' '));
                 if (at < 0) continue;
                 var fullName = FullNameLabels.Contains(label);
+                // a one-word label in the middle of a row without a colon ("…of the State and…") is only
+                // trusted when what follows really looks like that kind of value (an SSN, a zip, a state…)
+                var strict = !label.Contains(' ') && at > 0 && !line.Words[at].Text.TrimEnd().EndsWith(':');
                 if (label == "name" && at != 0) continue; // "Staff Name", "Vendor Name"… aren't the client
                 var labelEnd = at + label.Split(' ').Length;
                 // "Address" inside "Mailing Address" belongs to the other field
@@ -177,6 +180,7 @@ public static partial class ScanFieldReader
                     var raw = Clean(string.Join(' ', cand.Select(w => w.Text)));
                     if (raw.Length == 0) continue;
                     var (value, ok) = fullName ? NamePart(field, raw) : Shape(field, raw);
+                    if (strict && !ok) { FuzzyHit = false; continue; }
                     var unmatchedChoice = value.Length == 0 && field.Kind == ImportFieldKind.Choice && raw.Any(char.IsLetter);
                     if (value.Length == 0 && !unmatchedChoice) continue;
                     var confidence = ok ? 0.6 : unmatchedChoice ? 0.1 : value.Length > 0 && FuzzyHit ? 0.45 : 0.3;
@@ -231,6 +235,8 @@ public static partial class ScanFieldReader
     /// <summary>Pulls out the part that fits the field (a date, an SSN, a list choice…). Ok = it looks right.</summary>
     private static (string Value, bool Ok) Shape(ImportField f, string raw)
     {
+        if (f.Path == "client.state")
+            return StateCode(raw) is { } st ? (st, true) : ("", false);
         switch (f.Kind)
         {
             case ImportFieldKind.Date:
@@ -310,6 +316,30 @@ public static partial class ScanFieldReader
     }
 
     [ThreadStatic] private static bool FuzzyHit;
+
+    private static readonly Dictionary<string, string> States = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["alabama"] = "AL", ["alaska"] = "AK", ["arizona"] = "AZ", ["arkansas"] = "AR", ["california"] = "CA", ["colorado"] = "CO",
+        ["connecticut"] = "CT", ["delaware"] = "DE", ["district of columbia"] = "DC", ["florida"] = "FL", ["georgia"] = "GA",
+        ["hawaii"] = "HI", ["idaho"] = "ID", ["illinois"] = "IL", ["indiana"] = "IN", ["iowa"] = "IA", ["kansas"] = "KS",
+        ["kentucky"] = "KY", ["louisiana"] = "LA", ["maine"] = "ME", ["maryland"] = "MD", ["massachusetts"] = "MA",
+        ["michigan"] = "MI", ["minnesota"] = "MN", ["mississippi"] = "MS", ["missouri"] = "MO", ["montana"] = "MT",
+        ["nebraska"] = "NE", ["nevada"] = "NV", ["new hampshire"] = "NH", ["new jersey"] = "NJ", ["new mexico"] = "NM",
+        ["new york"] = "NY", ["north carolina"] = "NC", ["north dakota"] = "ND", ["ohio"] = "OH", ["oklahoma"] = "OK",
+        ["oregon"] = "OR", ["pennsylvania"] = "PA", ["rhode island"] = "RI", ["south carolina"] = "SC", ["south dakota"] = "SD",
+        ["tennessee"] = "TN", ["texas"] = "TX", ["utah"] = "UT", ["vermont"] = "VT", ["virginia"] = "VA", ["washington"] = "WA",
+        ["west virginia"] = "WV", ["wisconsin"] = "WI", ["wyoming"] = "WY",
+    };
+
+    /// <summary>"Vermont", "VT", "Vt." → "VT"; anything else → null (so stray text never lands in State).</summary>
+    public static string? StateCode(string raw)
+    {
+        var n = Norm(raw);
+        foreach (var (name, code) in States.OrderByDescending(x => x.Key.Length))
+            if (n == name || n.StartsWith(name + " ", StringComparison.Ordinal)) return code;
+        var first = n.Split(' ').FirstOrDefault() ?? "";
+        return first.Length == 2 && States.ContainsValue(first.ToUpperInvariant()) ? first.ToUpperInvariant() : null;
+    }
 
     /// <summary>The choice most like the text (letters misread by the scan reader), when at least 75% alike.</summary>
     public static string? ClosestChoice(string text, IEnumerable<string> options)

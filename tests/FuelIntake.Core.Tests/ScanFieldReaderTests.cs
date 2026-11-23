@@ -183,7 +183,7 @@ public class ScanFieldReaderProfileTests
         Assert.Equal("Medicaid", V(i, "household[0].healthInsurance"));
         Assert.Equal("000-12-3401", V(i, "household[0].ssn"));
         Assert.Equal("12 Pretend Pond Rd", V(i, "client.addressPhysical"));
-        Assert.Equal("Vermont", V(i, "client.state"));
+        Assert.Equal("VT", V(i, "client.state"));
         Assert.Equal("05819", V(i, "client.zip"));
     }
 }
@@ -214,5 +214,31 @@ public class ScanFieldReaderChoiceTests
         var race = i.Fields.Single(f => f.Path == "household[0].race");
         Assert.Null(race.Value);                 // no nonsense in the box…
         Assert.Equal("Banana bread", race.ReadValue); // …but what the scan said is shown
+    }
+}
+
+public class ScanFieldReaderStateTests
+{
+    [Theory]
+    [InlineData("Vermont", "VT")]
+    [InlineData("VT 05819", "VT")]
+    [InlineData("vt.", "VT")]
+    [InlineData("New Hampshire", "NH")]
+    [InlineData("and longer", null)]
+    public void StateCode(string raw, string? code) => Assert.Equal(code, ScanFieldReader.StateCode(raw));
+
+    [Fact]
+    public void StateInRunningText_IsNotALabel()
+    {
+        OcrLine L(double y, string text)
+        {
+            double x = 0.05; var words = new List<OcrWord>();
+            foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+            return new OcrLine(words);
+        }
+        var page = new OcrPage("p.pdf", 1, [L(0.1, "benefits of the State and longer than needed"), L(0.3, "State: Vermont Zip Code: 05819")]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("VT", i.Fields.Single(f => f.Path == "client.state").Value);
     }
 }
