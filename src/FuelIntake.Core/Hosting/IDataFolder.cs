@@ -44,7 +44,7 @@ public static class DataFolderRules
     public const string TestDataFolderName = "test-data";
 
     /// <summary>The files copied with "bring my lists along".</summary>
-    public static readonly IReadOnlyList<string> ListFiles = ["staff.json", "vendors.json", "settings.json"];
+    public static readonly IReadOnlyList<string> ListFiles = ["staff.json", "vendors.json", "settings.json", "compliance.json"];
 
     public static string SettingsFolder(string root) => System.IO.Path.Combine(root, SettingsFolderName);
     public static string TestDataFolder(string root) => System.IO.Path.Combine(SettingsFolder(root), TestDataFolderName);

@@ -141,6 +141,9 @@ public static class DevServices
         public Task SaveStaffAsync(IEnumerable<StaffMember> s, CancellationToken ct = default) { staff = s.ToList(); return Task.CompletedTask; }
         public Task SaveVendorsAsync(IEnumerable<Vendor> v, CancellationToken ct = default) { vendors = v.ToList(); return Task.CompletedTask; }
         public Task SaveSettingsAsync(AgencySettings s, CancellationToken ct = default) { settings = s; return Task.CompletedTask; }
+        private FuelIntake.Core.Compliance.ComplianceSettings compliance = FuelIntake.Core.Compliance.ComplianceSettings.Defaults();
+        public Task<FuelIntake.Core.Compliance.ComplianceSettings> GetComplianceAsync(CancellationToken ct = default) => Task.FromResult(compliance);
+        public Task SaveComplianceAsync(FuelIntake.Core.Compliance.ComplianceSettings c, CancellationToken ct = default) { compliance = c; return Task.CompletedTask; }
 
         public Task<StaffDirectory> GetStaffAsync(CancellationToken ct = default) => Task.FromResult(new StaffDirectory(staff));
 

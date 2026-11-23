@@ -12,6 +12,7 @@
         <button class="@(tab == 1 ? "active" : "")" @onclick="() => tab = 1">Vendors (@vendors.Count)</button>
         <button class="@(tab == 2 ? "active" : "")" @onclick="() => tab = 2">Agency settings</button>
         <button class="@(tab == 4 ? "active" : "")" @onclick="() => tab = 4">Grant sources (@grants.Count(g => g.Active))</button>
+        <button class="@(tab == 5 ? "active" : "")" @onclick="() => tab = 5">Compliance 🔒</button>
         <button class="@(tab == 3 ? "active" : "")" @onclick="() => tab = 3">Data folder</button>
     </nav>
 
@@ -218,6 +219,10 @@
                 <button @onclick="SaveGrants">Save grant sources</button>
             </div>
         </section>
+    }
+    else if (tab == 5)
+    {
+        <CompliancePanel />
     }
     else if (tab == 3)
     {

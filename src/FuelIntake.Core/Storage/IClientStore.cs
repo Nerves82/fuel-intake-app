@@ -68,4 +68,8 @@ public interface IListSource
     Task SaveStaffAsync(IEnumerable<Contacts.StaffMember> staff, CancellationToken ct = default);
     Task SaveVendorsAsync(IEnumerable<Contacts.Vendor> vendors, CancellationToken ct = default);
     Task SaveSettingsAsync(AgencySettings settings, CancellationToken ct = default);
+
+    /// <summary>Compliance standards (compliance.json); the defaults (Warmth, Crisis Fuel) until saved.</summary>
+    Task<Compliance.ComplianceSettings> GetComplianceAsync(CancellationToken ct = default);
+    Task SaveComplianceAsync(Compliance.ComplianceSettings compliance, CancellationToken ct = default);
 }

@@ -55,6 +55,21 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Settings = await lists.GetSettingsAsync();
         Staff = await lists.GetStaffAsync();
         Vendors = await lists.GetVendorsAsync();
+        Compliance = await lists.GetComplianceAsync();
+    }
+
+    /// <summary>Agency-wide compliance standards (Warmth, Crisis Fuel…).</summary>
+    public FuelIntake.Core.Compliance.ComplianceSettings Compliance { get; private set; } = FuelIntake.Core.Compliance.ComplianceSettings.Defaults();
+
+    /// <summary>Unlocked with the passcode for this run of the app.</summary>
+    public bool ComplianceUnlocked { get; set; }
+
+    public async Task SaveComplianceAsync(FuelIntake.Core.Compliance.ComplianceSettings compliance)
+    {
+        await lists.SaveComplianceAsync(compliance);
+        Compliance = compliance;
+        Recalculate();
+        Notify();
     }
 
     /// <summary>Which sub-tab the settings page opens on (0 staff, 1 vendors, 2 agency, 3 data folder).</summary>
@@ -497,7 +512,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     private void Recalculate()
     {
         if (Record is null) return;
-        Calc = new IntakeCalculations(Record, new CalculationContext(Settings, Staff, Vendors, Today));
+        Calc = new IntakeCalculations(Record, new CalculationContext(Settings, Staff, Vendors, Today, Compliance));
         Issues = IntakeValidator.Validate(Record, Calc, Today);
     }
 
