@@ -187,9 +187,20 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   **Discard** sends the holding folder to the Recycle Bin.
 - Scans are shown in the built-in viewer via a WebView2 virtual host (`clientfiles.fuelintake`) mapped to the
   client files folder (re-mapped when the folder changes).
-- Phase 1 (this): the flow with values typed/confirmed by staff. Next: print blank forms with page codes and
-  corner marks, read checkboxes, then read handwriting with Windows' built-in OCR (Windows.Media.Ocr) to
-  pre-fill `Value`/`ReadValue`/`Confidence`/`Spot`; existing agency forms need a blank copy of each to map.
+- Reading (step 2): the first time an application is opened, the scans are read on the laptop with Windows'
+  built-in text recognition (Windows.Data.Pdf renders PDF pages, Windows.Media.Ocr reads them; no install, nothing
+  leaves the laptop). `ScanFieldReader` finds each field's printed label ("Last Name", "Date of Birth", "SSN", the
+  income line names…) and takes the text to its right, else below, else above, then shapes it to the field
+  (date, SSN, phone, zip, money, list choice). Values that don't look right are marked "Unsure reading".
+  Only blank, unticked fields are filled, so **Read the scans again** never overwrites staff work.
+  Pieces the reader splits on one row (table-style printouts like the GoEngage profile) are joined back first
+  (`ScanFieldReader.Rows`); "Name: Smith, Jane" is split into last/first. Re-reading replaces earlier readings
+  staff haven't changed or ticked. "What the reader saw" shows a copyable layout with letters → x and digits → 9
+  (printed label words kept) so missed fields can be diagnosed without sharing client details.
+  Works best on typed/printed forms and block capitals; cursive is hit and miss. Household members 2+,
+  checkboxes and tables aren't read yet.
+- Next: print blank forms with page codes and corner marks (known positions instead of label hunting),
+  read ticked boxes by ink, map the agency's existing forms (need a blank copy of each).
 - Known limit: two people editing the same pending application at the same moment: last save wins.
 
 ## Fuel Order email

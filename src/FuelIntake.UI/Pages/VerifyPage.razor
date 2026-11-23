@@ -3,6 +3,7 @@
 @using FuelIntake.Core.Import
 @inject IntakeSession Session
 @inject IPendingImports Pending
+@inject IScanReader Reader
 @inject IJSRuntime JS
 
 <main class="page verify-page">
@@ -34,6 +35,32 @@
             </div>
         </div>
 
+        <div class="banner inline-banner read-status">
+            @if (reading)
+            {
+                <span>@(readProgress ?? "Reading the scans…") This can take a few seconds per page.</span>
+            }
+            else
+            {
+                <span>@(import.ReadNote ?? (import.ScanFiles.Count == 0 ? "No scans to read." : "The scans haven't been read yet."))</span>
+                @if (import.ScanFiles.Count > 0 && Reader.Unavailable is null)
+                {
+                    <button class="secondary small" @onclick="ReadScans" title="Updates fields that are unticked and that you haven't changed">Read the scans again</button>
+                }
+            }
+        </div>
+
+        @if (import.ReadLayout is { Length: > 0 } seen)
+        {
+            <details class="read-layout">
+                <summary>What the reader saw (names and numbers hidden)</summary>
+                <p class="note">If fields were missed, copy this and send it to whoever maintains the app: it shows the printed labels and where
+                    things sit on the page, with the client's details replaced by x and 9, so the reading can be improved safely.</p>
+                <button class="secondary small" @onclick="() => Copy(seen)">Copy</button> @if (copied) { <span class="ok">Copied.</span> }
+                <pre>@seen</pre>
+            </details>
+        }
+
         <div class="verify-layout">
             <div class="verify-fields">
                 @foreach (var group in import.Fields.Select((f, i) => (f, i)).GroupBy(x => x.f.Group))
@@ -61,6 +88,10 @@
                                             break;
                                     }
                                     @if (problem is not null) { <div class="problem">@problem</div> }
+                                    else if (field.Confidence is < 0.5 && field.Value == field.ReadValue && !string.IsNullOrEmpty(field.Value))
+                                    {
+                                        <div class="unsure">Unsure reading: check this one closely</div>
+                                    }
                                 </div>
                                 <label class="confirm">
                                     <input type="checkbox" checked="@field.Confirmed" @onchange="e => Confirm(field, e.Value is true)" />
@@ -126,7 +157,7 @@
                         @foreach (var file in import.ScanFiles)
                         {
                             var f = file;
-                            <button class="@(f == scan ? "active" : "")" @onclick="() => scan = f">@f</button>
+                            <button class="@(f == scan ? "active" : "")" title="@f" @onclick="() => scan = f">@f</button>
                         }
                     </div>
                     @if (scan is not null && Pending.ViewUrl(Session.PendingImportId!, scan) is { } url)
@@ -145,6 +176,14 @@
 
 @code {
     private PaperImport? import;
+    private bool copied;
+
+    private async Task Copy(string text)
+    {
+        try { await JS.InvokeVoidAsync("fuelIntake.copy", text); copied = true; } catch (Exception) { copied = false; }
+    }
+    private bool reading;
+    private string? readProgress;
     private string? loadError, message, scan;
     private bool busy, messageIsError, confirmDiscard;
     private readonly SemaphoreSlim saving = new(1, 1);
@@ -157,6 +196,52 @@
             scan = import.ScanFiles.FirstOrDefault();
         }
         catch (Exception ex) { loadError = "Couldn't open this paper application: " + ex.Message; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // read the scans the first time the application is opened
+        if (firstRender && import is { ReadAt: null, ScanFiles.Count: > 0 }) await ReadScans();
+    }
+
+    /// <summary>Reads the scans on this computer and fills blank, unticked fields (staff still check every one).</summary>
+    private async Task ReadScans()
+    {
+        if (import is null || reading) return;
+        if (Reader.Unavailable is { } why)
+        {
+            import.ReadNote = "The scans couldn't be read automatically: " + why + " Type the values from the scan.";
+            StateHasChanged();
+            return;
+        }
+        reading = true; readProgress = null;
+        StateHasChanged();
+        try
+        {
+            var id = Session.PendingImportId!;
+            var scans = import.ScanFiles.Select(f => (f, Pending.ScanLocation(id, f))).Where(x => x.Item2 is not null)
+                .Select(x => (x.f, x.Item2!)).ToList();
+            var progress = new Progress<string>(p => { readProgress = p; InvokeAsync(StateHasChanged); });
+            var pages = await Task.Run(() => Reader.ReadAsync(scans, progress));
+            var filled = ScanFieldReader.Fill(import, pages);
+            import.ReadLayout = ScanFieldReader.MaskedLayout(pages.Select(ScanFieldReader.Rows).ToList());
+            var words = pages.Sum(p => p.Lines.Sum(l => l.Words.Count));
+            import.ReadNote = words == 0
+                ? $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")} but found no text. The scan may be too faint or handwritten; type the values from the scan."
+                : $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")}: filled in {filled} field{(filled == 1 ? "" : "s")}. " +
+                  "Check every one against the scan; unsure readings are marked.";
+        }
+        catch (Exception ex)
+        {
+            import.ReadNote = "The scans couldn't be read automatically (" + ex.Message + "). Type the values from the scan.";
+        }
+        finally
+        {
+            import.ReadAt = DateTimeOffset.Now;
+            reading = false;
+            await Save();
+            StateHasChanged();
+        }
     }
 
     private static string? Placeholder(ImportFieldKind k) => k switch

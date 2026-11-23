@@ -35,6 +35,7 @@ public partial class MainWindow : Window
         services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets>(new LocalTestDataSets(dataFolder));
         services.AddSingleton<FuelIntake.Core.Import.IPendingImports>(new LocalPendingImports(dataFolder));
         services.AddSingleton<FuelIntake.Core.Import.IFilePicker>(new LocalFilePicker(Dispatcher, () => this));
+        services.AddSingleton<FuelIntake.Core.Import.IScanReader, WindowsScanReader>();
         services.AddSingleton<IntakeSession>();
         services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
         // PDFs reuse the main window's WebView2 environment (a second, different environment on the same data folder is refused)

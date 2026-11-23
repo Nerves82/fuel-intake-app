@@ -73,6 +73,8 @@ public sealed class LocalPendingImports(LocalDataFolder folder) : IPendingImport
         File.Move(temp, path, overwrite: true);
     }
 
+    public string? ScanLocation(string id, string scanFile) => Path.Combine(Dir(id), Path.GetFileName(scanFile));
+
     public string? ViewUrl(string id, string scanFile) =>
         $"https://{ViewHost}/{Uri.EscapeDataString(Path.GetFileName(Dir(id)))}/{Uri.EscapeDataString(Path.GetFileName(scanFile))}";
 

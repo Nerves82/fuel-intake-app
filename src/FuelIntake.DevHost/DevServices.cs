@@ -29,6 +29,7 @@ public static class DevServices
         services.AddSingleton<IEmailComposer, NoEmail>();
         services.AddSingleton<FuelIntake.Core.Import.IPendingImports, MemoryPendingImports>();
         services.AddSingleton<FuelIntake.Core.Import.IFilePicker, NoPicker>();
+        services.AddSingleton<FuelIntake.Core.Import.IScanReader, NoReader>();
     }
 
     /// <summary>The browser preview can't make PDFs; use Preview, or the desktop app.</summary>
@@ -62,12 +63,20 @@ public static class DevServices
         public Task<FuelIntake.Core.Import.PaperImport> GetAsync(string id, CancellationToken ct = default) => Task.FromResult(Read(imports[id]));
         public Task SaveAsync(string id, FuelIntake.Core.Import.PaperImport import, CancellationToken ct = default) { imports[id] = Write(import); return Task.CompletedTask; }
         public string? ViewUrl(string id, string scanFile) => null;
+        public string? ScanLocation(string id, string scanFile) => null;
         public Task FinishAsync(string id, string clientId, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
         public Task DiscardAsync(string id, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
 
         private static readonly System.Text.Json.JsonSerializerOptions Json = new() { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
         private static string Write(FuelIntake.Core.Import.PaperImport i) => System.Text.Json.JsonSerializer.Serialize(i, Json);
         private static FuelIntake.Core.Import.PaperImport Read(string s) => System.Text.Json.JsonSerializer.Deserialize<FuelIntake.Core.Import.PaperImport>(s, Json)!;
+    }
+
+    private sealed class NoReader : FuelIntake.Core.Import.IScanReader
+    {
+        public string? Unavailable => "The browser preview can't read scans; the desktop app uses Windows' built-in text recognition.";
+        public Task<IReadOnlyList<FuelIntake.Core.Import.OcrPage>> ReadAsync(IReadOnlyList<(string File, string Location)> scans,
+            IProgress<string>? progress = null, CancellationToken ct = default) => throw new NotSupportedException(Unavailable);
     }
 
     private sealed class NoPicker : FuelIntake.Core.Import.IFilePicker
