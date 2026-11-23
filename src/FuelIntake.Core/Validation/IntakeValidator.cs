@@ -84,6 +84,15 @@ public static class IntakeValidator
         if (!string.IsNullOrWhiteSpace(r.FuelElectric.ElectricProvider) && calc.ElectricVendor is null)
             Add(IssueSeverity.Info, "Fuel & Electric", "Electric provider", "Electric provider isn't on the vendor list, so contact details won't fill in.");
 
+        // Compliance standard (Warmth, Crisis Fuel…): its required fields
+        if (Compliance.ComplianceRules.Effective(r, calc.Context.ComplianceOrEmpty) is { } standard)
+            foreach (var m in Compliance.ComplianceRules.Missing(r, standard))
+                Add(IssueSeverity.Error, m.Field.Tab, m.Member is int n ? $"Member {n} {m.Field.Label}" : m.Field.Label,
+                    $"Required for {standard.Name}: {(m.Field.IsCheck ? "tick" : "fill in")} {m.Field.Group} › {m.Field.Label}" +
+                    (m.Member is int k ? $" for member {k}." : "."));
+        if (!string.IsNullOrWhiteSpace(r.Application.ComplianceStandard) && Compliance.ComplianceRules.Effective(r, calc.Context.ComplianceOrEmpty) is null)
+            Add(IssueSeverity.Warning, "Review", "Compliance standard", $"\"{r.Application.ComplianceStandard}\" isn't a compliance standard any more; pick another.");
+
         // Grant/funding sources (only checked once the agency has a list)
         if (r.FuelElectric.FuelOrder.Authorized || r.FuelElectric.FuelOrder.Fuel is not null)
             CheckGrant("Fuel Order", r.FuelElectric.FuelOrder.FundingSource, calc.FuelOrderGrant, calc.FuelOrderTotal, GrantUse.Fuel);

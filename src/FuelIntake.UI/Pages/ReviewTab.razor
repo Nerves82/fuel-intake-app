@@ -23,6 +23,20 @@
         <span>Under limit <strong>@(calc.UnderIncomeLimit switch { true => "Yes", false => "No", _ => "—" })</strong></span>
         <span>Crisis <strong>@(Session.Record!.Application.CrisisType ?? "—")</strong></span>
     </div>
+    @{ var comp = Session.Compliance; var fromGrant = FuelIntake.Core.Compliance.ComplianceRules.FromGrant(Session.Record!, comp);
+       var effective = FuelIntake.Core.Compliance.ComplianceRules.Effective(Session.Record!, comp); }
+    @if (comp.Standards.Count > 0)
+    {
+        <div class="compliance-pick">
+            <div style="min-width: 16rem">
+                <SelectBox Label="Compliance standard" @bind-Value="Session.Record!.Application.ComplianceStandard"
+                           Options="comp.Standards.Select(s => s.Name).ToList()"
+                           Hint="@(fromGrant is null ? "Leave blank to use the one linked to the grant source (none linked yet)" : $"Blank = {fromGrant.Name}, from the grant source")" />
+            </div>
+            <span class="note">@(effective is null ? "No compliance standard applies." :
+                $"Checking against {effective.Name}: {effective.Required.Count} required field{(effective.Required.Count == 1 ? "" : "s")}.")</span>
+        </div>
+    }
 </section>
 
 @if (Session.Issues.Count == 0)

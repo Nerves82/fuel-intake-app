@@ -174,6 +174,9 @@ public sealed class HouseholdMember
 /// <summary>Tab 3: NEKCA Fuel Assistance Application.</summary>
 public sealed class ApplicationSection
 {
+    /// <summary>The compliance standard picked on the Review tab; blank = the one linked to the grant source.</summary>
+    public string? ComplianceStandard { get; set; }
+
     public bool AaaOnBehalf { get; set; }
     public bool AfterHours { get; set; }
     public bool SecondCrisis { get; set; }

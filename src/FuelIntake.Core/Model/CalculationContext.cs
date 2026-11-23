@@ -7,8 +7,11 @@ public sealed record CalculationContext(
     AgencySettings Settings,
     StaffDirectory Staff,
     VendorDirectory Vendors,
-    DateOnly Today)
+    DateOnly Today,
+    Compliance.ComplianceSettings? Compliance = null)
 {
     public static CalculationContext Default(DateOnly today) =>
         new(new AgencySettings(), StaffDirectory.Empty, VendorDirectory.Empty, today);
+
+    public Compliance.ComplianceSettings ComplianceOrEmpty => Compliance ?? new Compliance.ComplianceSettings();
 }

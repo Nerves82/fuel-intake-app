@@ -221,6 +221,20 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   neither can attach, so File Explorer opens with the PDF selected (`/select,"path"`) to drag in.
 - Test clients: To is left blank so practice data is never sent to a real vendor.
 
+## Compliance standards
+- Agency-wide standards (start: **Warmth**, **Crisis Fuel**) in `_Fuel Intake Settings\compliance.json`, so every
+  staff member using that folder gets the same rules. Edited under Staff, vendors & settings → **Compliance 🔒**,
+  which needs a passcode (PBKDF2-SHA256 hash + salt in the same file; first person sets it; unlocked until the
+  app closes). It keeps casual edits out; it isn't real security (the file is editable). Phase 2: a SharePoint
+  list with permissions.
+- Each standard: name, description, linked grant sources, and **required** fields (the only rule for now).
+  Any field can be required: the list comes from the intake record itself (`FieldCatalog`, ~220 fields; household
+  fields apply to every member; member 1's name/DOB are exempt because they're the client fields; a required
+  checkbox must be ticked).
+- Which standard applies: the one picked on the Review tab (`application.complianceStandard`), else the one
+  linked to the Fuel Order / Electric Pledge / invoice grant source (or named the same as it).
+- A missing required field is an **error** on Review: "Required for Crisis Fuel: fill in …".
+
 ## Grant / funding sources
 - Kept in Agency settings (`settings.json` → `grantSources`), edited under Staff, vendors & settings →
   Grant sources: name (what prints), optional code, used for Fuel and/or Electric, optional limit per

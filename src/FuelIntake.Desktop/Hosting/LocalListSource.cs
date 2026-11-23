@@ -49,6 +49,12 @@ public sealed class LocalListSource(LocalDataFolder folder) : IListSource
     public Task SaveSettingsAsync(AgencySettings settings, CancellationToken ct = default) =>
         WriteAsync("settings.json", settings, ct);
 
+    public Task<FuelIntake.Core.Compliance.ComplianceSettings> GetComplianceAsync(CancellationToken ct = default) =>
+        ReadAsync("compliance.json", FuelIntake.Core.Compliance.ComplianceSettings.Defaults(), ct);
+
+    public Task SaveComplianceAsync(FuelIntake.Core.Compliance.ComplianceSettings compliance, CancellationToken ct = default) =>
+        WriteAsync("compliance.json", compliance, ct);
+
     private async Task WriteAsync<T>(string name, T value, CancellationToken ct)
     {
         folder.EnsureAvailable();

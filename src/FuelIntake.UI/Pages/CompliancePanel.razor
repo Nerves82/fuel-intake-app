@@ -1,0 +1,178 @@
+@* Compliance standards (Warmth, Crisis Fuel…): which fields each one requires. Shared by all staff through
+   compliance.json in the settings folder; editing needs the passcode. *@
+@using FuelIntake.Core.Compliance
+@inject IntakeSession Session
+
+<section class="card compliance">
+    <h2>Compliance standards 🔒</h2>
+    @if (!ComplianceRules.HasPasscode(Session.Compliance))
+    {
+        <p class="note">Compliance standards decide which fields an application must have filled in. They apply to everyone using this
+            settings folder, so they're protected by a passcode. No passcode is set yet: choose one now (at least 4 characters) and keep it
+            with whoever manages the program.</p>
+        <div class="grid">
+            <div class="field"><label for="pc1">New passcode</label><input id="pc1" type="password" autocomplete="new-password" @bind="code1" /></div>
+            <div class="field"><label for="pc2">Type it again</label><input id="pc2" type="password" autocomplete="new-password" @bind="code2" /></div>
+        </div>
+        <div class="actions"><button @onclick="SetFirstPasscode">Set passcode</button></div>
+    }
+    else if (!Session.ComplianceUnlocked)
+    {
+        <p class="note">Enter the compliance passcode to view or change the standards.</p>
+        <div class="grid">
+            <div class="field"><label for="pc">Passcode</label>
+                <input id="pc" type="password" autocomplete="off" @bind="code1" @bind:event="oninput" @onkeydown="UnlockOnEnter" /></div>
+        </div>
+        <div class="actions"><button @onclick="Unlock">Unlock</button></div>
+    }
+    else
+    {
+        <p class="note">Pick the fields each standard requires. A missing required field shows as an error on the Review tab of every
+            application under that standard. An application uses the standard picked on its Review tab, or else the one linked to its grant source.</p>
+        @foreach (var std in work!.Standards)
+        {
+            var s = std;
+            <details class="standard" open="@(work.Standards.Count == 1)">
+                <summary><strong>@(string.IsNullOrWhiteSpace(s.Name) ? "(no name)" : s.Name)</strong>
+                    <span class="note">@s.Required.Count required field@(s.Required.Count == 1 ? "" : "s")@(s.GrantSources.Count > 0 ? " · grant: " + string.Join(", ", s.GrantSources) : "")</span></summary>
+                <div class="grid">
+                    <div class="field"><label>Name</label><input @bind="s.Name" /></div>
+                    <div class="field"><label>Description</label><input @bind="s.Description" /></div>
+                </div>
+                <div class="field">
+                    <label>Applies automatically when the grant/funding source is</label>
+                    @if (Session.Settings.GrantSources.Count == 0)
+                    {
+                        <div class="hint">No grant sources yet (Grant sources tab). Until then, a grant source with the same name as the standard links it.</div>
+                    }
+                    <div class="check-row">
+                        @foreach (var g in Session.Settings.GrantSources.Where(g => !string.IsNullOrWhiteSpace(g.Name)))
+                        {
+                            var name = g.Name.Trim();
+                            <label class="check-line"><input type="checkbox" checked="@s.GrantSources.Contains(name)"
+                                   @onchange="e => Toggle(s.GrantSources, name, e.Value is true)" /> @name</label>
+                        }
+                    </div>
+                </div>
+                <div class="actions">
+                    <input class="filter" placeholder="Find a field…" @bind="filter" @bind:event="oninput" />
+                    <label class="check-line"><input type="checkbox" @bind="onlyRequired" /> Only required ones</label>
+                    <span class="spacer"></span>
+                    <button class="link danger" @onclick="() => work.Standards.Remove(s)">Remove this standard</button>
+                </div>
+                @foreach (var group in FieldCatalog.All.Where(f => Shown(f, s)).GroupBy(f => f.Group))
+                {
+                    <fieldset class="req-group">
+                        <legend>@group.Key</legend>
+                        @foreach (var f in group)
+                        {
+                            var field = f;
+                            <label class="check-line"><input type="checkbox" checked="@s.Required.Contains(field.Key)"
+                                   @onchange="e => Toggle(s.Required, field.Key, e.Value is true)" />
+                                @field.Label @(field.IsCheck ? "(must be ticked)" : "")</label>
+                        }
+                    </fieldset>
+                }
+            </details>
+        }
+        <div class="actions">
+            <button class="secondary" @onclick="AddStandard">+ Add standard</button>
+            <span class="spacer"></span>
+            <button class="secondary" @onclick="Lock">Lock</button>
+            <button @onclick="Save">Save compliance standards</button>
+        </div>
+        <details class="change-code">
+            <summary>Change the passcode</summary>
+            <div class="grid">
+                <div class="field"><label for="npc1">New passcode</label><input id="npc1" type="password" autocomplete="new-password" @bind="code1" /></div>
+                <div class="field"><label for="npc2">Type it again</label><input id="npc2" type="password" autocomplete="new-password" @bind="code2" /></div>
+            </div>
+            <div class="actions"><button class="secondary" @onclick="ChangePasscode">Change passcode</button></div>
+        </details>
+    }
+    @if (message is not null) { <p class="@(isError ? "problem" : "ok")">@message</p> }
+    <p class="note">The passcode keeps casual changes out of the app; it isn't strong security, since the settings folder itself can be edited by anyone who can open it.</p>
+</section>
+
+@code {
+    private ComplianceSettings? work;
+    private string? code1, code2, message, filter;
+    private bool isError, onlyRequired;
+
+    protected override void OnInitialized() { if (Session.ComplianceUnlocked) work = Copy(Session.Compliance); }
+
+    private static ComplianceSettings Copy(ComplianceSettings c) =>
+        System.Text.Json.JsonSerializer.Deserialize<ComplianceSettings>(System.Text.Json.JsonSerializer.Serialize(c))!;
+
+    private bool Shown(CatalogField f, ComplianceStandard s) =>
+        (!onlyRequired || s.Required.Contains(f.Key)) &&
+        (string.IsNullOrWhiteSpace(filter) || f.Label.Contains(filter, StringComparison.OrdinalIgnoreCase) || f.Group.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+    private static void Toggle(List<string> list, string value, bool on)
+    {
+        if (on && !list.Contains(value)) list.Add(value);
+        if (!on) list.Remove(value);
+    }
+
+    private void Say(string text, bool error = false) { message = text; isError = error; }
+
+    private async Task SetFirstPasscode()
+    {
+        if (code1 != code2) { Say("The two passcodes don't match.", true); return; }
+        try
+        {
+            var c = Copy(Session.Compliance);
+            ComplianceRules.SetPasscode(c, code1 ?? "");
+            await Session.SaveComplianceAsync(c);
+            Session.ComplianceUnlocked = true;
+            work = Copy(Session.Compliance);
+            code1 = code2 = null;
+            Say("Passcode set. Compliance standards are unlocked until the app is closed.");
+        }
+        catch (Exception ex) { Say(ex.Message, true); }
+    }
+
+    private void Unlock()
+    {
+        if (ComplianceRules.CheckPasscode(Session.Compliance, code1))
+        {
+            Session.ComplianceUnlocked = true;
+            work = Copy(Session.Compliance);
+            code1 = null; message = null;
+        }
+        else Say("That passcode isn't right.", true);
+    }
+
+    private void UnlockOnEnter(KeyboardEventArgs e) { if (e.Key == "Enter") Unlock(); }
+
+    private void Lock() { Session.ComplianceUnlocked = false; work = null; message = null; }
+
+    private void AddStandard() => work!.Standards.Add(new ComplianceStandard { Name = "New standard" });
+
+    private async Task Save()
+    {
+        var names = work!.Standards.Select(s => s.Name.Trim()).ToList();
+        if (names.Any(n => n.Length == 0)) { Say("Every standard needs a name.", true); return; }
+        if (names.GroupBy(n => n, StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1)) { Say("Two standards have the same name.", true); return; }
+        foreach (var s in work.Standards) { s.Name = s.Name.Trim(); s.Description = string.IsNullOrWhiteSpace(s.Description) ? null : s.Description.Trim(); }
+        // keep the passcode as it is on disk now (someone may have changed it)
+        work.PasscodeHash = Session.Compliance.PasscodeHash; work.PasscodeSalt = Session.Compliance.PasscodeSalt;
+        try { await Session.SaveComplianceAsync(Copy(work)); Say("Compliance standards saved. They apply to every application right away."); }
+        catch (Exception ex) { Say("Couldn't save: " + ex.Message, true); }
+    }
+
+    private async Task ChangePasscode()
+    {
+        if (code1 != code2) { Say("The two passcodes don't match.", true); return; }
+        try
+        {
+            var c = Copy(Session.Compliance);
+            ComplianceRules.SetPasscode(c, code1 ?? "");
+            await Session.SaveComplianceAsync(c);
+            work!.PasscodeHash = c.PasscodeHash; work.PasscodeSalt = c.PasscodeSalt;
+            code1 = code2 = null;
+            Say("Passcode changed.");
+        }
+        catch (Exception ex) { Say(ex.Message, true); }
+    }
+}
