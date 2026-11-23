@@ -64,6 +64,13 @@ public static class IntakeValidator
         if (r.IncomeExpenses.IncomeChangeNextMonth == "Yes" && string.IsNullOrWhiteSpace(r.IncomeExpenses.IncomeChangeExplanation))
             Add(IssueSeverity.Warning, "Income & Expenses", "Income change", "Income changes next month: add an explanation.");
 
+        // "Other" income needs saying what it is
+        if (r.IncomeExpenses.Income.GetValueOrDefault("Other") is > 0 && string.IsNullOrWhiteSpace(r.IncomeExpenses.IncomeOtherDescription))
+            Add(IssueSeverity.Warning, "Income & Expenses", "Other income", "Say what the \"Other\" income is.");
+        for (var n = 0; n < r.Household.Count; n++)
+            if (r.Household[n].IncomeSource?.Trim() == "Other" && string.IsNullOrWhiteSpace(r.Household[n].IncomeSourceOther))
+                Add(IssueSeverity.Warning, "Household", $"Member {n + 1} income source", "Income source is \"Other\": say what it is.");
+
         // Application & orders
         if (string.IsNullOrWhiteSpace(r.Application.CrisisType))
             Add(IssueSeverity.Warning, "Application", "Crisis type", "Pick the crisis type (decides Fuel Order or Electric Pledge).");

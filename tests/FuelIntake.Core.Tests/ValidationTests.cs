@@ -208,3 +208,23 @@ public class FuelTypeTests
     public void Vendor_SingleFuelType(string? offered, string? expected) =>
         Assert.Equal(expected, new FuelIntake.Core.Contacts.Vendor("Example Fuel", FuelOffered: offered).SingleFuelType);
 }
+
+public class OtherIncomeTests
+{
+    [Fact]
+    public void OtherIncome_NeedsADescription()
+    {
+        var r = FakeIntake.Family();
+        r.IncomeExpenses.Income["Other"] = 200m;
+        r.Household[1].IncomeSource = "Other";
+        var issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.Contains(issues, i => i.Field == "Other income");
+        Assert.Contains(issues, i => i.Field == "Member 2 income source");
+
+        r.IncomeExpenses.IncomeOtherDescription = "Help from family";
+        r.Household[1].IncomeSourceOther = "Help from family";
+        issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.DoesNotContain(issues, i => i.Field is "Other income" or "Member 2 income source");
+        Assert.Equal("Other: Help from family", IntakeCalculations.IncomeSourceText(r.Household[1]));
+    }
+}

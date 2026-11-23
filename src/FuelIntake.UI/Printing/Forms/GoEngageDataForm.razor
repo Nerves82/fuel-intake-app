@@ -28,7 +28,7 @@
                 <td class="x">@m.LastName</td><td class="x">@m.FirstName</td><td class="x">@D(m.DateOfBirth)</td><td class="x">@c.AgeOf(m)</td><td class="x">@d.Gender</td>
                 <td class="x">@d.Race</td><td class="x">@d.Hispanic</td><td class="x">@d.Disabled</td><td class="x">@d.Education</td><td class="x">@d.HealthInsurance</td>
                 <td class="x">@d.MilitaryStatus</td><td class="x">@d.Occupation</td><td class="x">@Ssn(d.Ssn)</td><td class="x">@MD(d.IncomePerMonth)</td>
-                <td class="x">@d.IncomeSource</td><td class="x">@D(d.IncomeVerifiedDate)</td>
+                <td class="x">@IntakeCalculations.IncomeSourceText(d)</td><td class="x">@D(d.IncomeVerifiedDate)</td>
             </tr>
         }
     </table>
@@ -89,5 +89,5 @@
 
     private string IncomeSources() => string.Join(";  ", IncomeExpenseCatalog.IncomeLines
         .Where(l => P.R.IncomeExpenses.Income.GetValueOrDefault(l.Key) is not null)
-        .Select(l => $"{l.Label.Split(" (")[0]}: {MD(P.R.IncomeExpenses.Income[l.Key])}"));
+        .Select(l => $"{l.Label.Split(" (")[0]}{(l.Key == "Other" && !string.IsNullOrWhiteSpace(P.R.IncomeExpenses.IncomeOtherDescription) ? $" ({P.R.IncomeExpenses.IncomeOtherDescription!.Trim()})" : "")}: {MD(P.R.IncomeExpenses.Income[l.Key])}"));
 }

@@ -161,6 +161,8 @@ public sealed class HouseholdMember
     public string? HealthInsurance { get; set; }
     public decimal? IncomePerMonth { get; set; }
     public string? IncomeSource { get; set; }
+    /// <summary>What the income is, when the income source is "Other".</summary>
+    public string? IncomeSourceOther { get; set; }
     public string? MilitaryStatus { get; set; }
     /// <summary>Stored as text so leading zeros survive.</summary>
     public string? Ssn { get; set; }
@@ -241,6 +243,9 @@ public sealed class IncomeExpenseSection
 {
     /// <summary>Gross monthly income by line key (e.g. "SSA").</summary>
     public Dictionary<string, decimal?> Income { get; set; } = [];
+
+    /// <summary>What the "Other" income line is (e.g. "Help from family").</summary>
+    public string? IncomeOtherDescription { get; set; }
 
     /// <summary>Expenses by line key (e.g. "Rent").</summary>
     public Dictionary<string, ExpenseAmounts> Expenses { get; set; } = [];

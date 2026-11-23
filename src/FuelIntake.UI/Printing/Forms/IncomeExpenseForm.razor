@@ -17,7 +17,7 @@
                 }
                 else if (i == 10)
                 {
-                    <td rowspan="5">Other</td><td rowspan="5" class="n">@M(ie.Income.GetValueOrDefault("Other"))</td>
+                    <td rowspan="5">Other@(string.IsNullOrWhiteSpace(ie.IncomeOtherDescription) ? "" : ": ")<em>@ie.IncomeOtherDescription</em></td><td rowspan="5" class="n">@M(ie.Income.GetValueOrDefault("Other"))</td>
                 }
                 else if (i == 15)
                 {

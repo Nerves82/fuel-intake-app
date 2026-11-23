@@ -92,11 +92,15 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
     }
 
     /// <summary>ACCESS "Income (quantity and source)": "$1,250.00/mo - Social Security Retirement (SSA)".</summary>
+    /// <summary>"Other: help from family" when the source is Other and described, otherwise the source.</summary>
+    public static string IncomeSourceText(HouseholdMember m) =>
+        m.IncomeSource?.Trim() == "Other" && !Blank(m.IncomeSourceOther) ? $"Other: {T(m.IncomeSourceOther)}" : T(m.IncomeSource);
+
     public static string IncomeText(MemberView m)
     {
         var parts = new List<string>();
         if (m.Data.IncomePerMonth is { } inc) parts.Add(Money.Format(inc) + "/mo");
-        if (!Blank(m.Data.IncomeSource)) parts.Add(T(m.Data.IncomeSource));
+        if (!Blank(m.Data.IncomeSource)) parts.Add(IncomeSourceText(m.Data));
         return string.Join(" - ", parts);
     }
 

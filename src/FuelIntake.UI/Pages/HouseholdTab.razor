@@ -71,6 +71,10 @@
                        Hint="N/A for members under 14" />
             <MoneyBox Label="Income per month" @bind-Value="member.IncomePerMonth" />
             <SelectBox Label="Income source" @bind-Value="member.IncomeSource" Options="ChoiceLists.IncomeSource" />
+            @if (member.IncomeSource == "Other")
+            {
+                <TextBox Label="Other income source: what is it?" @bind-Value="member.IncomeSourceOther" Placeholder="e.g. help from family" />
+            }
             <DateBox Label="Income verified in ACCESS" @bind-Value="member.IncomeVerifiedDate" />
         </div>
         </CascadingValue>
