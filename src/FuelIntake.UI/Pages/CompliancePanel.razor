@@ -77,6 +77,10 @@
         }
         <div class="actions">
             <button class="secondary" @onclick="AddStandard">+ Add standard</button>
+            @if (!work.Has201SF)
+            {
+                <button class="secondary" @onclick="Add201SF" title="Requires what the state's 201SF Eligibility Review asks that the intake can fill in">+ Add built-in: Vermont Fuel Assistance (201SF)</button>
+            }
             <span class="spacer"></span>
             <button class="secondary" @onclick="Lock">Lock</button>
             <button @onclick="Save">Save compliance standards</button>
@@ -148,6 +152,8 @@
     private void Lock() { Session.ComplianceUnlocked = false; work = null; message = null; }
 
     private void AddStandard() => work!.Standards.Add(new ComplianceStandard { Name = "New standard" });
+
+    private void Add201SF() => work!.Standards.Add(ComplianceSettings.Vermont201SF());
 
     private async Task Save()
     {

@@ -1,6 +1,6 @@
 @using System.Globalization
 @inherits FieldBase<decimal?>
-<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@problem" Wide="Wide">
+<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Problem="@problem" Wide="Wide">
     <div class="money">
         <span>$</span>
         <input id="@Id" type="text" inputmode="decimal" value="@(Value?.ToString("#,##0.00", CultureInfo.GetCultureInfo("en-US")))" @onchange="OnChange" />

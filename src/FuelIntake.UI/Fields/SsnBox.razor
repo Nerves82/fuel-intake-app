@@ -1,6 +1,6 @@
 @using FuelIntake.Core.Formatting
 @inherits FieldBase<string?>
-<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@Problem">
+<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Problem="@Problem">
     <input id="@Id" type="text" autocomplete="off" value="@Value" placeholder="012-34-5678" @onchange="e => SetAsync(e.Value as string)" />
 </Field>
 

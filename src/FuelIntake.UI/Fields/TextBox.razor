@@ -1,5 +1,5 @@
 @inherits FieldBase<string?>
-<Field Label="@Label" For="@Id" Hint="@Hint" Wide="Wide">
+<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Wide="Wide">
     @if (Multiline)
     {
         <textarea id="@Id" rows="3" value="@Value" placeholder="@Placeholder" @onchange="e => SetAsync(e.Value as string)"></textarea>

@@ -1,6 +1,8 @@
 @using System.Globalization
+@inject FuelIntake.UI.Services.IntakeSession Session
 @* Compact money input for table cells (no label line). The parent records the change. *@
-<div class="money cell @(problem ? "has-problem" : "")" @attributes="Scope?.Attributes(Label ?? string.Empty)">
+@{ var issue = Session.IssueAt(Path); }
+<div class="money cell @(problem ? "has-problem" : "") @Field.IssueClass(issue)" title="@issue?.Message" @attributes="Scope?.Attributes(Label ?? string.Empty)">
     <NoteMarker Label="@(Label ?? string.Empty)" />
     <span>$</span>
     <input type="text" inputmode="decimal" aria-label="@Label" title="@(problem ? "Enter a dollar amount like 291.50" : null)"
@@ -11,6 +13,8 @@
     [Parameter] public decimal? Value { get; set; }
     [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
     [Parameter] public string? Label { get; set; }
+    /// <summary>The record path, so a Review issue about this amount marks the cell ("incomeExpenses.income.SSA").</summary>
+    [Parameter] public string? Path { get; set; }
     [CascadingParameter] public FieldScope? Scope { get; set; }
     private bool problem;
 

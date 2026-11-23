@@ -1,6 +1,6 @@
 @using System.Globalization
 @inherits FieldBase<TimeOnly?>
-<Field Label="@Label" For="@Id" Hint="@Hint">
+<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint">
     <div class="inline">
         <input id="@Id" type="time" value="@(Value?.ToString("HH:mm", CultureInfo.InvariantCulture))" @onchange="OnChange" />
         <button type="button" class="small" @onclick="() => SetAsync(TimeOnly.FromDateTime(DateTime.Now))" title="Use the current time">Now</button>

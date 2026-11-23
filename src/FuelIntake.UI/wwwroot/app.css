@@ -353,3 +353,18 @@ table.lines tr.line-note .field { margin: 0 0 6px; }
 .compliance fieldset.req-group legend { font-weight: 600; color: var(--green); padding: 0 4px; }
 .compliance .check-line { font-size: 13.5px; display: flex; gap: 6px; align-items: flex-start; }
 .compliance-pick { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* fields a Review-tab issue is about: coloured edge on the control and the message under it */
+.field.issue input, .field.issue select, .field.issue textarea, .field.issue .picker-button,
+.money.cell.issue input { border-width: 2px; }
+.issue-error input, .issue-error select, .issue-error textarea, .issue-error .picker-button { border-color: var(--bad); background: var(--bad-soft); }
+.issue-warning input, .issue-warning select, .issue-warning textarea, .issue-warning .picker-button { border-color: var(--warn); background: var(--warn-soft); }
+.issue-info input, .issue-info select, .issue-info textarea, .issue-info .picker-button { border-color: var(--info-ink); }
+.field .issue-text { font-size: 12px; margin-top: 3px; }
+.issue-error .issue-text, .issue-error > label { color: var(--bad); }
+.issue-warning > label { color: var(--warn); } .issue-info > label { color: var(--info-ink); }
+.issue-warning .issue-text { color: var(--warn); }
+.issue-info .issue-text { color: var(--info-ink); }
+label.check.issue { border-radius: 4px; outline: 2px solid currentColor; outline-offset: 2px; }
+label.check.issue-error { outline-color: var(--bad); } label.check.issue-warning { outline-color: var(--warn); } label.check.issue-info { outline-color: var(--info-ink); }
+label.check .issue-text { display: block; }

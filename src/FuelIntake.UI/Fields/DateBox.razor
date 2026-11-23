@@ -1,6 +1,6 @@
 @using System.Globalization
 @inherits FieldBase<DateOnly?>
-<Field Label="@Label" For="@Id" Hint="@Hint" Problem="@Problem">
+<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Problem="@Problem">
     <div class="inline">
         <input id="@Id" type="date" value="@(Value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" @onchange="OnChange" />
         @if (ShowToday)

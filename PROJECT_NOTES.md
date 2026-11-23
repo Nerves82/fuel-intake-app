@@ -341,3 +341,18 @@ Small deliberate changes from the workbook:
     amounts (SSA + SSDI → Social Security, SSI, VA, Unemployment, Workers' Comp, Child Support + Alimony,
     Pension → Retirement, Other + its description) with the names of members who have that source; helper
     name/phone = assigned staff, agency = NEKCA. "No" answers are never assumed. Job pay rows are left blank.
+
+## Issues shown on the fields; built-in 201SF compliance standard (2026-11-23)
+
+- Each `ValidationIssue` may carry a `Path` (`client.zip`, `household[2].ssn`, `incomeExpenses.income.SSA`: the
+  same keys as the compliance `FieldCatalog`). Issues about totals or several fields have none.
+- Fields find their own path from `@bind-Value` (`FieldBase.ValueExpression` → `BoundPath` → `RecordPaths`, which maps
+  every object of the open record to its path). Fields not bound that way pass `Path` (the income/expense cells).
+- A field with an issue gets a coloured edge (error red, warning amber, info blue) and the issue's message under it
+  (a typing problem like a short zip still shows first). Checkboxes get an outline and the message.
+- New issues in `IntakeValidator`: always give the path when the issue is about one field.
+- Built-in compliance standard **Vermont Fuel Assistance (201SF)** (`ComplianceSettings.Vermont201SF`): requires the
+  intake fields the 201SF fills (names, DOBs, SSNs of everyone, address, phone, housing type, fuel type, fuel vendor
+  and account, electric provider and account, staff). It's in the defaults for new settings; existing
+  compliance.json files get it from Settings › Compliance (passcode) › "+ Add built-in". Not linked to a grant: pick
+  it on the Review tab or when creating the client.

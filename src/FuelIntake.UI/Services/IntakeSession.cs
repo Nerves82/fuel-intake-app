@@ -431,7 +431,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         try
         {
             await store.DeleteClientAsync(folder.Id);
-            Folder = null; Record = null; Calc = null; Issues = [];
+            Folder = null; Record = null; Calc = null; Issues = []; Paths = null;
             HasUnsavedChanges = false; SaveConflict = false; SaveError = null;
         }
         finally
@@ -447,7 +447,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     {
         if (Record is not null && HasUnsavedChanges && !SaveConflict) await SaveAsync();
         saveDelay?.Cancel();
-        Folder = null; Record = null; Calc = null; Issues = [];
+        Folder = null; Record = null; Calc = null; Issues = []; Paths = null;
         SaveConflict = false; SaveError = null; Notice = null; RenameDismissed = false;
         Screen = Screen.Clients;
         Notify();
@@ -547,7 +547,15 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         if (Record is null) return;
         Calc = new IntakeCalculations(Record, new CalculationContext(Settings, Staff, Vendors, Today, Compliance));
         Issues = IntakeValidator.Validate(Record, Calc, Today);
+        Paths = new RecordPaths(Record);
     }
+
+    /// <summary>Where each part of the open record is, so fields can find the issues about them.</summary>
+    public RecordPaths? Paths { get; private set; }
+
+    /// <summary>The most serious issue about the field at <paramref name="path"/>, or null.</summary>
+    public ValidationIssue? IssueAt(string? path) => path is null ? null
+        : Issues.Where(i => i.Path is { } p && RecordPaths.Matches(p, path)).OrderByDescending(i => i.Severity).FirstOrDefault();
 
     private IntakeRecord NewRecordFor(string folderName)
     {
