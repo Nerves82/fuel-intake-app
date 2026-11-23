@@ -33,14 +33,30 @@ public static partial class ScanFieldReader
         ["client.housingType"] = ["housing type", "housing", "housing status"],
         ["client.householdType"] = ["household type", "family type"],
         ["client.benefits.snapAmount"] = ["snap amount", "3squaresvt amount", "3 squares amount"],
+        ["client.benefits.snap"] = ["snap", "3squaresvt", "3 squares vt", "food stamps"],
+        ["client.benefits.wic"] = ["wic"],
+        ["client.benefits.liheap"] = ["liheap", "seasonal fuel"],
+        ["household[0].hispanic"] = ["hispanic or latino", "hispanic latino", "hispanic"],
+        ["household[0].disabled"] = ["disabled", "disability"],
         ["household[0].ssn"] = ["ssn", "social security number", "social security no", "social security", "soc sec", "ss number", "ss"],
         ["household[0].gender"] = ["gender", "gender identity", "sex"],
         ["household[0].race"] = ["race"],
-        ["household[0].education"] = ["education", "education level", "last grade completed", "highest grade completed"],
+        ["household[0].education"] = ["education", "education level", "highest education", "last grade completed", "highest grade completed"],
         ["household[0].militaryStatus"] = ["military status", "veteran status"],
-        ["household[0].healthInsurance"] = ["health insurance", "health insurance source", "insurance"],
+        ["household[0].healthInsurance"] = ["insurance type", "health insurance type", "health insurance source", "insurance"],
         ["household[0].incomePerMonth"] = ["monthly income", "income per month", "gross monthly income", "total monthly income"],
     };
+
+    /// <summary>
+    /// Other printed labels (on GoEngage printouts and agency forms) that aren't fields here. They mark where
+    /// the previous value ends: "First Name: Jane Middle Name: …" gives "Jane", not "Jane Middle".
+    /// </summary>
+    public static readonly string[] OtherLabels =
+    [
+        "middle name", "middle initial", "preferred name", "suffix", "nickname", "ethnicity", "mobile provider", "marital status",
+        "pregnant", "start date", "end date", "health insurance", "preferred contact", "contact method", "relationship",
+        "family size", "household size", "employer", "citizenship", "work phone",
+    ];
 
     /// <summary>Labels for the whole name ("Name: Smith, Jane"), used for first and last name when nothing better is found.</summary>
     public static readonly string[] FullNameLabels = ["client name", "applicant name", "full name", "head of household", "name"];
@@ -61,8 +77,9 @@ public static partial class ScanFieldReader
             if (labels.Count == 0) continue;
             var found = Find(pages, labels, allLabels, field);
             if (found is null) continue;
-            field.Value = found.Value.Value;
-            field.ReadValue = found.Value.Value;
+            // a list field whose text matched no choice stays blank; what the scan said is kept to show staff
+            field.Value = found.Value.Value.Length == 0 ? null : found.Value.Value;
+            field.ReadValue = found.Value.Value.Length == 0 ? found.Value.Raw : found.Value.Value;
             field.Confidence = found.Value.Confidence;
             field.Spot = found.Value.Spot;
             filled++;
@@ -70,7 +87,27 @@ public static partial class ScanFieldReader
         return filled;
     }
 
-    private static List<string> AllLabels() => Labels.Values.SelectMany(a => a).Concat(FullNameLabels)
+    /// <summary>
+    /// Where a value ends because another "Label:" starts: the first later word ending in ':' and the printed
+    /// label words just before it ("Middle Name:"). At least one value word is always kept.
+    /// </summary>
+    private static int ColonStop(List<OcrWord> words)
+    {
+        var vocab = LabelVocabulary.Value;
+        for (var k = 1; k < words.Count; k++)
+        {
+            if (!words[k].Text.EndsWith(':')) continue;
+            var start = k;
+            while (start - 1 >= 1 && vocab.Contains(Norm(words[start - 1].Text))) start--;
+            return start;
+        }
+        return words.Count;
+    }
+
+    private static readonly Lazy<HashSet<string>> LabelVocabulary = new(() =>
+        new HashSet<string>(AllLabels().SelectMany(l => l.Split(' ')).Concat(LayoutWords), StringComparer.Ordinal));
+
+    private static List<string> AllLabels() => Labels.Values.SelectMany(a => a).Concat(FullNameLabels).Concat(OtherLabels)
         .Concat(Model.IncomeExpenseCatalog.IncomeLines.Select(l => Norm(l.Label)))
         .Distinct().OrderByDescending(a => a.Length).ToList();
 
@@ -104,9 +141,9 @@ public static partial class ScanFieldReader
         return [];
     }
 
-    private static (string Value, double Confidence, ScanSpot Spot)? Find(IReadOnlyList<OcrPage> pages, List<string> labels, List<string> allLabels, ImportField field)
+    private static (string Value, string Raw, double Confidence, ScanSpot Spot)? Find(IReadOnlyList<OcrPage> pages, List<string> labels, List<string> allLabels, ImportField field)
     {
-        (string Value, double Confidence, ScanSpot Spot)? best = null;
+        (string Value, string Raw, double Confidence, ScanSpot Spot)? best = null;
         foreach (var page in pages)
         for (var li = 0; li < page.Lines.Count; li++)
         {
@@ -117,6 +154,9 @@ public static partial class ScanFieldReader
                 var at = IndexOf(words, label.Split(' '));
                 if (at < 0) continue;
                 var fullName = FullNameLabels.Contains(label);
+                // a one-word label in the middle of a row without a colon ("…of the State and…") is only
+                // trusted when what follows really looks like that kind of value (an SSN, a zip, a state…)
+                var strict = !label.Contains(' ') && at > 0 && !line.Words[at].Text.TrimEnd().EndsWith(':');
                 if (label == "name" && at != 0) continue; // "Staff Name", "Vendor Name"… aren't the client
                 var labelEnd = at + label.Split(' ').Length;
                 // "Address" inside "Mailing Address" belongs to the other field
@@ -130,6 +170,7 @@ public static partial class ScanFieldReader
                 var right = line.Words.Skip(labelEnd).ToList();
                 var stop = NextLabelIndex(right.Select(w => Norm(w.Text)).ToList(), allLabels);
                 if (stop >= 0) right = right.Take(stop).ToList();
+                right = right.Take(ColonStop(right)).ToList();
                 candidates.Add(right);
                 candidates.Add(Near(page, li, labelWords, +1));
                 candidates.Add(Near(page, li, labelWords, -1));
@@ -139,11 +180,14 @@ public static partial class ScanFieldReader
                     var raw = Clean(string.Join(' ', cand.Select(w => w.Text)));
                     if (raw.Length == 0) continue;
                     var (value, ok) = fullName ? NamePart(field, raw) : Shape(field, raw);
-                    if (value.Length == 0) continue;
-                    var confidence = ok ? 0.6 : 0.3;
+                    if (strict && !ok) { FuzzyHit = false; continue; }
+                    var unmatchedChoice = value.Length == 0 && field.Kind == ImportFieldKind.Choice && raw.Any(char.IsLetter);
+                    if (value.Length == 0 && !unmatchedChoice) continue;
+                    var confidence = ok ? 0.6 : unmatchedChoice ? 0.1 : value.Length > 0 && FuzzyHit ? 0.45 : 0.3;
+                    FuzzyHit = false;
                     var spot = new ScanSpot(page.File, page.Page, cand.Min(w => w.X), cand.Min(w => w.Y),
                         cand.Max(w => w.Right) - cand.Min(w => w.X), cand.Max(w => w.Bottom) - cand.Min(w => w.Y));
-                    if (best is null || confidence > best.Value.Confidence) best = (value, confidence, spot);
+                    if (best is null || confidence > best.Value.Confidence) best = (value, raw, confidence, spot);
                     if (ok) return best;
                     break; // first non-empty candidate for this label occurrence
                 }
@@ -191,6 +235,8 @@ public static partial class ScanFieldReader
     /// <summary>Pulls out the part that fits the field (a date, an SSN, a list choice…). Ok = it looks right.</summary>
     private static (string Value, bool Ok) Shape(ImportField f, string raw)
     {
+        if (f.Path == "client.state")
+            return StateCode(raw) is { } st ? (st, true) : ("", false);
         switch (f.Kind)
         {
             case ImportFieldKind.Date:
@@ -210,12 +256,22 @@ public static partial class ScanFieldReader
                 var m = MoneyPattern().Match(raw);
                 return m.Success && PaperImportRules.ParseMoney(m.Value) is { } amount
                     ? (amount.ToString("0.00", CultureInfo.InvariantCulture), true) : ("", false);
+            case ImportFieldKind.Choice when f.Options is { Count: > 0 } yn && yn.Contains("Y") && yn.Contains("N"):
+                var first = Norm(raw).Split(' ').FirstOrDefault() ?? "";
+                return first is "yes" or "y" ? ("Y", true) : first is "no" or "n" ? ("N", true) : (raw, false);
             case ImportFieldKind.Choice when f.Options is { Count: > 0 } options:
                 var hit = options.Where(o => Norm(raw).Contains(Norm(o), StringComparison.Ordinal))
                     .OrderByDescending(o => o.Length).FirstOrDefault();
-                return hit is not null ? (hit, true) : (raw, false);
+                if (hit is not null) return (hit, true);
+                // misread letters ("High School phis some ccNege"): the closest choice if it's close enough
+                var close = ClosestChoice(raw, options);
+                if (close is not null) { FuzzyHit = true; return (close, false); }
+                return ("", false); // nothing close: left for staff to pick, with the scan's text shown
             case ImportFieldKind.Check:
-                return ("", false);
+                // "SNAP: Yes" / "X" / "✔" → ticked; "No" → left blank (staff still confirm it)
+                var mark = Norm(raw).Split(' ').FirstOrDefault() ?? "";
+                return mark is "yes" or "y" or "x" || raw.TrimStart().StartsWith('✔') || raw.TrimStart().StartsWith('☒')
+                    ? (PaperImportRules.Checked, true) : ("", false);
             default:
                 return (raw, raw.Any(char.IsLetterOrDigit));
         }
@@ -257,6 +313,53 @@ public static partial class ScanFieldReader
         var ext = keepExtension ? Path.GetExtension(text) : "";
         var core = keepExtension ? text[..^ext.Length] : text;
         return new string(core.Select(c => char.IsDigit(c) ? '9' : char.IsLetter(c) ? 'x' : c).ToArray()) + ext;
+    }
+
+    [ThreadStatic] private static bool FuzzyHit;
+
+    private static readonly Dictionary<string, string> States = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["alabama"] = "AL", ["alaska"] = "AK", ["arizona"] = "AZ", ["arkansas"] = "AR", ["california"] = "CA", ["colorado"] = "CO",
+        ["connecticut"] = "CT", ["delaware"] = "DE", ["district of columbia"] = "DC", ["florida"] = "FL", ["georgia"] = "GA",
+        ["hawaii"] = "HI", ["idaho"] = "ID", ["illinois"] = "IL", ["indiana"] = "IN", ["iowa"] = "IA", ["kansas"] = "KS",
+        ["kentucky"] = "KY", ["louisiana"] = "LA", ["maine"] = "ME", ["maryland"] = "MD", ["massachusetts"] = "MA",
+        ["michigan"] = "MI", ["minnesota"] = "MN", ["mississippi"] = "MS", ["missouri"] = "MO", ["montana"] = "MT",
+        ["nebraska"] = "NE", ["nevada"] = "NV", ["new hampshire"] = "NH", ["new jersey"] = "NJ", ["new mexico"] = "NM",
+        ["new york"] = "NY", ["north carolina"] = "NC", ["north dakota"] = "ND", ["ohio"] = "OH", ["oklahoma"] = "OK",
+        ["oregon"] = "OR", ["pennsylvania"] = "PA", ["rhode island"] = "RI", ["south carolina"] = "SC", ["south dakota"] = "SD",
+        ["tennessee"] = "TN", ["texas"] = "TX", ["utah"] = "UT", ["vermont"] = "VT", ["virginia"] = "VA", ["washington"] = "WA",
+        ["west virginia"] = "WV", ["wisconsin"] = "WI", ["wyoming"] = "WY",
+    };
+
+    /// <summary>"Vermont", "VT", "Vt." → "VT"; anything else → null (so stray text never lands in State).</summary>
+    public static string? StateCode(string raw)
+    {
+        var n = Norm(raw);
+        foreach (var (name, code) in States.OrderByDescending(x => x.Key.Length))
+            if (n == name || n.StartsWith(name + " ", StringComparison.Ordinal)) return code;
+        var first = n.Split(' ').FirstOrDefault() ?? "";
+        return first.Length == 2 && States.ContainsValue(first.ToUpperInvariant()) ? first.ToUpperInvariant() : null;
+    }
+
+    /// <summary>The choice most like the text (letters misread by the scan reader), when at least 75% alike.</summary>
+    public static string? ClosestChoice(string text, IEnumerable<string> options)
+    {
+        var t = Norm(text);
+        if (t.Length < 3) return null;
+        var scored = options.Select(o => (Option: o, Score: Similarity(t, Norm(o)))).OrderByDescending(x => x.Score).FirstOrDefault();
+        return scored.Option is not null && scored.Score >= 0.75 ? scored.Option : null;
+    }
+
+    private static double Similarity(string a, string b)
+    {
+        if (a.Length == 0 || b.Length == 0) return 0;
+        var d = new int[a.Length + 1, b.Length + 1];
+        for (var i = 0; i <= a.Length; i++) d[i, 0] = i;
+        for (var j = 0; j <= b.Length; j++) d[0, j] = j;
+        for (var i = 1; i <= a.Length; i++)
+        for (var j = 1; j <= b.Length; j++)
+            d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+        return 1.0 - (double)d[a.Length, b.Length] / Math.Max(a.Length, b.Length);
     }
 
     private static int IndexOf(List<string> words, string[] label)

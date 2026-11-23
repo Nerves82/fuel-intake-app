@@ -136,3 +136,109 @@ public class ScanFieldReaderLayoutTests
         Assert.DoesNotContain("3401", text);
     }
 }
+
+public class ScanFieldReaderProfileTests
+{
+    private static OcrLine L(double y, double x, string text)
+    {
+        var words = new List<OcrWord>();
+        foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+        return new OcrLine(words);
+    }
+
+    private static string? V(PaperImport i, string path) => i.Fields.Single(f => f.Path == path).Value;
+
+    [Fact]
+    public void ReadsAGoEngageStyleProfile()
+    {
+        // rows as the reader returns them from a printed intake profile (made-up details)
+        var page = new OcrPage("profile.pdf", 1,
+        [
+            L(0.184, 0.037, "First Name: Testy Middle Name: Last Name: Sampleton"),
+            L(0.203, 0.037, "Suffix: Preferred name:"),
+            L(0.215, 0.037, "DOB: 4/9/1951 Gender: Female Email: testy@example.org"),
+            L(0.232, 0.037, "Mobile #:802-555-0142 Mobile Provider: None"),
+            L(0.248, 0.037, "Race: White Ethnicity: Hispanic or Latino: No"),
+            L(0.264, 0.037, "Disabled: No Military Status: Never Served SNAP: Yes"),
+            L(0.278, 0.647, "Highest Education: Some college (but no degree)"),
+            L(0.310, 0.037, "Insurance: Medicaid"),
+            L(0.329, 0.037, "SSN: 000-12-3401 Marital Status: Single"),
+            L(0.379, 0.495, "Street Address: 12 Pretend Pond Rd"),
+            L(0.409, 0.496, "State: Vermont Zip Code: 05819"),
+        ]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("Testy", V(i, "client.firstName"));
+        Assert.Equal("Sampleton", V(i, "client.lastName"));
+        Assert.Equal("04/09/1951", V(i, "client.dateOfBirth"));
+        Assert.Equal("Female", V(i, "household[0].gender"));
+        Assert.Equal("testy@example.org", V(i, "client.email"));
+        Assert.Equal("(802) 555-0142", V(i, "client.phone"));
+        Assert.Equal("White", V(i, "household[0].race"));
+        Assert.Equal("No", V(i, "household[0].hispanic"));
+        Assert.Equal("N", V(i, "household[0].disabled"));
+        Assert.Equal("Never", V(i, "household[0].militaryStatus"));
+        Assert.Equal("Yes", V(i, "client.benefits.snap"));
+        Assert.Equal("Some college (but no degree)", V(i, "household[0].education"));
+        Assert.Equal("Medicaid", V(i, "household[0].healthInsurance"));
+        Assert.Equal("000-12-3401", V(i, "household[0].ssn"));
+        Assert.Equal("12 Pretend Pond Rd", V(i, "client.addressPhysical"));
+        Assert.Equal("VT", V(i, "client.state"));
+        Assert.Equal("05819", V(i, "client.zip"));
+    }
+}
+
+public class ScanFieldReaderChoiceTests
+{
+    [Fact]
+    public void MisreadChoices_SnapToTheClosestOption_OrStayBlank()
+    {
+        Assert.Equal("High School plus some college",
+            ScanFieldReader.ClosestChoice("High School phis some ccNege", FuelIntake.Core.Lists.ChoiceLists.Education));
+        Assert.Null(ScanFieldReader.ClosestChoice("Banana bread", FuelIntake.Core.Lists.ChoiceLists.Education));
+
+        OcrLine L(double y, string text)
+        {
+            double x = 0.05; var words = new List<OcrWord>();
+            foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+            return new OcrLine(words);
+        }
+        var page = new OcrPage("p.pdf", 1, [L(0.1, "Highest Education: High School phis some ccNege"), L(0.2, "Race: Banana bread")]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+
+        var edu = i.Fields.Single(f => f.Path == "household[0].education");
+        Assert.Equal("High School plus some college", edu.Value);
+        Assert.True(edu.Confidence < 0.5); // marked unsure
+
+        var race = i.Fields.Single(f => f.Path == "household[0].race");
+        Assert.Null(race.Value);                 // no nonsense in the box…
+        Assert.Equal("Banana bread", race.ReadValue); // …but what the scan said is shown
+    }
+}
+
+public class ScanFieldReaderStateTests
+{
+    [Theory]
+    [InlineData("Vermont", "VT")]
+    [InlineData("VT 05819", "VT")]
+    [InlineData("vt.", "VT")]
+    [InlineData("New Hampshire", "NH")]
+    [InlineData("and longer", null)]
+    public void StateCode(string raw, string? code) => Assert.Equal(code, ScanFieldReader.StateCode(raw));
+
+    [Fact]
+    public void StateInRunningText_IsNotALabel()
+    {
+        OcrLine L(double y, string text)
+        {
+            double x = 0.05; var words = new List<OcrWord>();
+            foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+            return new OcrLine(words);
+        }
+        var page = new OcrPage("p.pdf", 1, [L(0.1, "benefits of the State and longer than needed"), L(0.3, "State: Vermont Zip Code: 05819")]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("VT", i.Fields.Single(f => f.Path == "client.state").Value);
+    }
+}

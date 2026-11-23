@@ -56,10 +56,29 @@ public partial class MainWindow : Window
         {
             MapScanFolder(e.WebView.CoreWebView2);
             EnableRightClick(e.WebView.CoreWebView2);
+            NoAutofill(e.WebView.CoreWebView2);
         };
         dataFolder.Changed += () => Dispatcher.Invoke(() => MapScanFolder(Blazor.WebView?.CoreWebView2));
         Title = $"NEKCA Fuel Assistance Intake — v{provider.GetRequiredService<HostInfo>().AppVersion.Split(' ', '+')[0]}";
         Closing += (_, _) => SavePending();
+    }
+
+    /// <summary>
+    /// The built-in browser remembers what's typed into boxes and offers it again ("autofill"), which would keep
+    /// clients' names and addresses in its own storage and suggest one client's details on another's file.
+    /// </summary>
+    private static void NoAutofill(Microsoft.Web.WebView2.Core.CoreWebView2? web)
+    {
+        if (web is null) return;
+        try
+        {
+            web.Settings.IsGeneralAutofillEnabled = false;
+            web.Settings.IsPasswordAutosaveEnabled = false;
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Couldn't turn off autofill", ex);
+        }
     }
 
     /// <summary>

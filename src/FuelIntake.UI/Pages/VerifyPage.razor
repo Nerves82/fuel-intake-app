@@ -81,6 +81,10 @@
                                             break;
                                         case ImportFieldKind.Choice when field.Options is { Count: > 0 } options:
                                             <SelectBox Label="@field.Label" Value="@field.Value" ValueChanged="v => SetValue(field, v)" Options="options" />
+                                            @if (string.IsNullOrEmpty(field.Value) && !string.IsNullOrEmpty(field.ReadValue))
+                                            {
+                                                <div class="unsure">The scan seems to say "@field.ReadValue", which isn't one of the choices: pick the right one.</div>
+                                            }
                                             break;
                                         default:
                                             <TextBox Label="@field.Label" Value="@field.Value" ValueChanged="v => SetValue(field, v)" Placeholder="@Placeholder(field.Kind)"
