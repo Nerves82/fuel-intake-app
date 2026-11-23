@@ -15,7 +15,7 @@
 </Section>
 
 <Section Title="Fuel vendor">
-    <SelectBox Label="Fuel vendor" @bind-Value="fe.Vendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
+    <SelectBox Label="Fuel vendor" Value="@fe.Vendor" ValueChanged="SetVendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
                NotOnListNote="Not on the vendor list: contact details won't fill in." />
     <VendorDetails Vendor="calc.FuelVendor" />
     <CalcValue Label="Contact email(s) (used on forms)" Value="@calc.VendorEmails" />
@@ -49,6 +49,7 @@
 {
     <Section Title="Fuel Order">
         <CheckBox Label="Authorized" @bind-Value="o.Authorized" />
+        <SelectBox Label="Fuel type" @bind-Value="fe.FuelType" Options="ChoiceLists.FuelType" Hint="Prints on the Fuel Order and the ACCESS form" />
         <DateBox Label="Date" @bind-Value="o.Date" />
         <TimeBox Label="Time" @bind-Value="o.Time" />
         <MoneyBox Label="SFB remaining" @bind-Value="o.SfbRemaining" />
@@ -103,6 +104,15 @@
 <NextTab Next="Screen.Review" />
 
 @code {
+    /// <summary>Picking a vendor that sells only one fuel fills in the fuel type, if it's still blank.</summary>
+    private void SetVendor(string? value)
+    {
+        var fe = Session.Record!.FuelElectric;
+        fe.Vendor = value;
+        if (string.IsNullOrWhiteSpace(fe.FuelType) && Session.Vendors.Find(value)?.SingleFuelType is { } fuel)
+            fe.FuelType = fuel;
+    }
+
     /// <summary>The invoice is usually paid from the same source, so it's filled in when still blank.</summary>
     private void SetOrderGrant(string? value)
     {

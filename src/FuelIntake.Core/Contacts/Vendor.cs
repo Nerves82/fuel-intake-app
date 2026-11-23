@@ -33,6 +33,25 @@ public sealed record Vendor(
         }
     }
 
+    /// <summary>
+    /// The one fuel this vendor sells (e.g. "Propane"), matched to the app's fuel types; null when it sells
+    /// several, none, or something not on the list. Used to fill in the fuel type when the vendor is picked.
+    /// </summary>
+    public string? SingleFuelType
+    {
+        get
+        {
+            var fuels = (FuelOffered ?? "").Split([',', ';', '/', '\n', '&'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(f => !f.Equals("Electric", StringComparison.OrdinalIgnoreCase))
+                // "Propane", "Pellets", "Heating Oil", "Wood pellets" (last word, singular or plural)
+                .Select(f => f.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "")
+                .Select(last => Lists.ChoiceLists.FuelType.FirstOrDefault(t =>
+                    last.Equals(t, StringComparison.OrdinalIgnoreCase) || last.Equals(t + "s", StringComparison.OrdinalIgnoreCase)))
+                .Distinct().ToList();
+            return fuels.Count == 1 ? fuels[0] : null;
+        }
+    }
+
     /// <summary>Phone numbers from the list, each 10-digit number formatted: "(802) 748-8934, (802) 748-1393".</summary>
     public static string FormatPhones(string? value) =>
         string.Join(", ", (value ?? "").Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
