@@ -26,6 +26,11 @@ else if (Session.Screen == Screen.Settings)
     <AppHeader />
     <SettingsPage />
 }
+else if (Session.Screen == Screen.Verify && Session.PendingImportId is not null)
+{
+    <AppHeader />
+    <VerifyPage @key="Session.PendingImportId" />
+}
 else if (Session.Record is null)
 {
     <AppHeader />

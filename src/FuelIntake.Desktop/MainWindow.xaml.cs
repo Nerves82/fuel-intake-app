@@ -33,6 +33,8 @@ public partial class MainWindow : Window
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IRecentClients>(new LocalRecentClients(Path.Combine(StartupLog.AppDataFolder, "recent-clients.json")));
         services.AddSingleton<FuelIntake.Core.TestData.ITestDataSets>(new LocalTestDataSets(dataFolder));
+        services.AddSingleton<FuelIntake.Core.Import.IPendingImports>(new LocalPendingImports(dataFolder));
+        services.AddSingleton<FuelIntake.Core.Import.IFilePicker>(new LocalFilePicker(Dispatcher, () => this));
         services.AddSingleton<IntakeSession>();
         services.AddSingleton<FuelIntake.UI.Printing.PacketRenderer>();
         // PDFs reuse the main window's WebView2 environment (a second, different environment on the same data folder is refused)
@@ -48,8 +50,27 @@ public partial class MainWindow : Window
         provider = services.BuildServiceProvider();
         Resources.Add("services", provider);
         InitializeComponent();
+        // scans of paper applications are shown from the client files folder under a fixed name
+        Blazor.BlazorWebViewInitialized += (_, e) => MapScanFolder(e.WebView.CoreWebView2);
+        dataFolder.Changed += () => Dispatcher.Invoke(() => MapScanFolder(Blazor.WebView?.CoreWebView2));
         Title = $"NEKCA Fuel Assistance Intake — v{provider.GetRequiredService<HostInfo>().AppVersion.Split(' ', '+')[0]}";
         Closing += (_, _) => SavePending();
+    }
+
+    private void MapScanFolder(Microsoft.Web.WebView2.Core.CoreWebView2? web)
+    {
+        if (web is null) return;
+        try
+        {
+            try { web.ClearVirtualHostNameToFolderMapping(LocalPendingImports.ViewHost); } catch (ArgumentException) { /* not mapped yet */ }
+            if (Directory.Exists(dataFolder.Root))
+                web.SetVirtualHostNameToFolderMapping(LocalPendingImports.ViewHost, dataFolder.Root,
+                    Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind.Allow);
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Couldn't set up showing scans", ex);
+        }
     }
 
     private readonly ServiceProvider provider;

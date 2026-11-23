@@ -15,6 +15,8 @@
     [SupplyParameterFromQuery(Name = "notes")] public int? ShowNotes { get; set; }
     [SupplyParameterFromQuery(Name = "tab")] public int? SettingsTab { get; set; }
     [SupplyParameterFromQuery(Name = "lastname")] public string? NewLast { get; set; }
+    [SupplyParameterFromQuery(Name = "paper")] public int? Paper { get; set; }
+    [Inject] public FuelIntake.Core.Import.IPendingImports Pending { get; set; } = default!;
     private bool ready;
 
     protected override async Task OnInitializedAsync()
@@ -43,6 +45,18 @@
             opened.Client.LastName = NewLast;
             Session.Changed();
             await Session.SaveAsync();
+        }
+        if (Paper is 1)
+        {
+            // preview the approval page with a few values "read" and some already checked
+            var imp = new FuelIntake.Core.Import.PaperImport { CreatedAt = DateTimeOffset.Now, CreatedBy = Session.Me,
+                Fields = FuelIntake.Core.Import.ImportFieldCatalog.NewImport(2), MemberCount = 2 };
+            void Read(string path, string v, double c) { var f = imp.Fields.First(x => x.Path == path); f.Value = f.ReadValue = v; f.Confidence = c; }
+            Read("client.lastName", "Sampleton", .9); Read("client.firstName", "Testy", .9); Read("client.dateOfBirth", "04/09/1951", .7);
+            Read("client.zip", "0581", .4); Read("household[0].ssn", "000-12-3401", .8); Read("client.benefits.snap", "Yes", .95);
+            foreach (var f in imp.Fields.Take(3)) FuelIntake.Core.Import.PaperImportRules.SetConfirmed(f, true, Session.Me, DateTimeOffset.Now);
+            var id = await Pending.CreateAsync(imp, ["page1.pdf", "page2.pdf"]);
+            Session.OpenPendingImport(id);
         }
         if (SettingsTab is int t) Session.SettingsTab = t;
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);

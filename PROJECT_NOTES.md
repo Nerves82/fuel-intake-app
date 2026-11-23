@@ -169,6 +169,29 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   never uploaded to GoEngage.
 - Test data is clearly fake and loads only in test mode, never into a real client's file.
 
+## Paper applications (scans → client)
+- Decisions (Steve, Nov 23): recognition stays **on the laptop** (no cloud); staff may use the app's printed
+  forms or the agency's existing forms; every field needs a staff tick before the client is made.
+- Clients page → **New client from paper application** (between New client and Recently opened) →
+  choose the scanned pages (PDF/JPG/PNG). A holding folder `_PENDING yyyyMMdd-HHmm xxxx` is made in the client
+  files folder with copies of the scans and `import.json` (every field, its value, what the reader read, and
+  who ticked it when). Holding folders show on the Clients page as **pending verification** (also in All
+  clients) so any staff member can carry on later.
+- Approval page (Screen.Verify): every field (client, benefits, each household member, income lines) with the
+  scan beside it. Each needs **This is correct**, blank ones included ("left blank"); there is no check-all.
+  Editing a value clears its tick. Values are checked by kind (date, money, SSN, phone, zip, list choice).
+  **Create client** stays disabled until every field is ticked, nothing needs fixing and there's a name.
+- Create: refuses if a client folder with that name already exists; builds intake.json from the confirmed
+  values (`PaperImportRules.Build`), logs "Created from a paper application" with who checked how many fields,
+  moves the scans into the new client folder, removes the holding folder, opens the Review tab.
+  **Discard** sends the holding folder to the Recycle Bin.
+- Scans are shown in the built-in viewer via a WebView2 virtual host (`clientfiles.fuelintake`) mapped to the
+  client files folder (re-mapped when the folder changes).
+- Phase 1 (this): the flow with values typed/confirmed by staff. Next: print blank forms with page codes and
+  corner marks, read checkboxes, then read handwriting with Windows' built-in OCR (Windows.Media.Ocr) to
+  pre-fill `Value`/`ReadValue`/`Confidence`/`Spot`; existing agency forms need a blank copy of each to map.
+- Known limit: two people editing the same pending application at the same moment: last save wins.
+
 ## Fuel Order email
 - Review tab → **Email the Fuel Order to the vendor** → **Create email** (not shown for a disconnect notice).
   To = the vendor's emails from the vendor list (or the vendor email override on tab 5); subject and message

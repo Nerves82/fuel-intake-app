@@ -3,6 +3,8 @@
 @inject IntakeSession Session
 @inject ITestDataSets TestSets
 @inject IDataFolder Folder
+@inject FuelIntake.Core.Import.IPendingImports Pending
+@inject FuelIntake.Core.Import.IFilePicker Picker
 
 <main class="page narrow">
     @if (Session.Notice is not null)
@@ -71,6 +73,35 @@
         </details>
     </section>
 
+    <section class="card paper-box">
+        <h2>New client from paper application</h2>
+        <p class="note">Choose the scanned pages of a filled-in paper application. You'll then check every field against the scan,
+            ticking <strong>This is correct</strong> for each, before the client is created. It can be done over several sessions.</p>
+        @if (Picker.CanPick)
+        {
+            <button class="secondary" disabled="@busy" @onclick="StartPaper">Choose scanned pages…</button>
+        }
+        else
+        {
+            <button class="secondary" disabled="@busy" @onclick="StartPaper" title="The preview can't pick files: starts an empty one">Start (no scans in the preview)</button>
+        }
+        @if (paperError is not null) { <p class="problem">@paperError</p> }
+        @if (pending.Count > 0)
+        {
+            <h3>Pending verification</h3>
+            <ul class="client-list">
+                @foreach (var p in pending)
+                {
+                    <li>
+                        <button class="link" @onclick="() => Session.OpenPendingImport(p.Id)">@p.DisplayName</button>
+                        <span class="badge pending">pending verification</span>
+                        <span class="note">@p.Confirmed of @p.Total checked · started @p.CreatedAt.ToLocalTime().ToString("MMM d")@(p.CreatedBy is { } by ? $" by {by.Name}" : "")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
     @if (recentShown.Count > 0)
     {
         <section class="card">
@@ -105,7 +136,7 @@
         else
         {
             var shown = clients.Where(c => string.IsNullOrWhiteSpace(search) || c.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (shown.Count == 0)
+            if (shown.Count == 0 && pending.Count == 0)
             {
                 <p class="note">No client folders yet.</p>
             }
@@ -113,6 +144,14 @@
                 @if (Folder.Current.SyncedFrom is not null) { <span class="badge synced">@Folder.Current.SyncedFrom</span> }
                 · <button class="link" @onclick="Session.GoToDataFolder">change</button></p>
             <ul class="client-list">
+                @foreach (var p in pending.Where(p => string.IsNullOrWhiteSpace(search) || p.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)))
+                {
+                    <li>
+                        <button class="link" @onclick="() => Session.OpenPendingImport(p.Id)">@p.DisplayName</button>
+                        <span class="badge pending">pending verification</span>
+                        <span class="note">@p.Confirmed of @p.Total checked</span>
+                    </li>
+                }
                 @foreach (var c in shown)
                 {
                     <li>
@@ -141,7 +180,34 @@
         if (span.TotalDays < 7) return $"{(int)span.TotalDays} days ago";
         return at.ToLocalTime().ToString("MMM d");
     }
-    private string? error, nameProblem, search, first, last, setsError, confirmDelete;
+    private string? error, nameProblem, search, first, last, setsError, confirmDelete, paperError;
+    private IReadOnlyList<FuelIntake.Core.Import.PendingImportInfo> pending = [];
+
+    private async Task LoadPending()
+    {
+        try { pending = await Pending.ListAsync(); }
+        catch (Exception) { pending = []; } // the client list shows the folder problem
+    }
+
+    private async Task StartPaper()
+    {
+        paperError = null;
+        try
+        {
+            var scans = await Picker.PickScansAsync();
+            if (Picker.CanPick && scans.Count == 0) return; // cancelled
+            busy = true;
+            var import = new FuelIntake.Core.Import.PaperImport
+            {
+                CreatedBy = Session.Me, CreatedAt = DateTimeOffset.Now,
+                Fields = FuelIntake.Core.Import.ImportFieldCatalog.NewImport(),
+            };
+            var id = await Pending.CreateAsync(import, scans);
+            Session.OpenPendingImport(id);
+        }
+        catch (Exception ex) { paperError = "Couldn't start the paper application: " + ex.Message; }
+        finally { busy = false; }
+    }
     private IReadOnlyList<TestDataSet> savedSets = [];
 
     private async Task LoadSets()
@@ -172,6 +238,7 @@
         }
         catch { recentShown = []; }
         await LoadSets();
+        await LoadPending();
     }
 
     private async Task Create(SampleIntakes.Sample? sample)
