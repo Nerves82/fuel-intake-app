@@ -29,7 +29,8 @@ public sealed class EmailComposer(Dispatcher dispatcher) : IEmailComposer
                 }
                 catch (Exception ex)
                 {
-                    StartupLog.Write("Email: classic Outlook couldn't open a new message; using the mail app instead", ex);
+                    StartupLog.Write("Email: classic Outlook couldn't open a new message; using the mail app instead (won't try it again on this computer)", ex);
+                    RememberClassicOutlookFailed(ex);
                 }
             }
             string how;
@@ -48,9 +49,37 @@ public sealed class EmailComposer(Dispatcher dispatcher) : IEmailComposer
     }
 
     /// <summary>
-    /// Classic Outlook is installed when Windows has a path to OUTLOOK.EXE that exists. Without this check,
-    /// asking for Outlook on a laptop that only has the new Outlook makes Office offer to install classic Outlook.
+    /// Classic Outlook is only used when it's really set up: OUTLOOK.EXE exists, the user has an Outlook mail
+    /// profile, and it hasn't failed on this computer before. On NEKCA laptops Office 2016 lists Outlook without
+    /// it being set up; asking Windows for it then starts the "installing Outlook 2016" prompt.
     /// </summary>
+    private static bool ClassicOutlookReady() =>
+        !File.Exists(SkipFile) && ClassicOutlookInstalled() && HasOutlookProfile();
+
+    /// <summary>Written after classic Outlook fails once, so this computer stops trying it (and stops prompting).</summary>
+    private static string SkipFile => Path.Combine(StartupLog.AppDataFolder, "classic-outlook-unavailable.txt");
+
+    private static void RememberClassicOutlookFailed(Exception ex)
+    {
+        try { File.WriteAllText(SkipFile, $"Classic Outlook failed {DateTimeOffset.Now:u}: {ex.GetType().Name}. Delete this file to try it again.\r\n"); }
+        catch { /* best effort */ }
+    }
+
+    /// <summary>A mail profile exists only once someone has actually set up classic Outlook.</summary>
+    private static bool HasOutlookProfile()
+    {
+        foreach (var version in new[] { "16.0", "15.0" })
+        {
+            try
+            {
+                using var k = Registry.CurrentUser.OpenSubKey($@"Software\Microsoft\Office\{version}\Outlook\Profiles");
+                if (k is not null && k.SubKeyCount > 0) return true;
+            }
+            catch { /* not readable: try the next */ }
+        }
+        return false;
+    }
+
     private static bool ClassicOutlookInstalled()
     {
         const string key = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE";
@@ -70,7 +99,7 @@ public sealed class EmailComposer(Dispatcher dispatcher) : IEmailComposer
 
     private static bool TryOutlook(EmailDraft draft, string? attachment)
     {
-        if (!ClassicOutlookInstalled()) return false;
+        if (!ClassicOutlookReady()) return false;
         var type = Type.GetTypeFromProgID("Outlook.Application");
         if (type is null) return false;
         dynamic? app = null, mail = null;
