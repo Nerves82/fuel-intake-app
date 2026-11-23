@@ -106,10 +106,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         Notify();
     }
 
-    /// <summary>The right-click menu on a field, if open.</summary>
-    public (NoteFieldRef Ref, double X, double Y)? FieldMenu { get; private set; }
-
-    /// <summary>The field the next note will be about (set by right-click → Add note).</summary>
+    /// <summary>The field the next note will be about (set by a field's "add note" button).</summary>
     public NoteFieldRef? PendingNoteRef { get; private set; }
 
     /// <summary>A field to scroll to and highlight after the next render.</summary>
@@ -118,13 +115,8 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     /// <summary>Put the cursor in the note box after the next render.</summary>
     public bool FocusNoteBox { get; set; }
 
-    public void ShowFieldMenu(NoteFieldRef r, double x, double y) { FieldMenu = (r, x, y); Notify(); }
-
-    public void CloseFieldMenu() { if (FieldMenu is null) return; FieldMenu = null; Notify(); }
-
     public void StartNoteAbout(NoteFieldRef r)
     {
-        FieldMenu = null;
         PendingNoteRef = r;
         NotesOpen = true;
         FocusNoteBox = true;
@@ -150,7 +142,6 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
         if (Record is null) return;
         var ids = ActivityLog.NotesAbout(Record, r.Screen, r.Key).Select(n => n.Id).ToList();
         if (ids.Count == 0) return;
-        FieldMenu = null;
         NotesOpen = true;
         HighlightNoteIds = ids;
         Notify();
