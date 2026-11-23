@@ -25,6 +25,14 @@
             <div class="field"><label for="nf">First name</label><input id="nf" @bind="first" @bind:event="oninput" /></div>
             <div class="field"><label for="nl">Last name</label><input id="nl" @bind="last" @bind:event="oninput" /></div>
         </div>
+        @if (Session.Compliance.Standards.Count > 0)
+        {
+            <div class="grid">
+                <SelectBox Label="Compliance standard" @bind-Value="standard"
+                           Options="Session.Compliance.Standards.Select(s => s.Name).ToList()"
+                           Hint="Optional. Blank uses the one linked to the grant source. Can be changed later on the Review tab." />
+            </div>
+        }
         @if (nameProblem is not null) { <p class="problem">@nameProblem</p> }
         <div class="actions">
             <button disabled="@busy" @onclick="() => Create(null)">Create client folder</button>
@@ -112,6 +120,7 @@
                     <li>
                         <button class="link" @onclick="() => Session.OpenAsync(c)">@c.DisplayName</button>
                         @if (c.DisplayName.StartsWith(ClientFolders.TestPrefix)) { <span class="badge test">TEST</span> }
+                        <ComplianceTag Badge="@BadgeOf(c)" />
                         <span class="note" title="@at.ToLocalTime().ToString("MMM d, yyyy h:mm tt")">opened @Ago(at)</span>
                     </li>
                 }
@@ -158,6 +167,7 @@
                         <button class="link" @onclick="() => Session.OpenAsync(c)">@c.DisplayName</button>
                         @if (c.DisplayName.StartsWith(ClientFolders.TestPrefix)) { <span class="badge test">TEST</span> }
                         @if (!c.HasIntake) { <span class="badge">no intake yet</span> }
+                        <ComplianceTag Badge="@BadgeOf(c)" />
                         <span class="note">@c.LastModified?.ToLocalTime().ToString("MMM d, yyyy")</span>
                     </li>
                 }
@@ -180,7 +190,7 @@
         if (span.TotalDays < 7) return $"{(int)span.TotalDays} days ago";
         return at.ToLocalTime().ToString("MMM d");
     }
-    private string? error, nameProblem, search, first, last, setsError, confirmDelete, paperError;
+    private string? error, nameProblem, search, first, last, standard, setsError, confirmDelete, paperError;
     private IReadOnlyList<FuelIntake.Core.Import.PendingImportInfo> pending = [];
 
     private async Task LoadPending()
@@ -239,6 +249,29 @@
         catch { recentShown = []; }
         await LoadSets();
         await LoadPending();
+        // show the badges with the list when they come quickly (a short list); otherwise they fill in as read
+        var badgesLoading = LoadBadges();
+        await Task.WhenAny(badgesLoading, Task.Delay(300));
+    }
+
+    // compliance badges: read in the background so the list shows at once
+    private readonly Dictionary<string, FuelIntake.Core.Compliance.ComplianceBadge?> badges = new(StringComparer.OrdinalIgnoreCase);
+    private FuelIntake.Core.Compliance.ComplianceBadge? BadgeOf(ClientFolderInfo c) => badges.GetValueOrDefault(c.Id);
+
+    private async Task LoadBadges()
+    {
+        var list = clients ?? [];
+        try
+        {
+            for (var i = 0; i < list.Count; i += 8)
+            {
+                var batch = list.Skip(i).Take(8).ToList();
+                var found = await Task.WhenAll(batch.Select(c => Session.BadgeAsync(c)));
+                for (var j = 0; j < batch.Count; j++) badges[batch[j].Id] = found[j];
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch { /* badges are a convenience */ }
     }
 
     private async Task Create(SampleIntakes.Sample? sample)
@@ -257,7 +290,7 @@
             return;
         }
         nameProblem = null; busy = true;
-        try { await Session.CreateAsync(f, l, sample?.Build); }
+        try { await Session.CreateAsync(f, l, sample?.Build, standard); }
         catch (Exception ex) { nameProblem = ex.Message; }
         finally { busy = false; }
     }

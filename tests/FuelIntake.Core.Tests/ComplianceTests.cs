@@ -83,4 +83,37 @@ public class ComplianceTests
         Assert.False(ComplianceRules.CheckPasscode(c, "fuel-2025"));
         Assert.False(ComplianceRules.CheckPasscode(c, null));
     }
+
+    [Fact]
+    public void Badge_ShowsThePick_ThenTheGrant_ThenNothing()
+    {
+        var c = Settings();
+        var r = FakeIntake.Family();
+        r.FuelElectric.FuelOrder.FundingSource = null;
+        r.FuelElectric.ElectricPledge.FundingSource = null;
+        r.FuelElectric.Invoice.FundingSource = null;
+        r.Application.ComplianceStandard = null;
+        Assert.Null(ComplianceBadge.For(r, c));
+        Assert.Null(ComplianceBadge.For(null, c));
+
+        r.FuelElectric.FuelOrder.FundingSource = "Example Crisis Fund";
+        Assert.Equal(new ComplianceBadge("Crisis Fuel", true, false), ComplianceBadge.For(r, c));
+
+        r.Application.ComplianceStandard = "warmth";
+        Assert.Equal(new ComplianceBadge("Warmth", false, false), ComplianceBadge.For(r, c));
+
+        r.Application.ComplianceStandard = "Retired Standard";
+        var b = ComplianceBadge.For(r, c)!;
+        Assert.True(b.Unknown);
+        Assert.Equal("Retired Standard", b.Name);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("  ", null)]
+    [InlineData("crisis fuel", "Crisis Fuel")]
+    [InlineData(" Warmth ", "Warmth")]
+    [InlineData("Not A Standard", null)]
+    public void NewClient_UsesTheSettingsSpelling_OrNone(string? chosen, string? expected) =>
+        Assert.Equal(expected, ComplianceBadge.ForNewClient(chosen, Settings()));
 }

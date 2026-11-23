@@ -195,6 +195,34 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
 
     public Task<IReadOnlyList<RecentClient>> RecentClientsAsync() => recent.GetAsync();
 
+    // ---- compliance badges in the clients list
+
+    private readonly Dictionary<string, (DateTimeOffset? Modified, IntakeRecord? Record)> badgeCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim badgeGate = new(4);
+
+    /// <summary>
+    /// The compliance badge for a client in the list. Reads the client's intake.json once and keeps it until
+    /// the file changes; works out the badge from the current compliance settings each time. Null when no
+    /// standard applies or the file can't be read.
+    /// </summary>
+    public async Task<FuelIntake.Core.Compliance.ComplianceBadge?> BadgeAsync(ClientFolderInfo c)
+    {
+        if (!c.HasIntake) return null;
+        if (Folder is not null && Record is not null && string.Equals(Folder.Id, c.Id, StringComparison.OrdinalIgnoreCase))
+            return FuelIntake.Core.Compliance.ComplianceBadge.For(Record, Compliance);
+        (DateTimeOffset? Modified, IntakeRecord? Record) hit;
+        lock (badgeCache)
+            if (badgeCache.TryGetValue(c.Id, out hit) && hit.Modified == c.LastModified)
+                return FuelIntake.Core.Compliance.ComplianceBadge.For(hit.Record, Compliance);
+        IntakeRecord? r = null;
+        await badgeGate.WaitAsync();
+        try { r = await store.LoadAsync(c.Id); }
+        catch { /* unreadable: no badge (opening it shows the problem) */ }
+        finally { badgeGate.Release(); }
+        lock (badgeCache) badgeCache[c.Id] = (c.LastModified, r);
+        return FuelIntake.Core.Compliance.ComplianceBadge.For(r, Compliance);
+    }
+
     private async Task RememberAsync(ClientFolderInfo folder)
     {
         try { await recent.TouchAsync(folder, clock.GetLocalNow()); }
@@ -223,7 +251,9 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     }
 
     /// <summary>Creates (or reuses) the client's folder and opens it with a fresh record.</summary>
-    public async Task CreateAsync(string first, string last, Func<string, string, DateOnly, IntakeRecord>? sample = null)
+    /// <param name="complianceStandard">Starts the new record under this standard (blank = none, use the grant source's).
+    /// An existing record's standard is only filled in when it has none.</param>
+    public async Task CreateAsync(string first, string last, Func<string, string, DateOnly, IntakeRecord>? sample = null, string? complianceStandard = null)
     {
         await CloseAsync();
         var isTest = sample is not null;
@@ -235,6 +265,9 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
 
         var record = existing ?? (isTest ? sample!(first.Trim(), last.Trim(), Today) : NewRecord(first.Trim(), last.Trim()));
         if (existing is null) StampStaff(record);
+        if (FuelIntake.Core.Compliance.ComplianceBadge.ForNewClient(complianceStandard, Compliance) is { } standard
+            && string.IsNullOrWhiteSpace(record.Application.ComplianceStandard))
+            record.Application.ComplianceStandard = standard;
         Folder = folder;
         Record = record;
         SaveConflict = false;

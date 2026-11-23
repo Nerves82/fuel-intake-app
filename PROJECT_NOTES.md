@@ -304,3 +304,16 @@ Small deliberate changes from the workbook:
 - Informal OK from supervisor / IT for phase 1, and personal-machine development with test data.
 - Who co-owns the NEKCA GitHub organization.
 - Read vendor/staff lists from SharePoint already in phase 1, or wait for phase 2.
+
+## New client with a compliance standard; badges in the clients list (2026-11-23)
+
+- The **New client** box has an optional *Compliance standard* dropdown (listed only when standards exist). The
+  new record starts with `application.complianceStandard` set to the standard's name as spelled in settings
+  (`ComplianceBadge.ForNewClient`); blank leaves it to the grant source. It also applies to test-data clients.
+  Reopening an existing folder only fills the standard in if the record has none. Change it later on Review.
+- The clients list (Recently opened and All clients) shows a badge per client (`ComplianceBadge.For`):
+  solid = picked on Review/at creation; dashed = from the grant source; amber = picked name no longer in settings.
+- Badges need each client's intake.json: `IntakeSession.BadgeAsync` reads them in the background (4 at a time),
+  caches each record until its LastModified changes, and works the badge out from the *current* settings.
+  The page waits up to 300 ms so short lists show badges with the list; longer lists fill in as they're read.
+  Note: with OneDrive Files On-Demand, this downloads each (small) intake.json once.
