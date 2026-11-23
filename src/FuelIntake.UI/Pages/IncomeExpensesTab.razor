@@ -16,6 +16,12 @@
                         <td>@line.Label</td>
                         <td><MoneyCell Value="@Income(line.Key)" ValueChanged="v => SetIncome(line.Key, v)" Label="@line.Label" /></td>
                     </tr>
+                    @if (line.Key == "Other")
+                    {
+                        <tr class="line-note">
+                            <td colspan="2"><TextBox Label="Other income: what is it?" @bind-Value="ie.IncomeOtherDescription" Placeholder="e.g. help from family, rental income" /></td>
+                        </tr>
+                    }
                 }
                 <tr class="total"><td>Total gross monthly income</td><td>@Money.Format(calc.IncomeTotal)</td></tr>
             </tbody>

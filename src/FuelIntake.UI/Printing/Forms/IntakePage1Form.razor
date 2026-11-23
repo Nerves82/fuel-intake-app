@@ -32,7 +32,7 @@
             <tr class="@(i == 0 ? "first" : "")">
                 <td>@m?.LastName</td><td>@m?.FirstName</td><td>@D(m?.DateOfBirth)</td><td>@d?.Gender</td><td>@d?.Disabled</td>
                 <td>@d?.Education</td><td>@d?.Race</td><td>@d?.Hispanic</td><td>@d?.HealthInsurance</td><td>@M(d?.IncomePerMonth)</td>
-                <td>@d?.IncomeSource</td><td>@d?.MilitaryStatus</td><td>@Ssn(d?.Ssn)</td>
+                <td>@(d is null ? "" : IntakeCalculations.IncomeSourceText(d))</td><td>@d?.MilitaryStatus</td><td>@Ssn(d?.Ssn)</td>
             </tr>
         }
     </table>
