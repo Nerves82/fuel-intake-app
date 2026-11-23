@@ -1,0 +1,60 @@
+@* DCF form 201SF, Vermont Fuel Assistance Eligibility Review (rev 01/2024): the state's pages as images, with the
+   intake's answers placed where the PDF's fields are (Core: Form201SF). More than four people get a continuation sheet. *@
+@using static FuelIntake.UI.Printing.PrintContext
+@using FuelIntake.Core.Forms
+@{ var fill = Form201SF.Fill(P.R, P.C); }
+@for (var page = 1; page <= 3; page++)
+{
+    var n = page;
+    <div class="sheet state-form" style="background-image:url(@FormAssets.Form201SFPage(n))">
+        @foreach (var m in fill.Marks.Where(m => m.Spot.Page == n))
+        {
+            var s = m.Spot;
+            if (m.IsCheck)
+            {
+                <span class="sf-x" style="left:@Pt(s.X)pt; top:@Pt(s.Y)pt; width:@Pt(s.W)pt; height:@Pt(s.H)pt">X</span>
+            }
+            else
+            {
+                <span class="sf-t" style="left:@Pt(s.X + 2)pt; top:@Pt(s.Y)pt; width:@Pt(s.W - 3)pt; height:@Pt(s.H)pt; font-size:@Pt(m.FontSize)pt">@m.Text</span>
+            }
+        }
+    </div>
+}
+@if (fill.ExtraMembers.Count > 0)
+{
+    <div class="sheet">
+        <div class="title" style="font-size:12pt">Vermont Fuel Assistance Eligibility Review (201SF) — continued</div>
+        <p style="margin:6pt 0 10pt">1. List anyone living in your home (continued from page 1). Client: <strong>@P.C.ClientFullName</strong></p>
+        <table class="sf-more">
+            <thead><tr><th>Name</th><th>SSN</th><th>Date of Birth</th><th>Relationship</th><th>Ethnicity</th><th>Race</th><th>Gender</th><th>Citizenship</th></tr></thead>
+            <tbody>
+                @foreach (var m in fill.ExtraMembers)
+                {
+                    var d = Form201SF.Demographics(m.Data);
+                    <tr>
+                        <td>@m.FullName</td><td>@Ssn(m.Data.Ssn)</td><td>@D(m.DateOfBirth)</td><td></td>
+                        <td>@(d.Hispanic switch { true => "Hispanic, Latino or Spanish", false => "Not Hispanic", _ => "" })</td>
+                        <td>@RaceText(d.Race)</td><td>@d.Gender</td><td></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+
+    private static string Pt(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string RaceText(Form201SF.RaceBox? r) => r switch
+    {
+        Form201SF.RaceBox.Asian => "Asian",
+        Form201SF.RaceBox.White => "White",
+        Form201SF.RaceBox.Black => "Black or African American",
+        Form201SF.RaceBox.PacificIslander => "Native Hawaiian or other Pacific Islander",
+        Form201SF.RaceBox.AmericanIndian => "American Indian or Alaska Native",
+        _ => "",
+    };
+}
