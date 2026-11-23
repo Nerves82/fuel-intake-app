@@ -317,3 +317,27 @@ Small deliberate changes from the workbook:
   caches each record until its LastModified changes, and works the badge out from the *current* settings.
   The page waits up to 300 ms so short lists show badges with the list; longer lists fill in as they're read.
   Note: with OneDrive Files On-Demand, this downloads each (small) intake.json once.
+
+## State form 201SF: Vermont Fuel Assistance Eligibility Review (2026-11-23)
+
+- Steve supplied the blank form (DCF ESD-Form-201SF, rev 01/2024). Reference copy: `reference/forms/ESD-Form-201SF.pdf`.
+- Print tab: form **201SF Eligibility Review (state form)** and pack **Vermont Fuel Assistance Eligibility Review (201SF)**
+  (file `{Initial}_{Last}_201SF_{Date}`). Also part of "All forms".
+- How it's drawn: the state's pages (fields removed) as 220 dpi images behind the values, which are placed at the
+  PDF fields' positions. That fits the existing HTML → PDF printing (preview, Save PDF, Fuel Order email unchanged).
+  The saved PDF isn't fillable; staff and the client finish it by hand.
+- `reference/forms/make_201sf.py` regenerates `src/FuelIntake.UI/Printing/Form201SF/page1-3.png` and
+  `src/FuelIntake.Core/Forms/Form201SFLayout.g.cs` (field positions). Run it when DCF issues a new revision, then
+  check `Form201SF.cs`: it picks boxes by PDF field name, and several names in this PDF don't match their labels
+  (the signature block especially, see the comments).
+- Filled from the intake (Core `Form201SF.Fill`), only where the intake clearly answers:
+  - p1: name, SSN, mailing address (physical + town if no separate mailing; both lines when they differ), phone;
+    four household rows (name, SSN, DOB); Hispanic yes/no, Male/Female, single races. Relationship, citizenship
+    and ID# are blank. A 5th+ person goes on a continuation sheet after page 3.
+  - p2: own/rent (+ the Mortgage/Rent bill when renting), heat included in rent, house/mobile home/apartment,
+    main fuel, rent based on income = Yes only with a housing benefit (voucher or HUD-VASH → Section 8, public
+    housing, permanent supportive → Subsidized), fuel supplier name/phone/account, electric provider/account.
+  - p3: Q14 Yes when someone's income source is Self-employment; Q15 table from the worksheet's monthly
+    amounts (SSA + SSDI → Social Security, SSI, VA, Unemployment, Workers' Comp, Child Support + Alimony,
+    Pension → Retirement, Other + its description) with the names of members who have that source; helper
+    name/phone = assigned staff, agency = NEKCA. "No" answers are never assumed. Job pay rows are left blank.

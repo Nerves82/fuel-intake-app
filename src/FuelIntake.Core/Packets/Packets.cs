@@ -4,7 +4,7 @@ using FuelIntake.Core.Lists;
 namespace FuelIntake.Core.Packets;
 
 /// <summary>The printable forms, in packet (workbook tab) order.</summary>
-public enum FormId { CoverSheet, GoEngageData, IntakePage1, IntakePage2, Application, Access, IncomeExpense, FuelOrder, ElectricPledge }
+public enum FormId { CoverSheet, GoEngageData, IntakePage1, IntakePage2, Application, Access, IncomeExpense, FuelOrder, ElectricPledge, EligibilityReview201SF }
 
 /// <summary>A ready-made packet from the Print Packets screen.</summary>
 /// <param name="Name">Shown in the picker.</param>
@@ -30,9 +30,13 @@ public static class PacketCatalog
         "Application Forms Pack", "{Initial}_{Last}_fuel_assistance_{Date}",
         [FormId.Application, FormId.Access, FormId.IncomeExpense], AddsFuelOrderOrPledge: true);
 
+    /// <summary>The state's DCF form 201SF, filled from the intake (staff and client complete the rest).</summary>
+    public static readonly PacketDefinition EligibilityReview = new(
+        "Vermont Fuel Assistance Eligibility Review (201SF)", "{Initial}_{Last}_201SF_{Date}", [FormId.EligibilityReview201SF]);
+
     public static readonly PacketDefinition All = new("All forms", "{Initial}_{Last}_all_forms_{Date}", AllForms, StaffOnly: true);
 
-    public static readonly IReadOnlyList<PacketDefinition> Packs = [CoverAndGoEngage, IntakePackage, ApplicationPack, All];
+    public static readonly IReadOnlyList<PacketDefinition> Packs = [CoverAndGoEngage, IntakePackage, ApplicationPack, EligibilityReview, All];
 
     /// <summary>File name pattern for a custom selection.</summary>
     public const string CustomFileNamePattern = "{Initial}_{Last}_forms_{Date}";
@@ -49,6 +53,7 @@ public static class PacketCatalog
         FormId.IncomeExpense => "Income/Expense Worksheet",
         FormId.FuelOrder => "Fuel Order",
         FormId.ElectricPledge => "Electric Pledge",
+        FormId.EligibilityReview201SF => "201SF Eligibility Review (state form)",
         _ => f.ToString(),
     };
 

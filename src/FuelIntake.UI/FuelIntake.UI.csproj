@@ -15,6 +15,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Printing\nekca-logo.png" LogicalName="nekca-logo.png" />
     <EmbeddedResource Include="Printing\forms.css" LogicalName="forms.css" />
+    <EmbeddedResource Include="Printing\Form201SF\page*.png" LogicalName="201sf-%(Filename).png" />
   </ItemGroup>
 
   <ItemGroup>
