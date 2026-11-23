@@ -14,5 +14,11 @@ public sealed record ComposeResult(bool Attached, string How);
 /// </summary>
 public interface IEmailComposer
 {
-    Task<ComposeResult> ComposeAsync(EmailDraft draft, string? attachmentLocation, CancellationToken ct = default);
+    Task<ComposeResult> ComposeAsync(EmailDraft draft, string? attachmentLocation, EmailRoute route = EmailRoute.Auto, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Auto: classic Outlook with the attachment when it's installed, otherwise the default mail app.
+/// OutlookWeb: a new message in Outlook on the web (works with new Outlook accounts; no attachment).
+/// </summary>
+public enum EmailRoute { Auto, OutlookWeb }

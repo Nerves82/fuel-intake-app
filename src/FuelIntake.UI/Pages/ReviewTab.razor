@@ -85,10 +85,15 @@ else
                 <summary>Message</summary>
                 <pre class="mail-body">@draft.Body</pre>
             </details>
-            <p class="note">The email opens in Outlook for you to check and send; nothing is sent automatically.
+            <p class="note">The email opens for you to check and send; nothing is sent automatically. Classic Outlook gets the PDF attached;
+                with the new Outlook, use <strong>Use Outlook on the web</strong> and drag in the PDF from the folder that opens.
                 Change the wording under <button class="link" @onclick="() => { Session.SettingsTab = 2; Session.Go(Screen.Settings); }">Staff, vendors &amp; settings → Agency settings</button>.</p>
             @if (mailMessage is not null) { <p class="@(mailError ? "problem" : "ok")">@mailMessage</p> }
-            <div class="actions"><button disabled="@mailBusy" @onclick="CreateEmail">@(mailBusy ? "Working…" : "Create email")</button></div>
+            <div class="actions">
+                <button disabled="@mailBusy" @onclick="() => CreateEmail(EmailRoute.Auto)">@(mailBusy ? "Working…" : "Create email")</button>
+                <button class="secondary" disabled="@mailBusy" @onclick="() => CreateEmail(EmailRoute.OutlookWeb)"
+                        title="For the new Outlook: opens a new message in Outlook on the web, and the folder with the PDF to drag in">Use Outlook on the web</button>
+            </div>
         }
     </section>
 }
@@ -211,7 +216,7 @@ else
         catch (Exception) { savedPdf = null; } // can't list the folder: a new PDF will be made
     }
 
-    private async Task CreateEmail()
+    private async Task CreateEmail(EmailRoute route)
     {
         mailBusy = true; mailMessage = null; mailError = false;
         try
@@ -236,10 +241,10 @@ else
             }
             var draft = FuelOrderEmail.Build(rec, Session.Calc!, Session.Settings);
             if (rec.IsTestData) draft = draft with { To = [] };
-            var opened = await Mail.ComposeAsync(draft, location);
+            var opened = await Mail.ComposeAsync(draft, location, route);
             mailMessage = opened.Attached
                 ? $"Opened in {opened.How} with {file} attached. Check it and press Send."
-                : $"Opened in {opened.How}. Your mail app can't take attachments this way: drag {file} from the folder window that opened into the email, then send.";
+                : $"Opened in {opened.How}. The PDF can't be attached this way: drag {file} from the folder window that opened into the email, then send.";
         }
         catch (Exception ex)
         {

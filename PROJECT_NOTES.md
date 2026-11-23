@@ -201,8 +201,13 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - Attachment: the newest `{Initial}_{Last}_fuel_order_{Date}.pdf` in the client folder; if none (or staff tick
   "Make a new Fuel Order PDF") the Fuel Order form is printed and saved under that name first.
 - The app never sends mail. Desktop opens classic Outlook (COM, no admin) with To, subject, the message above
-  the user's signature, and the PDF attached. Without classic Outlook (new Outlook): mailto: opens the mail app
-  without the attachment, and File Explorer opens with the PDF selected to drag in.
+  the user's signature, and the PDF attached, but only when OUTLOOK.EXE is really installed (App Paths in the
+  registry) **and** the user has an Outlook mail profile (HKCU Office\16.0\Outlook\Profiles), and it hasn't failed
+  on this computer before (`%LOCALAPPDATA%\FuelIntake\classic-outlook-unavailable.txt`; delete it to retry).
+  On NEKCA laptops Office 2016 lists Outlook without it being set up, and asking for it via COM started the
+  "installing Outlook 2016" Windows Installer prompt.
+  Otherwise mailto: opens the default mail app, or **Use Outlook on the web** opens an OWA compose deep link;
+  neither can attach, so File Explorer opens with the PDF selected (`/select,"path"`) to drag in.
 - Test clients: To is left blank so practice data is never sent to a real vendor.
 
 ## Grant / funding sources

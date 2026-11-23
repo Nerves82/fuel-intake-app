@@ -78,7 +78,7 @@ public static class DevServices
 
     private sealed class NoEmail : IEmailComposer
     {
-        public Task<ComposeResult> ComposeAsync(FuelIntake.Core.Email.EmailDraft draft, string? attachmentLocation, CancellationToken ct = default) =>
+        public Task<ComposeResult> ComposeAsync(FuelIntake.Core.Email.EmailDraft draft, string? attachmentLocation, EmailRoute route = EmailRoute.Auto, CancellationToken ct = default) =>
             throw new NotSupportedException("Email works in the desktop app.");
     }
 
