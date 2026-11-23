@@ -5,12 +5,19 @@ namespace FuelIntake.Core.Storage;
 /// <summary>One file to rename inside a client folder (names only, no paths).</summary>
 public sealed record FileRename(string From, string To);
 
+/// <summary>A household member (tab 2, member 2 and up) whose last name was spelled the same way as the client's.</summary>
+/// <param name="Index">Position in <see cref="Model.IntakeRecord.Household"/> (member number minus 1).</param>
+public sealed record MemberRename(int Index, string? FirstName, string From, string To);
+
 /// <summary>What renaming a client will do.</summary>
 /// <param name="FolderFrom">The folder's current name.</param>
 /// <param name="FolderTo">Its new name ("Last, First", with "_TEST " in front for test clients).</param>
 /// <param name="Files">Files whose names contain the old name, with their new names.</param>
-public sealed record ClientRenamePlan(string FolderFrom, string FolderTo, IReadOnlyList<FileRename> Files)
+/// <param name="Members">Household members whose last name matched the old spelling (filled in by the caller).</param>
+public sealed record ClientRenamePlan(string FolderFrom, string FolderTo, IReadOnlyList<FileRename> Files, IReadOnlyList<MemberRename>? Members = null)
 {
+    public IReadOnlyList<MemberRename> MemberChanges => Members ?? [];
+
     public bool FolderChanges => !string.Equals(FolderFrom, FolderTo, StringComparison.Ordinal);
     public bool HasChanges => FolderChanges || Files.Count > 0;
 }
@@ -65,6 +72,37 @@ public static class ClientRename
             files.Add(new FileRename(file, unique));
         }
         return new ClientRenamePlan(folderName, to, files);
+    }
+
+    /// <summary>
+    /// Household members 2+ whose last name is the old spelling (ignoring case and extra spaces), to change
+    /// along with the client's. Empty when the last name didn't change.
+    /// </summary>
+    public static IReadOnlyList<MemberRename> MatchingMembers(Model.IntakeRecord record, string oldLast, string newLast)
+    {
+        static string Norm(string? s) => string.Join(' ', (s ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var from = Norm(oldLast); var to = Norm(newLast);
+        if (from.Length == 0 || to.Length == 0 || from == to) return [];
+        return record.Household
+            .Select((m, i) => (m, i))
+            .Where(x => x.i > 0 && string.Equals(Norm(x.m.LastName), from, StringComparison.OrdinalIgnoreCase))
+            .Select(x => new MemberRename(x.i, x.m.FirstName, x.m.LastName!, to))
+            .ToList();
+    }
+
+    /// <summary>Puts the new last name on the chosen members (only where it's still the old spelling).</summary>
+    public static int ApplyMembers(Model.IntakeRecord record, IEnumerable<MemberRename> members)
+    {
+        var n = 0;
+        foreach (var m in members)
+        {
+            if (m.Index <= 0 || m.Index >= record.Household.Count) continue;
+            var member = record.Household[m.Index];
+            if (!string.Equals(member.LastName?.Trim(), m.From.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
+            member.LastName = m.To;
+            n++;
+        }
+        return n;
     }
 
     private const string Sep = @"[\s_\-,.()]";

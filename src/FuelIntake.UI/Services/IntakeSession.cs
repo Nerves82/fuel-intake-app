@@ -269,20 +269,24 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     {
         if (Folder is null || Record is null) return null;
         var files = await store.ListFilesAsync(Folder.Id);
-        return ClientRename.Plan(Folder.DisplayName, Record.Client.FirstName ?? "", Record.Client.LastName ?? "",
+        var plan = ClientRename.Plan(Folder.DisplayName, Record.Client.FirstName ?? "", Record.Client.LastName ?? "",
             files.Where(f => !f.EndsWith('\\')), Settings.FolderNameSeparator);
+        if (plan is null || ClientRename.ParseFolderName(Folder.DisplayName, Settings.FolderNameSeparator) is not { } old) return plan;
+        return plan with { Members = ClientRename.MatchingMembers(Record, old.Last, Record.Client.LastName ?? "") };
     }
 
     /// <summary>
     /// Renames the folder and the chosen files, logs it in the activity, and saves. Throws if the folder
     /// couldn't be renamed (nothing changed then).
     /// </summary>
-    public async Task<ClientRenameResult> RenameClientAsync(ClientRenamePlan plan, IReadOnlyList<FileRename> files)
+    public async Task<ClientRenameResult> RenameClientAsync(ClientRenamePlan plan, IReadOnlyList<FileRename> files,
+        IReadOnlyList<MemberRename>? members = null)
     {
         if (Folder is null || Record is null) throw new InvalidOperationException("No client is open.");
         if (HasUnsavedChanges) await SaveAsync();
         if (SaveConflict || SaveError is not null) throw new InvalidOperationException("Save the client first: " + SaveError);
         ClientRenameResult result;
+        var membersRenamed = 0;
         saveDelay?.Cancel();
         await saveLock.WaitAsync();
         try
@@ -290,18 +294,22 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
             result = await store.RenameClientAsync(Folder.Id, plan.FolderTo, files);
             Folder = result.Folder;
             ActivityLog.RecordRename(Record, Me, clock.GetLocalNow(), plan.FolderFrom, plan.FolderTo, result.Renamed);
+            // household members' last names: logged as ordinary edits when saved below
+            membersRenamed = ClientRename.ApplyMembers(Record, members ?? []);
             HasUnsavedChanges = true;
         }
         finally
         {
             saveLock.Release();
         }
+        Recalculate();
         await SaveAsync();
         await RememberAsync(Folder);
-        Notice = result.Problems.Count == 0
+        var who = membersRenamed > 0 ? $" Updated the last name of {membersRenamed} household member{(membersRenamed == 1 ? "" : "s")}." : "";
+        Notice = (result.Problems.Count == 0
             ? $"Renamed the folder to {plan.FolderTo}" + (result.Renamed.Count > 0 ? $" and {result.Renamed.Count} file{(result.Renamed.Count == 1 ? "" : "s")}." : ".")
             : $"Renamed the folder to {plan.FolderTo}. {result.Problems.Count} file{(result.Problems.Count == 1 ? "" : "s")} couldn't be renamed: " +
-              string.Join("; ", result.Problems);
+              string.Join("; ", result.Problems)) + who;
         Notify();
         return result;
     }

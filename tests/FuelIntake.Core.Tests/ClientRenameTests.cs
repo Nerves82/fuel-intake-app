@@ -72,3 +72,24 @@ public class ClientRenameTests
         Assert.Equal([new FileRename("S_Jane_intake.pdf", "J_Smith_intake.pdf")], plan.Files);
     }
 }
+
+public class ClientRenameMemberTests
+{
+    [Fact]
+    public void MatchingMembers_FindsFamilyWithTheOldSpelling()
+    {
+        var r = FuelIntake.Core.TestData.SampleIntakes.FamilyDisconnect("Jane", "Smyth", FakeIntake.Today);
+        r.Household[3].LastName = "Example"; // a member with a different last name stays out
+        r.Household[2].LastName = " smyth ";
+
+        var found = ClientRename.MatchingMembers(r, "Smyth", "Smith");
+        Assert.Equal([1, 2], found.Select(m => m.Index));
+        Assert.All(found, m => Assert.Equal("Smith", m.To));
+        Assert.Empty(ClientRename.MatchingMembers(r, "Smyth", " Smyth ")); // same name: nothing to do
+
+        Assert.Equal(1, ClientRename.ApplyMembers(r, found.Take(1)));
+        Assert.Equal("Smith", r.Household[1].LastName);
+        Assert.Equal(" smyth ", r.Household[2].LastName);
+        Assert.Equal("Example", r.Household[3].LastName);
+    }
+}

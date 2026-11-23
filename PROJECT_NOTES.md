@@ -132,6 +132,8 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - The folder is renamed first; if Windows can't (a file is open, or a folder with the new name exists),
   nothing changes. Files that can't be renamed are skipped and listed. The rename is in the activity log
   (folder and each file, old → new); the app log records only counts, no names.
+- The preview also lists household members (tab 2, member 2+) whose last name is the old spelling, ticked;
+  their last names change with the rename and show in the activity as ordinary edits.
 
 ## Deleting a client
 - Review tab → **Delete this client**: lists what's in the folder, then needs the client's last name
