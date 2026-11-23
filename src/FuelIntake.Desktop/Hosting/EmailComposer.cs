@@ -5,39 +5,74 @@ using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using FuelIntake.Core.Email;
 using FuelIntake.Core.Hosting;
+using Microsoft.Win32;
 
 namespace FuelIntake.Desktop.Hosting;
 
 /// <summary>
 /// Opens a new email for staff to check and send.
-/// 1. Classic Outlook (through its automation interface, no admin rights): To, subject, message above
-///    the staff member's signature, and the PDF attached.
-/// 2. Otherwise (new Outlook or no Outlook): the default mail app via a mailto: link, which can't carry
-///    an attachment, and File Explorer opens with the PDF selected so it can be dragged in.
+/// 1. Classic Outlook, only when it's really installed (through its automation interface, no admin rights):
+///    To, subject, message above the staff member's signature, and the PDF attached.
+/// 2. Otherwise (new Outlook or no Outlook): the default mail app via a mailto: link, or Outlook on the web
+///    when staff choose it. Neither can carry an attachment, so File Explorer opens with the PDF selected.
 /// </summary>
 public sealed class EmailComposer(Dispatcher dispatcher) : IEmailComposer
 {
-    public Task<ComposeResult> ComposeAsync(EmailDraft draft, string? attachmentLocation, CancellationToken ct = default) =>
+    public Task<ComposeResult> ComposeAsync(EmailDraft draft, string? attachmentLocation, EmailRoute route = EmailRoute.Auto, CancellationToken ct = default) =>
         dispatcher.InvokeAsync(() =>
+        {
+            if (route == EmailRoute.Auto)
+            {
+                try
+                {
+                    if (TryOutlook(draft, attachmentLocation)) return new ComposeResult(attachmentLocation is not null, "Outlook");
+                }
+                catch (Exception ex)
+                {
+                    StartupLog.Write("Email: classic Outlook couldn't open a new message; using the mail app instead", ex);
+                }
+            }
+            string how;
+            if (route == EmailRoute.OutlookWeb) { OutlookWeb(draft); how = "Outlook on the web"; }
+            else { MailTo(draft); how = "your mail app"; }
+            ShowInFolder(attachmentLocation);
+            return new ComposeResult(false, how);
+        }).Task;
+
+    /// <summary>File Explorer on the attachment's folder with the file selected, ready to drag into the email.</summary>
+    private static void ShowInFolder(string? file)
+    {
+        if (file is null || !File.Exists(file)) return;
+        // explorer wants /select,"path" as written: passing it as one quoted argument opens Documents instead
+        Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = false });
+    }
+
+    /// <summary>
+    /// Classic Outlook is installed when Windows has a path to OUTLOOK.EXE that exists. Without this check,
+    /// asking for Outlook on a laptop that only has the new Outlook makes Office offer to install classic Outlook.
+    /// </summary>
+    private static bool ClassicOutlookInstalled()
+    {
+        const string key = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\OUTLOOK.EXE";
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
         {
             try
             {
-                if (TryOutlook(draft, attachmentLocation)) return new ComposeResult(attachmentLocation is not null, "Outlook");
+                using var root = RegistryKey.OpenBaseKey(hive, view);
+                using var k = root.OpenSubKey(key);
+                if (k?.GetValue(null) is string exe && File.Exists(exe.Trim('"'))) return true;
             }
-            catch (Exception ex)
-            {
-                StartupLog.Write("Email: Outlook couldn't open a new message; using the mail app instead", ex);
-            }
-            MailTo(draft);
-            if (attachmentLocation is not null && File.Exists(attachmentLocation))
-                Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { "/select," + attachmentLocation }, UseShellExecute = false });
-            return new ComposeResult(false, "your mail app");
-        }).Task;
+            catch { /* key not readable: try the next */ }
+        }
+        return false;
+    }
 
     private static bool TryOutlook(EmailDraft draft, string? attachment)
     {
+        if (!ClassicOutlookInstalled()) return false;
         var type = Type.GetTypeFromProgID("Outlook.Application");
-        if (type is null) return false; // no classic Outlook
+        if (type is null) return false;
         dynamic? app = null, mail = null;
         try
         {
@@ -70,6 +105,15 @@ public sealed class EmailComposer(Dispatcher dispatcher) : IEmailComposer
         var i = html.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
         var end = i < 0 ? -1 : html.IndexOf('>', i);
         return end < 0 ? insert + html : html[..(end + 1)] + insert + html[(end + 1)..];
+    }
+
+    /// <summary>A new message in Outlook on the web (the same mailbox the new Outlook uses).</summary>
+    private static void OutlookWeb(EmailDraft draft)
+    {
+        var url = "https://outlook.office.com/mail/deeplink/compose?to=" + Uri.EscapeDataString(string.Join(";", draft.To)) +
+                  "&subject=" + Uri.EscapeDataString(draft.Subject) +
+                  "&body=" + Uri.EscapeDataString(draft.Body.Replace("\r\n", "\n"));
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     private static void MailTo(EmailDraft draft)
