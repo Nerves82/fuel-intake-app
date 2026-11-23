@@ -52,10 +52,45 @@ public partial class MainWindow : Window
         Resources.Add("services", provider);
         InitializeComponent();
         // scans of paper applications are shown from the client files folder under a fixed name
-        Blazor.BlazorWebViewInitialized += (_, e) => MapScanFolder(e.WebView.CoreWebView2);
+        Blazor.BlazorWebViewInitialized += (_, e) =>
+        {
+            MapScanFolder(e.WebView.CoreWebView2);
+            EnableRightClick(e.WebView.CoreWebView2);
+        };
         dataFolder.Changed += () => Dispatcher.Invoke(() => MapScanFolder(Blazor.WebView?.CoreWebView2));
         Title = $"NEKCA Fuel Assistance Intake — v{provider.GetRequiredService<HostInfo>().AppVersion.Split(' ', '+')[0]}";
         Closing += (_, _) => SavePending();
+    }
+
+    /// <summary>
+    /// The Blazor host turns the browser's right-click menu off outside development. Turn it back on for
+    /// cut / copy / paste / spelling, minus the web-page items that make no sense in the app.
+    /// </summary>
+    private static void EnableRightClick(Microsoft.Web.WebView2.Core.CoreWebView2? web)
+    {
+        if (web is null) return;
+        try
+        {
+            web.Settings.AreDefaultContextMenusEnabled = true;
+            string[] drop = ["back", "forward", "reload", "saveAs", "print", "createQrCode", "share", "webCapture",
+                             "inspectElement", "saveImageAs", "copyImageLocation", "openLinkInNewWindow", "saveLinkAs", "other"];
+            web.ContextMenuRequested += (_, e) =>
+            {
+                var items = e.MenuItems;
+                for (var i = items.Count - 1; i >= 0; i--)
+                    if (drop.Contains(items[i].Name, StringComparer.OrdinalIgnoreCase)) items.RemoveAt(i);
+                // tidy separators left at the ends or doubled up
+                for (var i = items.Count - 1; i >= 0; i--)
+                    if (items[i].Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Separator
+                        && (i == 0 || i == items.Count - 1 || items[i - 1].Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Separator))
+                        items.RemoveAt(i);
+                if (items.Count == 0) e.Handled = true; // nothing useful to show
+            };
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("Couldn't turn on the right-click menu", ex);
+        }
     }
 
     private void MapScanFolder(Microsoft.Web.WebView2.Core.CoreWebView2? web)
