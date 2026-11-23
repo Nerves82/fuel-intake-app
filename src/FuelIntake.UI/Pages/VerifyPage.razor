@@ -50,14 +50,14 @@
             }
         </div>
 
-        @if (import.ReadLayout is { Length: > 0 } layout)
+        @if (import.ReadLayout is { Length: > 0 } seen)
         {
             <details class="read-layout">
                 <summary>What the reader saw (names and numbers hidden)</summary>
                 <p class="note">If fields were missed, copy this and send it to whoever maintains the app: it shows the printed labels and where
                     things sit on the page, with the client's details replaced by x and 9, so the reading can be improved safely.</p>
-                <button class="secondary small" @onclick="() => Copy(layout)">Copy</button> @if (copied) { <span class="ok">Copied.</span> }
-                <pre>@layout</pre>
+                <button class="secondary small" @onclick="() => Copy(seen)">Copy</button> @if (copied) { <span class="ok">Copied.</span> }
+                <pre>@seen</pre>
             </details>
         }
 
