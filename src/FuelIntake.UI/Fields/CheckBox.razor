@@ -1,8 +1,13 @@
 @inherits FieldBase<bool>
-<label class="check" @attributes="Scope?.Attributes(Label)">
+@{ var issue = Issue; }
+<label class="check @Field.IssueClass(issue)" @attributes="Scope?.Attributes(Label)" title="@issue?.Message">
     <input type="checkbox" checked="@Value" @onchange="e => SetAsync(e.Value is true)" />
     <span>@Label</span><NoteMarker Label="@Label" />
-    @if (!string.IsNullOrEmpty(Hint))
+    @if (issue is not null)
+    {
+        <small class="issue-text">@Field.IssueIcon(issue) @issue.Message</small>
+    }
+    else if (!string.IsNullOrEmpty(Hint))
     {
         <small>@Hint</small>
     }

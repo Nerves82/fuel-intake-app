@@ -1,10 +1,15 @@
-@* Layout wrapper: label on top, control, then a hint or problem line. *@
-<div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem")" @attributes="Scope?.Attributes(Label)">
+@* Layout wrapper: label on top, control, then a hint, a problem with what was typed, or a review issue about the field. *@
+@using FuelIntake.Core.Validation
+<div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem") @IssueClass(Issue)" @attributes="Scope?.Attributes(Label)">
     <label for="@For">@Label<NoteMarker Label="@Label" /></label>
     @ChildContent
     @if (Problem is not null)
     {
         <div class="problem">@Problem</div>
+    }
+    else if (Issue is { } issue)
+    {
+        <div class="issue-text" role="status">@IssueIcon(issue) @issue.Message</div>
     }
     else if (!string.IsNullOrEmpty(Hint))
     {
@@ -18,6 +23,23 @@
     [Parameter] public string? Hint { get; set; }
     [Parameter] public string? Problem { get; set; }
     [Parameter] public bool Wide { get; set; }
+    /// <summary>A Review-tab issue about this field: the field is outlined and the message shown under it.</summary>
+    [Parameter] public ValidationIssue? Issue { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [CascadingParameter] public FieldScope? Scope { get; set; }
+
+    public static string IssueClass(ValidationIssue? i) => i?.Severity switch
+    {
+        IssueSeverity.Error => "issue issue-error",
+        IssueSeverity.Warning => "issue issue-warning",
+        IssueSeverity.Info => "issue issue-info",
+        _ => "",
+    };
+
+    public static string IssueIcon(ValidationIssue i) => i.Severity switch
+    {
+        IssueSeverity.Error => "⛔",
+        IssueSeverity.Warning => "⚠",
+        _ => "ℹ",
+    };
 }

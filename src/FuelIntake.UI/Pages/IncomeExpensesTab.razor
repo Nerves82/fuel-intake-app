@@ -14,7 +14,7 @@
                 {
                     <tr>
                         <td>@line.Label</td>
-                        <td><MoneyCell Value="@Income(line.Key)" ValueChanged="v => SetIncome(line.Key, v)" Label="@line.Label" /></td>
+                        <td><MoneyCell Value="@Income(line.Key)" ValueChanged="v => SetIncome(line.Key, v)" Label="@line.Label" Path="@($"incomeExpenses.income.{line.Key}")" /></td>
                     </tr>
                     @if (line.Key == "Other")
                     {
@@ -46,8 +46,8 @@
                 {
                     <tr>
                         <td>@line.Label</td>
-                        <td><MoneyCell Value="@Expense(line.Key).PaidLast30Days" ValueChanged="v => SetExpense(line.Key, e => e.PaidLast30Days = v)" Label="@($"{line.Label} paid")" /></td>
-                        <td><MoneyCell Value="@Expense(line.Key).Bill" ValueChanged="v => SetExpense(line.Key, e => e.Bill = v)" Label="@($"{line.Label} bill")" /></td>
+                        <td><MoneyCell Value="@Expense(line.Key).PaidLast30Days" ValueChanged="v => SetExpense(line.Key, e => e.PaidLast30Days = v)" Label="@($"{line.Label} paid")" Path="@($"incomeExpenses.expenses.{line.Key}.paidLast30Days")" /></td>
+                        <td><MoneyCell Value="@Expense(line.Key).Bill" ValueChanged="v => SetExpense(line.Key, e => e.Bill = v)" Label="@($"{line.Label} bill")" Path="@($"incomeExpenses.expenses.{line.Key}.bill")" /></td>
                     </tr>
                 }
                 <tr class="total"><td>Total expenses</td><td>@Money.Format(calc.ExpensesPaidTotal)</td><td>@Money.Format(calc.ExpensesBillTotal)</td></tr>

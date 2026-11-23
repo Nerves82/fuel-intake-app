@@ -20,8 +20,33 @@ public sealed class ComplianceSettings
         [
             new() { Name = "Warmth", Description = "Applications paid from Warmth funds" },
             new() { Name = "Crisis Fuel", Description = "Applications paid from Crisis Fuel funds" },
+            Vermont201SF(),
         ],
     };
+
+    public const string Vermont201SFName = "Vermont Fuel Assistance (201SF)";
+
+    /// <summary>
+    /// Built in: what the state's 201SF Eligibility Review needs from the intake, so the printed form isn't missing
+    /// answers the app could have filled in. Agencies whose settings were saved before it existed add it from Settings.
+    /// </summary>
+    public static ComplianceStandard Vermont201SF() => new()
+    {
+        Name = Vermont201SFName,
+        Description = "Everything the Vermont Fuel Assistance Eligibility Review (DCF form 201SF) asks that the intake can fill in",
+        Required =
+        [
+            "client.firstName", "client.lastName", "client.dateOfBirth", "client.addressPhysical", "client.city", "client.zip",
+            "client.phone", "client.housingType",
+            "household[*].firstName", "household[*].lastName", "household[*].dateOfBirth", "household[*].ssn",
+            "fuelElectric.fuelType", "fuelElectric.vendor", "fuelElectric.vendorAccount",
+            "fuelElectric.electricProvider", "fuelElectric.electricAccount",
+            "staff.staffName",
+        ],
+    };
+
+    /// <summary>True when a standard with the built-in 201SF standard's name is already in the list.</summary>
+    public bool Has201SF => Standards.Any(x => string.Equals(x.Name.Trim(), Vermont201SFName, StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>One standard: which fields must be filled in for an application under it.</summary>

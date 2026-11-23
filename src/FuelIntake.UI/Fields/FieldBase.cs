@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using FuelIntake.Core.Validation;
 using FuelIntake.UI.Services;
 using Microsoft.AspNetCore.Components;
 
@@ -21,6 +23,15 @@ public abstract class FieldBase<T> : ComponentBase
     [Parameter] public bool Wide { get; set; }
 
     protected string Id { get; } = "f" + Interlocked.Increment(ref counter);
+
+    /// <summary>Filled in by @bind-Value: tells the field which part of the record it edits.</summary>
+    [Parameter] public Expression<Func<T>>? ValueExpression { get; set; }
+
+    /// <summary>The field's record path when it can't be worked out from @bind-Value ("incomeExpenses.income.SSA").</summary>
+    [Parameter] public string? Path { get; set; }
+
+    /// <summary>The most serious validation issue about this field (shown on the field), or null.</summary>
+    protected ValidationIssue? Issue => Session.IssueAt(Path ?? BoundPath.Of(ValueExpression, Session.Paths));
 
     protected async Task SetAsync(T value)
     {
