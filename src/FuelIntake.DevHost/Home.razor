@@ -16,6 +16,7 @@
     [SupplyParameterFromQuery(Name = "tab")] public int? SettingsTab { get; set; }
     [SupplyParameterFromQuery(Name = "lastname")] public string? NewLast { get; set; }
     [SupplyParameterFromQuery(Name = "paper")] public int? Paper { get; set; }
+    [SupplyParameterFromQuery(Name = "clients")] public int? SeedClients { get; set; }
     [Inject] public FuelIntake.Core.Import.IPendingImports Pending { get; set; } = default!;
     private bool ready;
 
@@ -57,6 +58,21 @@
             foreach (var f in imp.Fields.Take(3)) FuelIntake.Core.Import.PaperImportRules.SetConfirmed(f, true, Session.Me, DateTimeOffset.Now);
             var id = await Pending.CreateAsync(imp, ["page1.pdf", "page2.pdf"]);
             Session.OpenPendingImport(id);
+        }
+        if (SeedClients is 1)
+        {
+            // preview the compliance badges in the clients list: picked, from the grant source, none
+            await Session.CreateAsync("Testy", "Warmthson", SampleIntakes.All[0].Build, "Warmth");
+            await Session.CreateAsync("Testy", "Granterly", SampleIntakes.All[1].Build);
+            Session.Record!.Application.ComplianceStandard = null;
+            Session.Record.FuelElectric.FuelOrder.FundingSource = "Crisis Fuel";
+            Session.Changed(); await Session.SaveAsync();
+            await Session.CreateAsync("Testy", "Plainfield", SampleIntakes.All[2].Build);
+            Session.Record!.FuelElectric.FuelOrder.FundingSource = null;
+            Session.Record.FuelElectric.ElectricPledge.FundingSource = null;
+            Session.Record.FuelElectric.Invoice.FundingSource = null;
+            Session.Changed(); await Session.SaveAsync();
+            await Session.CloseAsync();
         }
         if (SettingsTab is int t) Session.SettingsTab = t;
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);

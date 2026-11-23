@@ -1,0 +1,12 @@
+@*
+  The compliance standard badge beside a client in the clients list. Dashed when it comes from the grant
+  source rather than being picked; a warning colour when the picked standard isn't in the settings any more.
+*@
+@if (Badge is { } b)
+{
+    <span class="badge compliance @(b.Unknown ? "unknown" : b.FromGrant ? "from-grant" : "")" title="@b.Tooltip">@b.Name</span>
+}
+
+@code {
+    [Parameter] public FuelIntake.Core.Compliance.ComplianceBadge? Badge { get; set; }
+}

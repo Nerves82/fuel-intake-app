@@ -98,3 +98,37 @@ public static class ComplianceRules
     private static byte[] Hash(string passcode, byte[] salt) =>
         Rfc2898DeriveBytes.Pbkdf2(passcode, salt, 100_000, HashAlgorithmName.SHA256, 32);
 }
+
+/// <summary>The compliance standard shown beside a client in the clients list.</summary>
+/// <param name="Name">The standard's name.</param>
+/// <param name="FromGrant">True when it comes from the grant source rather than being picked.</param>
+/// <param name="Unknown">True when the picked name is no longer in the compliance settings.</param>
+public sealed record ComplianceBadge(string Name, bool FromGrant, bool Unknown)
+{
+    public string Tooltip => Unknown ? $"{Name} isn't in the compliance settings any more"
+        : FromGrant ? $"{Name}, from the grant source" : $"Compliance standard: {Name}";
+
+    /// <summary>The badge for a record: the picked standard, else the one from the grant source, else none.</summary>
+    public static ComplianceBadge? For(IntakeRecord? r, ComplianceSettings c)
+    {
+        if (r is null) return null;
+        var picked = r.Application.ComplianceStandard?.Trim();
+        if (!string.IsNullOrEmpty(picked))
+        {
+            var s = ComplianceRules.Effective(r, c);
+            return s is null ? new(picked, false, true) : new(s.Name, false, false);
+        }
+        return ComplianceRules.FromGrant(r, c) is { } g ? new(g.Name, true, false) : null;
+    }
+
+    /// <summary>
+    /// The standard a new client starts under: the name as it's spelled in the settings, or null for none
+    /// (blank, or not one of the standards).
+    /// </summary>
+    public static string? ForNewClient(string? chosen, ComplianceSettings c)
+    {
+        var name = chosen?.Trim();
+        if (string.IsNullOrEmpty(name)) return null;
+        return c.Standards.FirstOrDefault(s => string.Equals(s.Name.Trim(), name, StringComparison.OrdinalIgnoreCase))?.Name;
+    }
+}
