@@ -1,6 +1,13 @@
 @using FuelIntake.Core.Validation
 @using FuelIntake.Core.TestData
+@using FuelIntake.Core.Email
+@using FuelIntake.Core.Packets
+@using FuelIntake.UI.Printing
 @inject IntakeSession Session
+@inject PacketRenderer Renderer
+@inject IPdfPrinter Printer
+@inject FuelIntake.Core.Storage.IFileOutput Output
+@inject IEmailComposer Mail
 @inject ITestDataSets TestSets
 @inject TimeProvider Clock
 @{ var calc = Session.Calc!; }
@@ -39,6 +46,51 @@ else
             </ul>
         </section>
     }
+}
+
+@if (Session.Record!.Application.CrisisType?.Trim() != CrisisTypes.DisconnectNotice)
+{
+    var rec = Session.Record!;
+    var draft = FuelOrderEmail.Build(rec, calc, Session.Settings);
+    var problems = FuelOrderEmail.Problems(rec, calc);
+    <section class="card fuel-email">
+        <h2>Email the Fuel Order to the vendor</h2>
+        @if (problems.Count > 0)
+        {
+            <ul class="problems">@foreach (var p in problems) { <li class="warning">@p</li> }</ul>
+        }
+        else
+        {
+            <table class="changes mail-summary">
+                <tr><td>To</td><td>@(rec.IsTestData ? "(left blank: this is test data, don't send it to the vendor)" : string.Join("; ", draft.To))</td></tr>
+                <tr><td>Subject</td><td>@draft.Subject</td></tr>
+                <tr><td>Attachment</td>
+                    <td>
+                        @if (savedPdf is not null && !newPdf)
+                        {
+                            <span>@savedPdf <span class="note">(already in the client's folder)</span></span>
+                        }
+                        else
+                        {
+                            <span>@FuelOrderEmail.PdfFileName(rec, Session.Today, Session.Settings.FileDateFormat)
+                                <span class="note">(made now from tab 5 and saved to the client's folder)</span></span>
+                        }
+                        @if (savedPdf is not null)
+                        {
+                            <label class="check-line small"><input type="checkbox" @bind="newPdf" /> Make a new Fuel Order PDF (the order changed since @savedPdf was saved)</label>
+                        }
+                    </td></tr>
+            </table>
+            <details>
+                <summary>Message</summary>
+                <pre class="mail-body">@draft.Body</pre>
+            </details>
+            <p class="note">The email opens in Outlook for you to check and send; nothing is sent automatically.
+                Change the wording under <button class="link" @onclick="() => { Session.SettingsTab = 2; Session.Go(Screen.Settings); }">Staff, vendors &amp; settings → Agency settings</button>.</p>
+            @if (mailMessage is not null) { <p class="@(mailError ? "problem" : "ok")">@mailMessage</p> }
+            <div class="actions"><button disabled="@mailBusy" @onclick="CreateEmail">@(mailBusy ? "Working…" : "Create email")</button></div>
+        }
+    </section>
 }
 
 @if (Session.Record!.IsTestData)
@@ -150,6 +202,52 @@ else
 </section>
 
 @code {
+    private string? savedPdf, mailMessage;
+    private bool newPdf, mailBusy, mailError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { savedPdf = FuelOrderEmail.FindSavedPdf(await Session.ClientFilesAsync(), Session.Record!, Session.Settings.FileDateFormat); }
+        catch (Exception) { savedPdf = null; } // can't list the folder: a new PDF will be made
+    }
+
+    private async Task CreateEmail()
+    {
+        mailBusy = true; mailMessage = null; mailError = false;
+        try
+        {
+            var rec = Session.Record!;
+            await Session.SaveAsync();
+            string location, file;
+            if (savedPdf is not null && !newPdf)
+            {
+                file = savedPdf;
+                location = Output.LocationOf(Session.Folder!.Id, file);
+            }
+            else
+            {
+                file = FuelOrderEmail.PdfFileName(rec, Session.Today, Session.Settings.FileDateFormat);
+                var context = new PrintContext(rec, Session.Calc!, Session.Settings, Session.Today);
+                var html = await Renderer.RenderAsync(context, [FormId.FuelOrder], Path.GetFileNameWithoutExtension(file));
+                var pdf = await Printer.PrintAsync(html);
+                location = await Output.SaveAsync(Session.Folder!.Id, file, pdf);
+                file = Path.GetFileName(location);
+                savedPdf = file; newPdf = false;
+            }
+            var draft = FuelOrderEmail.Build(rec, Session.Calc!, Session.Settings);
+            if (rec.IsTestData) draft = draft with { To = [] };
+            var opened = await Mail.ComposeAsync(draft, location);
+            mailMessage = opened.Attached
+                ? $"Opened in {opened.How} with {file} attached. Check it and press Send."
+                : $"Opened in {opened.How}. Your mail app can't take attachments this way: drag {file} from the folder window that opened into the email, then send.";
+        }
+        catch (Exception ex)
+        {
+            mailError = true;
+            mailMessage = "Couldn't create the email: " + ex.Message;
+        }
+        finally { mailBusy = false; }
+    }
     private bool deleteOpen, deleting;
     private string? deleteTyped, deleteError;
     private IReadOnlyList<string>? deleteFiles;

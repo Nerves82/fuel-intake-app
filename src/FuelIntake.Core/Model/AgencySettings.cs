@@ -16,6 +16,15 @@ public sealed class AgencySettings
     /// <summary>Fuel Order "send invoice to" phone when the staff member has none.</summary>
     public string? DefaultInvoicePhone { get; set; }
 
+    /// <summary>Subject of the Fuel Order email to the vendor; blank = the built-in default (Email.FuelOrderEmail).</summary>
+    public string? FuelOrderEmailSubject { get; set; }
+
+    /// <summary>Message of the Fuel Order email; blank = the built-in default.</summary>
+    public string? FuelOrderEmailBody { get; set; }
+
+    /// <summary>A copy to change and save (the lists inside are shared, so replace them rather than editing in place).</summary>
+    public AgencySettings Copy() => (AgencySettings)MemberwiseClone();
+
     /// <summary>Grant/funding sources offered on the Fuel Order, invoice and Electric Pledge.</summary>
     public List<GrantSource> GrantSources { get; set; } = [];
 
