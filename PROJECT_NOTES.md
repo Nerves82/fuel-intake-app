@@ -113,6 +113,11 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   PDF in Chromium (Playwright `page.pdf(prefer_css_page_size=True)`) — same engine as WebView2.
 - Re-printing replaces the PDF of the same name; if it's open in a viewer, a "(2)" copy is saved.
 - Consent forms are not drawn: they're copied from the Masters folder into new client folders.
+- PDFs are made in a separate WebView2 browser with its own working folder
+  (`%LOCALAPPDATA%\FuelIntake\WebView2-print`), started on the first save and reused. Sharing the main
+  window's browser gave "The group or resource is not in the correct state" on the NEKCA laptop. If the
+  print browser fails it's restarted once, then the main browser is tried. The forms are served to it
+  from memory (no temp files). Failures are logged with their error code.
 
 ## Light / dark mode
 - The round button at the right of the header cycles System (◐, follows Windows) → Light (☀) → Dark (☾).
