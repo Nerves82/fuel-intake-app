@@ -187,3 +187,32 @@ public class ScanFieldReaderProfileTests
         Assert.Equal("05819", V(i, "client.zip"));
     }
 }
+
+public class ScanFieldReaderChoiceTests
+{
+    [Fact]
+    public void MisreadChoices_SnapToTheClosestOption_OrStayBlank()
+    {
+        Assert.Equal("High School plus some college",
+            ScanFieldReader.ClosestChoice("High School phis some ccNege", FuelIntake.Core.Lists.ChoiceLists.Education));
+        Assert.Null(ScanFieldReader.ClosestChoice("Banana bread", FuelIntake.Core.Lists.ChoiceLists.Education));
+
+        OcrLine L(double y, string text)
+        {
+            double x = 0.05; var words = new List<OcrWord>();
+            foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+            return new OcrLine(words);
+        }
+        var page = new OcrPage("p.pdf", 1, [L(0.1, "Highest Education: High School phis some ccNege"), L(0.2, "Race: Banana bread")]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+
+        var edu = i.Fields.Single(f => f.Path == "household[0].education");
+        Assert.Equal("High School plus some college", edu.Value);
+        Assert.True(edu.Confidence < 0.5); // marked unsure
+
+        var race = i.Fields.Single(f => f.Path == "household[0].race");
+        Assert.Null(race.Value);                 // no nonsense in the box…
+        Assert.Equal("Banana bread", race.ReadValue); // …but what the scan said is shown
+    }
+}

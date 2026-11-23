@@ -77,8 +77,9 @@ public static partial class ScanFieldReader
             if (labels.Count == 0) continue;
             var found = Find(pages, labels, allLabels, field);
             if (found is null) continue;
-            field.Value = found.Value.Value;
-            field.ReadValue = found.Value.Value;
+            // a list field whose text matched no choice stays blank; what the scan said is kept to show staff
+            field.Value = found.Value.Value.Length == 0 ? null : found.Value.Value;
+            field.ReadValue = found.Value.Value.Length == 0 ? found.Value.Raw : found.Value.Value;
             field.Confidence = found.Value.Confidence;
             field.Spot = found.Value.Spot;
             filled++;
@@ -140,9 +141,9 @@ public static partial class ScanFieldReader
         return [];
     }
 
-    private static (string Value, double Confidence, ScanSpot Spot)? Find(IReadOnlyList<OcrPage> pages, List<string> labels, List<string> allLabels, ImportField field)
+    private static (string Value, string Raw, double Confidence, ScanSpot Spot)? Find(IReadOnlyList<OcrPage> pages, List<string> labels, List<string> allLabels, ImportField field)
     {
-        (string Value, double Confidence, ScanSpot Spot)? best = null;
+        (string Value, string Raw, double Confidence, ScanSpot Spot)? best = null;
         foreach (var page in pages)
         for (var li = 0; li < page.Lines.Count; li++)
         {
@@ -176,11 +177,13 @@ public static partial class ScanFieldReader
                     var raw = Clean(string.Join(' ', cand.Select(w => w.Text)));
                     if (raw.Length == 0) continue;
                     var (value, ok) = fullName ? NamePart(field, raw) : Shape(field, raw);
-                    if (value.Length == 0) continue;
-                    var confidence = ok ? 0.6 : 0.3;
+                    var unmatchedChoice = value.Length == 0 && field.Kind == ImportFieldKind.Choice && raw.Any(char.IsLetter);
+                    if (value.Length == 0 && !unmatchedChoice) continue;
+                    var confidence = ok ? 0.6 : unmatchedChoice ? 0.1 : value.Length > 0 && FuzzyHit ? 0.45 : 0.3;
+                    FuzzyHit = false;
                     var spot = new ScanSpot(page.File, page.Page, cand.Min(w => w.X), cand.Min(w => w.Y),
                         cand.Max(w => w.Right) - cand.Min(w => w.X), cand.Max(w => w.Bottom) - cand.Min(w => w.Y));
-                    if (best is null || confidence > best.Value.Confidence) best = (value, confidence, spot);
+                    if (best is null || confidence > best.Value.Confidence) best = (value, raw, confidence, spot);
                     if (ok) return best;
                     break; // first non-empty candidate for this label occurrence
                 }
@@ -253,7 +256,11 @@ public static partial class ScanFieldReader
             case ImportFieldKind.Choice when f.Options is { Count: > 0 } options:
                 var hit = options.Where(o => Norm(raw).Contains(Norm(o), StringComparison.Ordinal))
                     .OrderByDescending(o => o.Length).FirstOrDefault();
-                return hit is not null ? (hit, true) : (raw, false);
+                if (hit is not null) return (hit, true);
+                // misread letters ("High School phis some ccNege"): the closest choice if it's close enough
+                var close = ClosestChoice(raw, options);
+                if (close is not null) { FuzzyHit = true; return (close, false); }
+                return ("", false); // nothing close: left for staff to pick, with the scan's text shown
             case ImportFieldKind.Check:
                 // "SNAP: Yes" / "X" / "✔" → ticked; "No" → left blank (staff still confirm it)
                 var mark = Norm(raw).Split(' ').FirstOrDefault() ?? "";
@@ -300,6 +307,29 @@ public static partial class ScanFieldReader
         var ext = keepExtension ? Path.GetExtension(text) : "";
         var core = keepExtension ? text[..^ext.Length] : text;
         return new string(core.Select(c => char.IsDigit(c) ? '9' : char.IsLetter(c) ? 'x' : c).ToArray()) + ext;
+    }
+
+    [ThreadStatic] private static bool FuzzyHit;
+
+    /// <summary>The choice most like the text (letters misread by the scan reader), when at least 75% alike.</summary>
+    public static string? ClosestChoice(string text, IEnumerable<string> options)
+    {
+        var t = Norm(text);
+        if (t.Length < 3) return null;
+        var scored = options.Select(o => (Option: o, Score: Similarity(t, Norm(o)))).OrderByDescending(x => x.Score).FirstOrDefault();
+        return scored.Option is not null && scored.Score >= 0.75 ? scored.Option : null;
+    }
+
+    private static double Similarity(string a, string b)
+    {
+        if (a.Length == 0 || b.Length == 0) return 0;
+        var d = new int[a.Length + 1, b.Length + 1];
+        for (var i = 0; i <= a.Length; i++) d[i, 0] = i;
+        for (var j = 0; j <= b.Length; j++) d[0, j] = j;
+        for (var i = 1; i <= a.Length; i++)
+        for (var j = 1; j <= b.Length; j++)
+            d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+        return 1.0 - (double)d[a.Length, b.Length] / Math.Max(a.Length, b.Length);
     }
 
     private static int IndexOf(List<string> words, string[] label)
