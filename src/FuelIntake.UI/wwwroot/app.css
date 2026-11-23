@@ -299,3 +299,23 @@ button.small { padding: 2px 10px; font-size: 13px; }
 .mail-summary td:first-child { color: var(--quiet); width: 7rem; vertical-align: top; }
 .mail-body { white-space: pre-wrap; font-family: inherit; background: var(--calc); border-radius: 6px; padding: 10px 12px; margin: 6px 0; }
 .check-line.small { font-size: 13px; margin-top: 4px; }
+
+/* paper applications (ClientsPage box, VerifyPage) */
+.paper-box h3 { font-size: 0.95rem; margin: 14px 0 4px; }
+.badge.pending { background: var(--warn-soft); color: var(--warn); }
+.verify-page { max-width: 1500px; }
+.verify-head { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.verify-progress { display: flex; flex-direction: column; gap: 4px; min-width: 14rem; }
+.verify-progress progress { width: 100%; height: 10px; accent-color: var(--accent); }
+.verify-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.verify-scan { position: sticky; top: 8px; }
+.scan-view { width: 100%; height: calc(100vh - 150px); border: 1px solid var(--line); border-radius: 6px; background: var(--preview-bg); }
+.verify-row { display: grid; grid-template-columns: minmax(0, 1fr) 11rem; gap: 12px; align-items: center; padding: 6px 8px;
+    border-left: 3px solid var(--warn); border-radius: 4px; margin: 4px 0; }
+.verify-row.confirmed { border-left-color: var(--ok); background: var(--calc); }
+.verify-row.has-problem { border-left-color: var(--bad); }
+.verify-row .field { margin: 0; }
+.verify-row label.confirm { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; cursor: pointer; flex-wrap: wrap; }
+.verify-row label.confirm input { width: 18px; height: 18px; }
+.verify-row label.confirm small { font-weight: normal; color: var(--quiet); width: 100%; padding-left: 24px; }
+@media (max-width: 1000px) { .verify-layout { grid-template-columns: 1fr; } .verify-scan { position: static; } }

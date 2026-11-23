@@ -33,6 +33,9 @@ public sealed class LocalDataFolder : IDataFolder
 
     public string DefaultPath { get; }
 
+    /// <summary>Raised after switching to another folder.</summary>
+    public event Action? Changed;
+
     /// <summary>The folder holding the client folders.</summary>
     public string Root { get; private set; }
 
@@ -105,6 +108,7 @@ public sealed class LocalDataFolder : IDataFolder
         File.WriteAllText(choiceFile, JsonSerializer.Serialize(new Saved(DataFolderRules.ToSaved(next, DefaultPath)), Json));
         StartupLog.Write($"Client files folder changed to {next}");
         Root = next;
+        Changed?.Invoke();
         return Task.CompletedTask;
     }
 

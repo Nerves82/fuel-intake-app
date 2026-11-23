@@ -1,0 +1,237 @@
+@* Approval page for a paper application: every field is checked against the scan and ticked
+   "This is correct" before the client can be created. Saved as you go, so it can take several sessions. *@
+@using FuelIntake.Core.Import
+@inject IntakeSession Session
+@inject IPendingImports Pending
+@inject IJSRuntime JS
+
+<main class="page verify-page">
+    @if (loadError is not null)
+    {
+        <h1>Paper application</h1>
+        <p class="problem">@loadError</p>
+        <button class="secondary" @onclick="Session.LeavePendingImport">Back to clients</button>
+    }
+    else if (import is null)
+    {
+        <p class="note">Loading…</p>
+    }
+    else
+    {
+        var done = PaperImportRules.ConfirmedCount(import);
+        var total = import.Fields.Count;
+        var blockers = PaperImportRules.Blockers(import, Session.Today);
+        <div class="verify-head">
+            <div>
+                <h1>@PaperImportRules.DisplayName(import) <span class="badge pending">pending verification</span></h1>
+                <p class="lead">Check each field against the scan. Fix it if needed, then tick <strong>This is correct</strong>.
+                    Blank fields need a tick too, so nothing the reader missed slips through. Everything is saved as you go.</p>
+            </div>
+            <div class="verify-progress">
+                <strong>@done of @total checked</strong>
+                <progress max="@total" value="@done"></progress>
+                <button class="secondary small" disabled="@(done == total)" @onclick="NextUnchecked">Next unchecked ↓</button>
+            </div>
+        </div>
+
+        <div class="verify-layout">
+            <div class="verify-fields">
+                @foreach (var group in import.Fields.Select((f, i) => (f, i)).GroupBy(x => x.f.Group))
+                {
+                    <section class="card">
+                        <h2>@group.Key <span class="note">@group.Count(x => x.f.Confirmed) of @group.Count() checked</span></h2>
+                        @foreach (var (f, i) in group)
+                        {
+                            var field = f;
+                            var problem = PaperImportRules.Problem(field, Session.Today);
+                            <div class="verify-row @(field.Confirmed ? "confirmed" : "") @(problem is null ? "" : "has-problem")" id="imp-@i">
+                                <div class="verify-input">
+                                    @switch (field.Kind)
+                                    {
+                                        case ImportFieldKind.Check:
+                                            <CheckBox Label="@field.Label" Value="@(field.Value == PaperImportRules.Checked)"
+                                                      ValueChanged="v => SetValue(field, v ? PaperImportRules.Checked : null)" Hint="ticked on the form" />
+                                            break;
+                                        case ImportFieldKind.Choice when field.Options is { Count: > 0 } options:
+                                            <SelectBox Label="@field.Label" Value="@field.Value" ValueChanged="v => SetValue(field, v)" Options="options" />
+                                            break;
+                                        default:
+                                            <TextBox Label="@field.Label" Value="@field.Value" ValueChanged="v => SetValue(field, v)" Placeholder="@Placeholder(field.Kind)"
+                                                     Hint="@(field.ReadValue is { } read && read != field.Value ? $"Read from scan: {read}" : null)" />
+                                            break;
+                                    }
+                                    @if (problem is not null) { <div class="problem">@problem</div> }
+                                </div>
+                                <label class="confirm">
+                                    <input type="checkbox" checked="@field.Confirmed" @onchange="e => Confirm(field, e.Value is true)" />
+                                    <span>This is correct@(string.IsNullOrWhiteSpace(field.Value) && field.Kind != ImportFieldKind.Check ? " (left blank)" : "")</span>
+                                    @if (field.Confirmed && field.ConfirmedBy is { } by && by.Name != Session.Me.Name)
+                                    {
+                                        <small>by @by.Name</small>
+                                    }
+                                </label>
+                            </div>
+                        }
+                        @if (group.Key.StartsWith("Member", StringComparison.Ordinal) && group.Key == ImportFieldCatalog.MemberGroup(import.MemberCount))
+                        {
+                            <div class="actions">
+                                <button class="secondary small" @onclick="AddMember">+ Add household member</button>
+                                @if (import.MemberCount > 1)
+                                {
+                                    <button class="link danger" @onclick="RemoveMember">Remove member @import.MemberCount</button>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+
+                <section class="card verify-finish">
+                    <h2>Create the client</h2>
+                    @if (blockers.Count > 0)
+                    {
+                        <ul class="problems">@foreach (var b in blockers) { <li class="warning">@b</li> }</ul>
+                    }
+                    else
+                    {
+                        <p class="ok">Every field is checked. Creating the client makes the folder <strong>@PaperImportRules.DisplayName(import)</strong>,
+                            moves the scans into it and opens the Review tab.</p>
+                    }
+                    @if (message is not null) { <p class="@(messageIsError ? "problem" : "ok")">@message</p> }
+                    <div class="actions">
+                        <button disabled="@(blockers.Count > 0 || busy)" @onclick="Create">@(busy ? "Creating…" : "Create client")</button>
+                        <button class="secondary" @onclick="Session.LeavePendingImport">Finish later</button>
+                        <span class="spacer"></span>
+                        @if (confirmDiscard)
+                        {
+                            <span class="note">Throw away this application and its scans (Recycle Bin)?</span>
+                            <button class="danger" @onclick="Discard">Yes, discard</button>
+                            <button class="link" @onclick="() => confirmDiscard = false">Keep</button>
+                        }
+                        else
+                        {
+                            <button class="link danger" @onclick="() => confirmDiscard = true">Discard application…</button>
+                        }
+                    </div>
+                </section>
+            </div>
+
+            <aside class="verify-scan">
+                @if (import.ScanFiles.Count == 0)
+                {
+                    <p class="note">No scans attached.</p>
+                }
+                else
+                {
+                    <div class="subtabs">
+                        @foreach (var file in import.ScanFiles)
+                        {
+                            var f = file;
+                            <button class="@(f == scan ? "active" : "")" @onclick="() => scan = f">@f</button>
+                        }
+                    </div>
+                    @if (scan is not null && Pending.ViewUrl(Session.PendingImportId!, scan) is { } url)
+                    {
+                        <iframe class="scan-view" src="@url" title="Scanned page"></iframe>
+                    }
+                    else
+                    {
+                        <p class="note">Scans show here in the desktop app.</p>
+                    }
+                }
+            </aside>
+        </div>
+    }
+</main>
+
+@code {
+    private PaperImport? import;
+    private string? loadError, message, scan;
+    private bool busy, messageIsError, confirmDiscard;
+    private readonly SemaphoreSlim saving = new(1, 1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            import = await Pending.GetAsync(Session.PendingImportId!);
+            scan = import.ScanFiles.FirstOrDefault();
+        }
+        catch (Exception ex) { loadError = "Couldn't open this paper application: " + ex.Message; }
+    }
+
+    private static string? Placeholder(ImportFieldKind k) => k switch
+    {
+        ImportFieldKind.Date => "MM/DD/YYYY",
+        ImportFieldKind.Money => "$",
+        ImportFieldKind.Ssn => "123-45-6789",
+        ImportFieldKind.Phone => "802-555-0100",
+        _ => null,
+    };
+
+    private Task SetValue(ImportField f, string? value)
+    {
+        PaperImportRules.SetValue(f, value); // a changed value needs ticking again
+        return Save();
+    }
+
+    private Task Confirm(ImportField f, bool on)
+    {
+        PaperImportRules.SetConfirmed(f, on, Session.Me, DateTimeOffset.Now);
+        return Save();
+    }
+
+    private Task AddMember() { PaperImportRules.AddMember(import!); return Save(); }
+    private Task RemoveMember() { PaperImportRules.RemoveLastMember(import!); return Save(); }
+
+    private async Task Save()
+    {
+        await saving.WaitAsync();
+        try
+        {
+            await Pending.SaveAsync(Session.PendingImportId!, import!);
+            if (messageIsError) message = null;
+        }
+        catch (Exception ex) { message = "Couldn't save your checks: " + ex.Message; messageIsError = true; }
+        finally { saving.Release(); }
+    }
+
+    private async Task NextUnchecked()
+    {
+        var i = import!.Fields.FindIndex(f => !f.Confirmed);
+        if (i < 0) return;
+        try { await JS.InvokeAsync<bool>("fuelIntake.reveal", $"imp-{i}"); } catch (Exception) { }
+    }
+
+    private async Task Create()
+    {
+        busy = true; message = null;
+        var id = Session.PendingImportId!;
+        try
+        {
+            await Session.CreateFromPaperAsync(import!);
+        }
+        catch (Exception ex)
+        {
+            message = "Couldn't create the client: " + ex.Message; messageIsError = true;
+            busy = false;
+            return;
+        }
+        try { await Pending.FinishAsync(id, Session.Folder!.Id); }
+        catch (Exception ex)
+        {
+            Session.ShowNotice("The client was created, but the scans couldn't be moved into its folder: " + ex.Message +
+                               " They're still in the holding folder; move them by hand.");
+        }
+        busy = false;
+    }
+
+    private async Task Discard()
+    {
+        try
+        {
+            await Pending.DiscardAsync(Session.PendingImportId!);
+            Session.LeavePendingImport();
+        }
+        catch (Exception ex) { message = "Couldn't discard: " + ex.Message; messageIsError = true; }
+    }
+}

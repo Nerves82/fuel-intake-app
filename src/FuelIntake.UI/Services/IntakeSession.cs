@@ -8,7 +8,7 @@ using FuelIntake.Core.Validation;
 namespace FuelIntake.UI.Services;
 
 /// <summary>Which screen is showing.</summary>
-public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Print, Check, Settings }
+public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Print, Check, Settings, Verify }
 
 /// <summary>
 /// The open client and everything the screens share: the record, calculated values, lists,
@@ -304,6 +304,67 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
               string.Join("; ", result.Problems)) + who;
         Notify();
         return result;
+    }
+
+    // ---- paper applications
+
+    /// <summary>The pending paper application on the approval page (Screen.Verify).</summary>
+    public string? PendingImportId { get; private set; }
+
+    public void OpenPendingImport(string id)
+    {
+        PendingImportId = id;
+        Screen = Screen.Verify;
+        Notify();
+    }
+
+    public void LeavePendingImport()
+    {
+        PendingImportId = null;
+        Screen = Screen.Clients;
+        Notify();
+    }
+
+    public const string FromPaperAction = "Created from a paper application";
+
+    /// <summary>
+    /// Makes the client from a fully checked paper application: a new folder under the confirmed name
+    /// (never an existing client's), the intake from the confirmed values, and an activity entry saying
+    /// who confirmed how many fields. Opens the new client on the Review tab.
+    /// </summary>
+    public async Task CreateFromPaperAsync(FuelIntake.Core.Import.PaperImport import)
+    {
+        var record = FuelIntake.Core.Import.PaperImportRules.Build(import, Today); // throws unless everything is checked
+        var first = record.Client.FirstName!.Trim();
+        var last = record.Client.LastName!.Trim();
+        var folderName = ClientFolders.FolderName(first, last, Settings.FolderNameSeparator);
+        var existing = await store.ListClientsAsync();
+        if (existing.Any(c => string.Equals(c.DisplayName, folderName, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"There's already a client folder named \"{folderName}\". If it's the same person, open that client instead; otherwise correct the name.");
+
+        await CloseAsync();
+        var folder = await store.CreateClientAsync(first, last);
+        if (await store.LoadAsync(folder.Id) is not null)
+            throw new InvalidOperationException($"\"{folder.DisplayName}\" already has an intake. Open that client instead.");
+        StampStaff(record);
+        Folder = folder;
+        Record = record;
+        SaveConflict = false; SaveError = null; PendingImportId = null;
+        loadedVersion = await store.GetLastSavedAsync(folder.Id);
+        baseline = ActivityLog.Snapshot(record);
+        var now = clock.GetLocalNow();
+        ActivityLog.RecordCreated(record, Me, now);
+        record.Activity.Add(new ActivityEntry
+        {
+            At = now, By = Me, Action = FromPaperAction,
+            Changes = import.Fields.Where(f => f.ConfirmedBy is not null).GroupBy(f => f.ConfirmedBy!.Name)
+                .Select(g => new FieldChange("Fields checked", null, $"{g.Key}: {g.Count()}")).ToList(),
+        });
+        HasUnsavedChanges = true;
+        await RememberAsync(folder);
+        Recalculate();
+        Screen = Screen.Review;
+        await SaveAsync();
     }
 
     public Task<IReadOnlyList<string>> ClientFilesAsync() =>

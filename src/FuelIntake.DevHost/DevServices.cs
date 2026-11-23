@@ -27,6 +27,8 @@ public static class DevServices
         services.AddSingleton<IPdfPrinter, NoPdf>();
         services.AddSingleton<IFileOutput, NoFiles>();
         services.AddSingleton<IEmailComposer, NoEmail>();
+        services.AddSingleton<FuelIntake.Core.Import.IPendingImports, MemoryPendingImports>();
+        services.AddSingleton<FuelIntake.Core.Import.IFilePicker, NoPicker>();
     }
 
     /// <summary>The browser preview can't make PDFs; use Preview, or the desktop app.</summary>
@@ -34,6 +36,44 @@ public static class DevServices
     {
         public Task<byte[]> PrintAsync(string html, CancellationToken ct = default) =>
             throw new NotSupportedException("PDF saving works in the desktop app. Use Preview here.");
+    }
+
+    /// <summary>Paper applications in memory (no scans: the preview can't pick files).</summary>
+    public sealed class MemoryPendingImports : FuelIntake.Core.Import.IPendingImports
+    {
+        private readonly ConcurrentDictionary<string, string> imports = new();
+
+        public Task<IReadOnlyList<FuelIntake.Core.Import.PendingImportInfo>> ListAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<FuelIntake.Core.Import.PendingImportInfo>>(imports.Select(kv =>
+            {
+                var i = Read(kv.Value);
+                return new FuelIntake.Core.Import.PendingImportInfo(kv.Key, FuelIntake.Core.Import.PaperImportRules.DisplayName(i), i.CreatedBy,
+                    i.CreatedAt, FuelIntake.Core.Import.PaperImportRules.ConfirmedCount(i), i.Fields.Count);
+            }).ToList());
+
+        public Task<string> CreateAsync(FuelIntake.Core.Import.PaperImport import, IReadOnlyList<string> scanLocations, CancellationToken ct = default)
+        {
+            var id = FuelIntake.Core.Import.PaperImportRules.HoldingPrefix + Guid.NewGuid().ToString("N")[..6];
+            import.ScanFiles = scanLocations.Select(Path.GetFileName).ToList()!;
+            imports[id] = Write(import);
+            return Task.FromResult(id);
+        }
+
+        public Task<FuelIntake.Core.Import.PaperImport> GetAsync(string id, CancellationToken ct = default) => Task.FromResult(Read(imports[id]));
+        public Task SaveAsync(string id, FuelIntake.Core.Import.PaperImport import, CancellationToken ct = default) { imports[id] = Write(import); return Task.CompletedTask; }
+        public string? ViewUrl(string id, string scanFile) => null;
+        public Task FinishAsync(string id, string clientId, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
+        public Task DiscardAsync(string id, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
+
+        private static readonly System.Text.Json.JsonSerializerOptions Json = new() { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
+        private static string Write(FuelIntake.Core.Import.PaperImport i) => System.Text.Json.JsonSerializer.Serialize(i, Json);
+        private static FuelIntake.Core.Import.PaperImport Read(string s) => System.Text.Json.JsonSerializer.Deserialize<FuelIntake.Core.Import.PaperImport>(s, Json)!;
+    }
+
+    private sealed class NoPicker : FuelIntake.Core.Import.IFilePicker
+    {
+        public bool CanPick => false;
+        public Task<IReadOnlyList<string>> PickScansAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<string>>([]);
     }
 
     private sealed class NoEmail : IEmailComposer
