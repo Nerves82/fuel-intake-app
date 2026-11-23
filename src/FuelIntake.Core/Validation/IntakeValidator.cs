@@ -1,3 +1,4 @@
+using FuelIntake.Core.Lists;
 using FuelIntake.Core.Formatting;
 using FuelIntake.Core.Model;
 
@@ -66,6 +67,11 @@ public static class IntakeValidator
         // Application & orders
         if (string.IsNullOrWhiteSpace(r.Application.CrisisType))
             Add(IssueSeverity.Warning, "Application", "Crisis type", "Pick the crisis type (decides Fuel Order or Electric Pledge).");
+        var fuelOrder = r.FuelElectric.FuelOrder;
+        if (r.Application.CrisisType?.Trim() != CrisisTypes.DisconnectNotice
+            && (fuelOrder.Authorized || fuelOrder.Fuel is not null || !string.IsNullOrWhiteSpace(r.FuelElectric.Vendor))
+            && string.IsNullOrWhiteSpace(r.FuelElectric.FuelType))
+            Add(IssueSeverity.Warning, "Fuel & Electric", "Fuel type", "Pick the fuel type (tab 5, Fuel Order): it prints on the Fuel Order and the ACCESS form.");
         if (!string.IsNullOrWhiteSpace(r.FuelElectric.Vendor) && calc.FuelVendor is null)
             Add(IssueSeverity.Info, "Fuel & Electric", "Fuel vendor", "Fuel vendor isn't on the vendor list, so contact details won't fill in.");
         if (!string.IsNullOrWhiteSpace(r.FuelElectric.ElectricProvider) && calc.ElectricVendor is null)

@@ -172,3 +172,39 @@ public class TestDataSetTests
         Assert.Single(await store.ListAsync());
     }
 }
+
+public class FuelTypeTests
+{
+    [Fact]
+    public void MissingFuelType_WarnsOnceAFuelOrderIsStarted()
+    {
+        var r = FakeIntake.Family();
+        r.Application.CrisisType = FuelIntake.Core.Lists.CrisisTypes.LowOnFuel;
+        r.FuelElectric.FuelType = null;
+        r.FuelElectric.FuelOrder.Fuel = 300m;
+        var issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.Contains(issues, i => i.Field == "Fuel type" && i.Severity == IssueSeverity.Warning);
+
+        r.FuelElectric.FuelType = "Oil";
+        issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.DoesNotContain(issues, i => i.Field == "Fuel type");
+
+        // a disconnect notice uses the Electric Pledge, not a Fuel Order
+        r.FuelElectric.FuelType = null;
+        r.Application.CrisisType = FuelIntake.Core.Lists.CrisisTypes.DisconnectNotice;
+        issues = IntakeValidator.Validate(r, new IntakeCalculations(r, FakeIntake.Context()), FakeIntake.Today);
+        Assert.DoesNotContain(issues, i => i.Field == "Fuel type");
+    }
+
+    [Theory]
+    [InlineData("Propane", "Propane")]
+    [InlineData("Oil, Electric", "Oil")]
+    [InlineData("Oil, Kerosene", null)]
+    [InlineData("Wood pellets", "Pellet")]
+    [InlineData("Heating Oil", "Oil")]
+    [InlineData("Diesel", null)]
+    [InlineData("Pellets", "Pellet")]
+    [InlineData(null, null)]
+    public void Vendor_SingleFuelType(string? offered, string? expected) =>
+        Assert.Equal(expected, new FuelIntake.Core.Contacts.Vendor("Example Fuel", FuelOffered: offered).SingleFuelType);
+}
