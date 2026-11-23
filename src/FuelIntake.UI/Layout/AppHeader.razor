@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject IntakeSession Session
 @inject HostInfo Host
+@inject FuelIntake.Core.Storage.IFileOutput Output
 @inject Microsoft.JSInterop.IJSRuntime JS
 
 <header class="app-header">
@@ -36,6 +37,7 @@
         <button class="secondary @(Session.NotesOpen ? "on" : "")" @onclick="Session.ToggleNotes" title="Show or hide notes (stays open across tabs)">
             Notes@(r.Notes.Count > 0 ? $" ({r.Notes.Count})" : "")
         </button>
+        <button class="secondary" @onclick="OpenFolder" title="Open this client's folder in File Explorer">Open folder</button>
         <button class="secondary" @onclick="Session.CloseAsync">Close client</button>
         @ThemeButton
     }
@@ -61,6 +63,13 @@
     private string ShortVersion => Host.AppVersion.Split(' ', '+')[0];
 
     protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    private async Task OpenFolder()
+    {
+        if (Session.Folder is not { } f) return;
+        try { await Output.OpenAsync(f.Id); }
+        catch (Exception ex) { Session.ShowNotice("Couldn't open the folder: " + ex.Message); }
+    }
 
     // ---- light / dark mode: System → Light → Dark → System …
     private string? theme; // null until the script answers (static preview: no button)

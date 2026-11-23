@@ -34,6 +34,7 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     /// <summary>A one-off message for the user (e.g. a staff member was added to the Staff list).</summary>
     public string? Notice { get; private set; }
     public void DismissNotice() { Notice = null; Notify(); }
+    public void ShowNotice(string text) { Notice = text; Notify(); }
 
     /// <summary>Another computer saved this client after we opened it; we stop saving to avoid overwriting their work.</summary>
     public bool SaveConflict { get; private set; }

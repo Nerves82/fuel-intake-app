@@ -32,7 +32,11 @@ public sealed class LocalFileOutput : IFileOutput
 
     public Task OpenAsync(string location, CancellationToken ct = default)
     {
-        Process.Start(new ProcessStartInfo(location) { UseShellExecute = true });
+        // a folder opens in File Explorer; a file opens in its usual app
+        if (Directory.Exists(location))
+            Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { location }, UseShellExecute = false });
+        else
+            Process.Start(new ProcessStartInfo(location) { UseShellExecute = true });
         return Task.CompletedTask;
     }
 }
