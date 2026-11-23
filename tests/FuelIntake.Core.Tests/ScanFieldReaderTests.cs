@@ -136,3 +136,54 @@ public class ScanFieldReaderLayoutTests
         Assert.DoesNotContain("3401", text);
     }
 }
+
+public class ScanFieldReaderProfileTests
+{
+    private static OcrLine L(double y, double x, string text)
+    {
+        var words = new List<OcrWord>();
+        foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.012)); x += 0.012 * w.Length + 0.01; }
+        return new OcrLine(words);
+    }
+
+    private static string? V(PaperImport i, string path) => i.Fields.Single(f => f.Path == path).Value;
+
+    [Fact]
+    public void ReadsAGoEngageStyleProfile()
+    {
+        // rows as the reader returns them from a printed intake profile (made-up details)
+        var page = new OcrPage("profile.pdf", 1,
+        [
+            L(0.184, 0.037, "First Name: Testy Middle Name: Last Name: Sampleton"),
+            L(0.203, 0.037, "Suffix: Preferred name:"),
+            L(0.215, 0.037, "DOB: 4/9/1951 Gender: Female Email: testy@example.org"),
+            L(0.232, 0.037, "Mobile #:802-555-0142 Mobile Provider: None"),
+            L(0.248, 0.037, "Race: White Ethnicity: Hispanic or Latino: No"),
+            L(0.264, 0.037, "Disabled: No Military Status: Never Served SNAP: Yes"),
+            L(0.278, 0.647, "Highest Education: Some college (but no degree)"),
+            L(0.310, 0.037, "Insurance: Medicaid"),
+            L(0.329, 0.037, "SSN: 000-12-3401 Marital Status: Single"),
+            L(0.379, 0.495, "Street Address: 12 Pretend Pond Rd"),
+            L(0.409, 0.496, "State: Vermont Zip Code: 05819"),
+        ]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("Testy", V(i, "client.firstName"));
+        Assert.Equal("Sampleton", V(i, "client.lastName"));
+        Assert.Equal("04/09/1951", V(i, "client.dateOfBirth"));
+        Assert.Equal("Female", V(i, "household[0].gender"));
+        Assert.Equal("testy@example.org", V(i, "client.email"));
+        Assert.Equal("(802) 555-0142", V(i, "client.phone"));
+        Assert.Equal("White", V(i, "household[0].race"));
+        Assert.Equal("No", V(i, "household[0].hispanic"));
+        Assert.Equal("N", V(i, "household[0].disabled"));
+        Assert.Equal("Never", V(i, "household[0].militaryStatus"));
+        Assert.Equal("Yes", V(i, "client.benefits.snap"));
+        Assert.Equal("Some college (but no degree)", V(i, "household[0].education"));
+        Assert.Equal("Medicaid", V(i, "household[0].healthInsurance"));
+        Assert.Equal("000-12-3401", V(i, "household[0].ssn"));
+        Assert.Equal("12 Pretend Pond Rd", V(i, "client.addressPhysical"));
+        Assert.Equal("Vermont", V(i, "client.state"));
+        Assert.Equal("05819", V(i, "client.zip"));
+    }
+}

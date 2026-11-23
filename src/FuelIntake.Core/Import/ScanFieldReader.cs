@@ -33,14 +33,30 @@ public static partial class ScanFieldReader
         ["client.housingType"] = ["housing type", "housing", "housing status"],
         ["client.householdType"] = ["household type", "family type"],
         ["client.benefits.snapAmount"] = ["snap amount", "3squaresvt amount", "3 squares amount"],
+        ["client.benefits.snap"] = ["snap", "3squaresvt", "3 squares vt", "food stamps"],
+        ["client.benefits.wic"] = ["wic"],
+        ["client.benefits.liheap"] = ["liheap", "seasonal fuel"],
+        ["household[0].hispanic"] = ["hispanic or latino", "hispanic latino", "hispanic"],
+        ["household[0].disabled"] = ["disabled", "disability"],
         ["household[0].ssn"] = ["ssn", "social security number", "social security no", "social security", "soc sec", "ss number", "ss"],
         ["household[0].gender"] = ["gender", "gender identity", "sex"],
         ["household[0].race"] = ["race"],
-        ["household[0].education"] = ["education", "education level", "last grade completed", "highest grade completed"],
+        ["household[0].education"] = ["education", "education level", "highest education", "last grade completed", "highest grade completed"],
         ["household[0].militaryStatus"] = ["military status", "veteran status"],
-        ["household[0].healthInsurance"] = ["health insurance", "health insurance source", "insurance"],
+        ["household[0].healthInsurance"] = ["insurance type", "health insurance type", "health insurance source", "insurance"],
         ["household[0].incomePerMonth"] = ["monthly income", "income per month", "gross monthly income", "total monthly income"],
     };
+
+    /// <summary>
+    /// Other printed labels (on GoEngage printouts and agency forms) that aren't fields here. They mark where
+    /// the previous value ends: "First Name: Jane Middle Name: …" gives "Jane", not "Jane Middle".
+    /// </summary>
+    public static readonly string[] OtherLabels =
+    [
+        "middle name", "middle initial", "preferred name", "suffix", "nickname", "ethnicity", "mobile provider", "marital status",
+        "pregnant", "start date", "end date", "health insurance", "preferred contact", "contact method", "relationship",
+        "family size", "household size", "employer", "citizenship", "work phone",
+    ];
 
     /// <summary>Labels for the whole name ("Name: Smith, Jane"), used for first and last name when nothing better is found.</summary>
     public static readonly string[] FullNameLabels = ["client name", "applicant name", "full name", "head of household", "name"];
@@ -70,7 +86,27 @@ public static partial class ScanFieldReader
         return filled;
     }
 
-    private static List<string> AllLabels() => Labels.Values.SelectMany(a => a).Concat(FullNameLabels)
+    /// <summary>
+    /// Where a value ends because another "Label:" starts: the first later word ending in ':' and the printed
+    /// label words just before it ("Middle Name:"). At least one value word is always kept.
+    /// </summary>
+    private static int ColonStop(List<OcrWord> words)
+    {
+        var vocab = LabelVocabulary.Value;
+        for (var k = 1; k < words.Count; k++)
+        {
+            if (!words[k].Text.EndsWith(':')) continue;
+            var start = k;
+            while (start - 1 >= 1 && vocab.Contains(Norm(words[start - 1].Text))) start--;
+            return start;
+        }
+        return words.Count;
+    }
+
+    private static readonly Lazy<HashSet<string>> LabelVocabulary = new(() =>
+        new HashSet<string>(AllLabels().SelectMany(l => l.Split(' ')).Concat(LayoutWords), StringComparer.Ordinal));
+
+    private static List<string> AllLabels() => Labels.Values.SelectMany(a => a).Concat(FullNameLabels).Concat(OtherLabels)
         .Concat(Model.IncomeExpenseCatalog.IncomeLines.Select(l => Norm(l.Label)))
         .Distinct().OrderByDescending(a => a.Length).ToList();
 
@@ -130,6 +166,7 @@ public static partial class ScanFieldReader
                 var right = line.Words.Skip(labelEnd).ToList();
                 var stop = NextLabelIndex(right.Select(w => Norm(w.Text)).ToList(), allLabels);
                 if (stop >= 0) right = right.Take(stop).ToList();
+                right = right.Take(ColonStop(right)).ToList();
                 candidates.Add(right);
                 candidates.Add(Near(page, li, labelWords, +1));
                 candidates.Add(Near(page, li, labelWords, -1));
@@ -210,12 +247,18 @@ public static partial class ScanFieldReader
                 var m = MoneyPattern().Match(raw);
                 return m.Success && PaperImportRules.ParseMoney(m.Value) is { } amount
                     ? (amount.ToString("0.00", CultureInfo.InvariantCulture), true) : ("", false);
+            case ImportFieldKind.Choice when f.Options is { Count: > 0 } yn && yn.Contains("Y") && yn.Contains("N"):
+                var first = Norm(raw).Split(' ').FirstOrDefault() ?? "";
+                return first is "yes" or "y" ? ("Y", true) : first is "no" or "n" ? ("N", true) : (raw, false);
             case ImportFieldKind.Choice when f.Options is { Count: > 0 } options:
                 var hit = options.Where(o => Norm(raw).Contains(Norm(o), StringComparison.Ordinal))
                     .OrderByDescending(o => o.Length).FirstOrDefault();
                 return hit is not null ? (hit, true) : (raw, false);
             case ImportFieldKind.Check:
-                return ("", false);
+                // "SNAP: Yes" / "X" / "✔" → ticked; "No" → left blank (staff still confirm it)
+                var mark = Norm(raw).Split(' ').FirstOrDefault() ?? "";
+                return mark is "yes" or "y" or "x" || raw.TrimStart().StartsWith('✔') || raw.TrimStart().StartsWith('☒')
+                    ? (PaperImportRules.Checked, true) : ("", false);
             default:
                 return (raw, raw.Any(char.IsLetterOrDigit));
         }
