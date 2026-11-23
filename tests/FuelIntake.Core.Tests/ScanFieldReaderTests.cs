@@ -77,3 +77,62 @@ public class ScanFieldReaderTests
         Assert.Equal(0.3, dob.Confidence); // doesn't look like a date: shown as unsure
     }
 }
+
+public class ScanFieldReaderLayoutTests
+{
+    private static OcrLine L(double y, double x, string text)
+    {
+        var words = new List<OcrWord>();
+        foreach (var w in text.Split(' ')) { words.Add(new OcrWord(w, x, y, 0.012 * w.Length, 0.015)); x += 0.012 * w.Length + 0.01; }
+        return new OcrLine(words);
+    }
+
+    private static string? V(PaperImport i, string path) => i.Fields.Single(f => f.Path == path).Value;
+
+    [Fact]
+    public void ReadsTablesWhereLabelAndValueAreSeparatePieces()
+    {
+        // a printed profile: labels in one column, values far to the right (the reader returns separate lines)
+        var page = new OcrPage("profile.pdf", 1,
+        [
+            L(0.100, 0.05, "Last Name"), L(0.101, 0.45, "Sampleton"),
+            L(0.130, 0.05, "Birth Date"), L(0.131, 0.45, "04/09/1951"),
+            L(0.160, 0.05, "Primary Phone"), L(0.159, 0.45, "802-555-0142"),
+            L(0.190, 0.05, "Address 1"), L(0.190, 0.45, "12 Pretend Pond Rd"),
+            L(0.220, 0.05, "Last grade completed"), L(0.220, 0.45, "Some college (but no degree)"),
+        ]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("Sampleton", V(i, "client.lastName"));
+        Assert.Equal("04/09/1951", V(i, "client.dateOfBirth"));
+        Assert.Equal("(802) 555-0142", V(i, "client.phone"));
+        Assert.Equal("12 Pretend Pond Rd", V(i, "client.addressPhysical"));
+        Assert.Equal("Some college (but no degree)", V(i, "household[0].education"));
+    }
+
+    [Fact]
+    public void WholeName_IsSplit_AndRereadingReplacesOnlyUneditedReadings()
+    {
+        var page = new OcrPage("p.pdf", 1, [L(0.1, 0.05, "Name: Sampleton, Testy"), L(0.14, 0.05, "Staff Name: Pat Example")]);
+        var i = new PaperImport { Fields = ImportFieldCatalog.NewImport(1) };
+        ScanFieldReader.Fill(i, [page]);
+        Assert.Equal("Sampleton", V(i, "client.lastName"));
+        Assert.Equal("Testy", V(i, "client.firstName"));
+
+        var better = new OcrPage("p.pdf", 1, [L(0.1, 0.05, "Last Name Sampletown"), L(0.14, 0.05, "First Name Testy")]);
+        i.Fields.Single(f => f.Path == "client.firstName").Value = "Tester"; // staff edit stays
+        ScanFieldReader.Fill(i, [better]);
+        Assert.Equal("Sampletown", V(i, "client.lastName"));
+        Assert.Equal("Tester", V(i, "client.firstName"));
+    }
+
+    [Fact]
+    public void MaskedLayout_KeepsLabels_HidesDetails()
+    {
+        var page = new OcrPage("Sampleton scan.pdf", 1, [L(0.1, 0.05, "Last Name: Sampleton SSN 000-12-3401")]);
+        var text = ScanFieldReader.MaskedLayout([page]);
+        Assert.Contains("Last Name: xxxxxxxxx SSN 999-99-9999", text);
+        Assert.DoesNotContain("Sampleton", text);
+        Assert.DoesNotContain("3401", text);
+    }
+}

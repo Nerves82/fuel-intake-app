@@ -16,36 +16,46 @@ public static partial class ScanFieldReader
     /// <summary>Printed labels to look for, per field (lower case; punctuation ignored).</summary>
     public static readonly IReadOnlyDictionary<string, string[]> Labels = new Dictionary<string, string[]>
     {
-        ["client.lastName"] = ["last name", "client last name", "applicant last name", "surname"],
-        ["client.firstName"] = ["first name", "client first name", "applicant first name", "given name"],
-        ["client.dateOfBirth"] = ["date of birth", "dob", "birth date", "birthdate"],
-        ["client.addressPhysical"] = ["physical address", "street address", "home address", "address"],
-        ["client.city"] = ["town", "city", "city town", "town city"],
+        ["client.lastName"] = ["last name", "client last name", "applicant last name", "surname", "family name", "lname"],
+        ["client.firstName"] = ["first name", "client first name", "applicant first name", "given name", "fname"],
+        ["client.dateOfBirth"] = ["date of birth", "dob", "d o b", "birth date", "birthdate", "birthday"],
+        ["client.addressPhysical"] = ["physical address", "street address", "home address", "residence address", "residential address",
+            "address line 1", "address 1", "address1", "street", "address"],
+        ["client.city"] = ["town", "city", "city town", "town city", "municipality"],
         ["client.state"] = ["state"],
-        ["client.zip"] = ["zip", "zip code", "zipcode", "postal code"],
-        ["client.addressMailing"] = ["mailing address"],
-        ["client.phone"] = ["phone", "phone number", "telephone", "primary phone", "cell phone", "home phone"],
-        ["client.email"] = ["email", "e mail", "email address"],
+        ["client.zip"] = ["zip", "zip code", "zipcode", "postal code", "zip postal code"],
+        ["client.addressMailing"] = ["mailing address", "mail address", "mailing address line 1"],
+        ["client.phone"] = ["phone", "phone number", "telephone", "primary phone", "primary phone number", "cell phone", "home phone",
+            "mobile phone", "mobile", "cell", "phone 1", "contact phone"],
+        ["client.email"] = ["email", "e mail", "email address", "e mail address", "primary email"],
         ["client.county"] = ["county"],
-        ["client.primaryLanguage"] = ["primary language", "language"],
-        ["client.housingType"] = ["housing type", "housing"],
-        ["client.householdType"] = ["household type"],
+        ["client.primaryLanguage"] = ["primary language", "preferred language", "language"],
+        ["client.housingType"] = ["housing type", "housing", "housing status"],
+        ["client.householdType"] = ["household type", "family type"],
         ["client.benefits.snapAmount"] = ["snap amount", "3squaresvt amount", "3 squares amount"],
-        ["household[0].ssn"] = ["ssn", "social security number", "social security", "soc sec", "ss"],
+        ["household[0].ssn"] = ["ssn", "social security number", "social security no", "social security", "soc sec", "ss number", "ss"],
         ["household[0].gender"] = ["gender", "gender identity", "sex"],
         ["household[0].race"] = ["race"],
-        ["household[0].incomePerMonth"] = ["monthly income", "income per month", "gross monthly income"],
+        ["household[0].education"] = ["education", "education level", "last grade completed", "highest grade completed"],
+        ["household[0].militaryStatus"] = ["military status", "veteran status"],
+        ["household[0].healthInsurance"] = ["health insurance", "health insurance source", "insurance"],
+        ["household[0].incomePerMonth"] = ["monthly income", "income per month", "gross monthly income", "total monthly income"],
     };
 
-    /// <summary>Fills what it can; returns how many fields got a value.</summary>
+    /// <summary>Labels for the whole name ("Name: Smith, Jane"), used for first and last name when nothing better is found.</summary>
+    public static readonly string[] FullNameLabels = ["client name", "applicant name", "full name", "head of household", "name"];
+
+    /// <summary>
+    /// Fills what it can; returns how many fields got a value. Only fields that are unticked and either blank or
+    /// still holding an earlier reading are touched, so staff edits and ticks are never overwritten.
+    /// </summary>
     public static int Fill(PaperImport import, IReadOnlyList<OcrPage> pages)
     {
         var filled = 0;
-        var allLabels = Labels.Values.SelectMany(a => a)
-            .Concat(Model.IncomeExpenseCatalog.IncomeLines.Select(l => Norm(l.Label)))
-            .Distinct().OrderByDescending(a => a.Length).ToList();
+        pages = pages.Select(Rows).ToList();
+        var allLabels = AllLabels();
 
-        foreach (var field in import.Fields.Where(f => !f.Confirmed && string.IsNullOrWhiteSpace(f.Value)))
+        foreach (var field in import.Fields.Where(f => !f.Confirmed && (string.IsNullOrWhiteSpace(f.Value) || f.Value == f.ReadValue)))
         {
             var labels = LabelsFor(field);
             if (labels.Count == 0) continue;
@@ -60,9 +70,36 @@ public static partial class ScanFieldReader
         return filled;
     }
 
+    private static List<string> AllLabels() => Labels.Values.SelectMany(a => a).Concat(FullNameLabels)
+        .Concat(Model.IncomeExpenseCatalog.IncomeLines.Select(l => Norm(l.Label)))
+        .Distinct().OrderByDescending(a => a.Length).ToList();
+
+    /// <summary>
+    /// The reader splits a row where there's a wide gap ("Last Name" … "Smith" in a table become two lines).
+    /// Joins pieces that sit on the same row back into one line, left to right.
+    /// </summary>
+    public static OcrPage Rows(OcrPage page)
+    {
+        var rows = new List<List<OcrWord>>();
+        foreach (var line in page.Lines.OrderBy(l => l.Y))
+        {
+            var mid = (line.Y + line.Bottom) / 2;
+            var row = rows.FirstOrDefault(r =>
+            {
+                var top = r.Min(w => w.Y); var bottom = r.Max(w => w.Bottom);
+                return mid > top && mid < bottom && Math.Abs((top + bottom) / 2 - mid) < (bottom - top) * 0.5;
+            });
+            if (row is null) rows.Add([.. line.Words]);
+            else row.AddRange(line.Words);
+        }
+        return page with { Lines = rows.Select(r => new OcrLine(r.OrderBy(w => w.X).ToList())).ToList() };
+    }
+
     private static List<string> LabelsFor(ImportField f)
     {
-        if (Labels.TryGetValue(f.Path, out var l)) return [.. l];
+        if (f.Path is "client.lastName" or "client.firstName" && Labels.TryGetValue(f.Path, out var n))
+            return [.. n.OrderByDescending(x => x.Length), .. FullNameLabels];
+        if (Labels.TryGetValue(f.Path, out var l)) return [.. l.OrderByDescending(x => x.Length)];
         if (f.Path.StartsWith("incomeExpenses.income.", StringComparison.Ordinal)) return [Norm(f.Label)];
         return [];
     }
@@ -75,10 +112,12 @@ public static partial class ScanFieldReader
         {
             var line = page.Lines[li];
             var words = line.Words.Select(w => Norm(w.Text)).ToList();
-            foreach (var label in labels.OrderByDescending(l => l.Length))
+            foreach (var label in labels)
             {
                 var at = IndexOf(words, label.Split(' '));
                 if (at < 0) continue;
+                var fullName = FullNameLabels.Contains(label);
+                if (label == "name" && at != 0) continue; // "Staff Name", "Vendor Name"… aren't the client
                 var labelEnd = at + label.Split(' ').Length;
                 // "Address" inside "Mailing Address" belongs to the other field
                 if (allLabels.Any(other => other.Length > label.Length && !labels.Contains(other)
@@ -99,7 +138,7 @@ public static partial class ScanFieldReader
                 {
                     var raw = Clean(string.Join(' ', cand.Select(w => w.Text)));
                     if (raw.Length == 0) continue;
-                    var (value, ok) = Shape(field, raw);
+                    var (value, ok) = fullName ? NamePart(field, raw) : Shape(field, raw);
                     if (value.Length == 0) continue;
                     var confidence = ok ? 0.6 : 0.3;
                     var spot = new ScanSpot(page.File, page.Page, cand.Min(w => w.X), cand.Min(w => w.Y),
@@ -128,6 +167,25 @@ public static partial class ScanFieldReader
             if (ws.Count > 0) return ws;
         }
         return [];
+    }
+
+    /// <summary>"Smith, Jane" or "Jane A Smith" → the first or last name, for a whole-name label.</summary>
+    private static (string Value, bool Ok) NamePart(ImportField f, string raw)
+    {
+        string first, last;
+        if (raw.Contains(','))
+        {
+            var parts = raw.Split(',', 2, StringSplitOptions.TrimEntries);
+            last = parts[0]; first = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        }
+        else
+        {
+            var words = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 2) return ("", false);
+            first = words[0]; last = words[^1];
+        }
+        var value = f.Path == "client.lastName" ? last : first;
+        return (value, false); // split from a whole name: always worth a closer look
     }
 
     /// <summary>Pulls out the part that fits the field (a date, an SSN, a list choice…). Ok = it looks right.</summary>
@@ -161,6 +219,44 @@ public static partial class ScanFieldReader
             default:
                 return (raw, raw.Any(char.IsLetterOrDigit));
         }
+    }
+
+    /// <summary>
+    /// What the reader saw, laid out row by row with positions, but with names, numbers and other writing
+    /// hidden (letters → x, digits → 9). Printed label words stay, so the layout can be shared to improve
+    /// the reading without sharing anything about the client.
+    /// </summary>
+    public static string MaskedLayout(IReadOnlyList<OcrPage> pages)
+    {
+        var vocab = new HashSet<string>(AllLabels().SelectMany(l => l.Split(' ')).Concat(LayoutWords), StringComparer.Ordinal);
+        var sb = new System.Text.StringBuilder();
+        foreach (var page in pages)
+        {
+            sb.Append("== ").Append(Mask(page.File, vocab, keepExtension: true)).Append(" page ").Append(page.Page).AppendLine(" ==");
+            foreach (var line in page.Lines.OrderBy(l => l.Y))
+            {
+                sb.Append(CultureInfo.InvariantCulture, $"y{line.Y:0.000} x{line.X:0.000}: ");
+                sb.AppendLine(string.Join(' ', line.Words.Select(w => Mask(w.Text, vocab, keepExtension: false))));
+            }
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Common printed form words kept in the shared layout (they say nothing about the client).</summary>
+    private static readonly string[] LayoutWords =
+    [
+        "client", "applicant", "household", "member", "members", "information", "info", "profile", "contact", "date", "income",
+        "source", "amount", "monthly", "yes", "no", "y", "n", "of", "the", "and", "or", "if", "type", "number", "status", "name",
+        "relationship", "head", "age", "disabled", "veteran", "employment", "benefits", "snap", "wic", "liheap", "total", "page",
+        "signature", "id", "case", "program", "programs", "enrollment", "intake", "assessment", "notes", "primary", "secondary",
+    ];
+
+    private static string Mask(string text, HashSet<string> vocab, bool keepExtension)
+    {
+        if (vocab.Contains(Norm(text))) return text;
+        var ext = keepExtension ? Path.GetExtension(text) : "";
+        var core = keepExtension ? text[..^ext.Length] : text;
+        return new string(core.Select(c => char.IsDigit(c) ? '9' : char.IsLetter(c) ? 'x' : c).ToArray()) + ext;
     }
 
     private static int IndexOf(List<string> words, string[] label)

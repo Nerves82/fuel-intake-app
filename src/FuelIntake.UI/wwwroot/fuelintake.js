@@ -29,6 +29,7 @@ window.fuelIntake = {
     if (input) setTimeout(() => input.focus({ preventScroll: true }), 350);
     return true;
   },
+  copy(text) { return navigator.clipboard.writeText(text); },
   getTheme() { return window.fuelIntakeTheme.get(); },
   setTheme(mode) { return window.fuelIntakeTheme.set(mode); },
   focus(id) { const el = document.getElementById(id); if (el) el.focus(); },

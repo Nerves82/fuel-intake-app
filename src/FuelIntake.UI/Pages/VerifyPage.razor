@@ -45,10 +45,21 @@
                 <span>@(import.ReadNote ?? (import.ScanFiles.Count == 0 ? "No scans to read." : "The scans haven't been read yet."))</span>
                 @if (import.ScanFiles.Count > 0 && Reader.Unavailable is null)
                 {
-                    <button class="secondary small" @onclick="ReadScans" title="Fills only fields that are still blank and unticked">Read the scans again</button>
+                    <button class="secondary small" @onclick="ReadScans" title="Updates fields that are unticked and that you haven't changed">Read the scans again</button>
                 }
             }
         </div>
+
+        @if (import.ReadLayout is { Length: > 0 } layout)
+        {
+            <details class="read-layout">
+                <summary>What the reader saw (names and numbers hidden)</summary>
+                <p class="note">If fields were missed, copy this and send it to whoever maintains the app: it shows the printed labels and where
+                    things sit on the page, with the client's details replaced by x and 9, so the reading can be improved safely.</p>
+                <button class="secondary small" @onclick="() => Copy(layout)">Copy</button> @if (copied) { <span class="ok">Copied.</span> }
+                <pre>@layout</pre>
+            </details>
+        }
 
         <div class="verify-layout">
             <div class="verify-fields">
@@ -165,6 +176,12 @@
 
 @code {
     private PaperImport? import;
+    private bool copied;
+
+    private async Task Copy(string text)
+    {
+        try { await JS.InvokeVoidAsync("fuelIntake.copy", text); copied = true; } catch (Exception) { copied = false; }
+    }
     private bool reading;
     private string? readProgress;
     private string? loadError, message, scan;
@@ -207,6 +224,7 @@
             var progress = new Progress<string>(p => { readProgress = p; InvokeAsync(StateHasChanged); });
             var pages = await Task.Run(() => Reader.ReadAsync(scans, progress));
             var filled = ScanFieldReader.Fill(import, pages);
+            import.ReadLayout = ScanFieldReader.MaskedLayout(pages.Select(ScanFieldReader.Rows).ToList());
             var words = pages.Sum(p => p.Lines.Sum(l => l.Words.Count));
             import.ReadNote = words == 0
                 ? $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")} but found no text. The scan may be too faint or handwritten; type the values from the scan."

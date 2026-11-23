@@ -30,6 +30,8 @@ public sealed class PaperImport
     /// <summary>When the scans were read (null until then), and what came of it ("12 fields filled in").</summary>
     public DateTimeOffset? ReadAt { get; set; }
     public string? ReadNote { get; set; }
+    /// <summary>The page layout the reader saw, with the client's details hidden (see ScanFieldReader.MaskedLayout).</summary>
+    public string? ReadLayout { get; set; }
 }
 
 /// <summary>One field on the approval page.</summary>
