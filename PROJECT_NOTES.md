@@ -169,6 +169,19 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   never uploaded to GoEngage.
 - Test data is clearly fake and loads only in test mode, never into a real client's file.
 
+## Fuel Order email
+- Review tab → **Email the Fuel Order to the vendor** → **Create email** (not shown for a disconnect notice).
+  To = the vendor's emails from the vendor list (or the vendor email override on tab 5); subject and message
+  from Agency settings → Fuel Order email, with built-in defaults (`FuelOrderEmail.DefaultSubject/Body`;
+  stored blank while unchanged, so a better default reaches everyone). {Placeholders} are filled from the file;
+  a "Label: {Token}" line is dropped when that detail is blank; unknown {words} are left as typed.
+- Attachment: the newest `{Initial}_{Last}_fuel_order_{Date}.pdf` in the client folder; if none (or staff tick
+  "Make a new Fuel Order PDF") the Fuel Order form is printed and saved under that name first.
+- The app never sends mail. Desktop opens classic Outlook (COM, no admin) with To, subject, the message above
+  the user's signature, and the PDF attached. Without classic Outlook (new Outlook): mailto: opens the mail app
+  without the attachment, and File Explorer opens with the PDF selected to drag in.
+- Test clients: To is left blank so practice data is never sent to a real vendor.
+
 ## Grant / funding sources
 - Kept in Agency settings (`settings.json` → `grantSources`), edited under Staff, vendors & settings →
   Grant sources: name (what prints), optional code, used for Fuel and/or Electric, optional limit per

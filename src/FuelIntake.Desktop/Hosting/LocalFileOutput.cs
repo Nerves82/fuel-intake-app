@@ -30,6 +30,8 @@ public sealed class LocalFileOutput : IFileOutput
         }
     }
 
+    public string LocationOf(string clientId, string fileName) => Path.Combine(clientId, Path.GetFileName(fileName));
+
     public Task OpenAsync(string location, CancellationToken ct = default)
     {
         // a folder opens in File Explorer; a file opens in its usual app

@@ -51,6 +51,9 @@ public interface IFileOutput
     /// <summary>Saves the file and returns where it went (a path or a URL).</summary>
     Task<string> SaveAsync(string clientId, string fileName, byte[] content, CancellationToken ct = default);
 
+    /// <summary>Where a file in the client's folder is (a path or a URL), for opening or attaching it.</summary>
+    string LocationOf(string clientId, string fileName);
+
     /// <summary>Opens a saved file in its usual app, or a client folder in File Explorer.</summary>
     Task OpenAsync(string location, CancellationToken ct = default);
 }

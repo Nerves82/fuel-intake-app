@@ -26,6 +26,7 @@ public static class DevServices
         services.AddScoped<FuelIntake.UI.Printing.PacketRenderer>();
         services.AddSingleton<IPdfPrinter, NoPdf>();
         services.AddSingleton<IFileOutput, NoFiles>();
+        services.AddSingleton<IEmailComposer, NoEmail>();
     }
 
     /// <summary>The browser preview can't make PDFs; use Preview, or the desktop app.</summary>
@@ -35,10 +36,17 @@ public static class DevServices
             throw new NotSupportedException("PDF saving works in the desktop app. Use Preview here.");
     }
 
+    private sealed class NoEmail : IEmailComposer
+    {
+        public Task<ComposeResult> ComposeAsync(FuelIntake.Core.Email.EmailDraft draft, string? attachmentLocation, CancellationToken ct = default) =>
+            throw new NotSupportedException("Email works in the desktop app.");
+    }
+
     private sealed class NoFiles : IFileOutput
     {
         public Task<string> SaveAsync(string clientId, string fileName, byte[] content, CancellationToken ct = default) => Task.FromResult(fileName);
         public Task OpenAsync(string location, CancellationToken ct = default) => Task.CompletedTask;
+        public string LocationOf(string clientId, string fileName) => fileName;
     }
 
     /// <summary>The preview keeps everything in memory; it shows the folder card but can't pick a folder.</summary>

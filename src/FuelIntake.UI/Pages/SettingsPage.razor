@@ -155,6 +155,30 @@
             </div>
         </section>
 
+        <section class="card">
+            <h2>Fuel Order email</h2>
+            <p class="note">Used by <strong>Create email</strong> on the Review tab to send a Fuel Order to the vendor. Words in
+                {braces} are filled in from the client's file; a line like "Gallons: {Gallons}" is left out when there's nothing to fill.</p>
+            <div class="grid">
+                <div class="field wide"><label for="mail-subject">Subject</label><input id="mail-subject" @bind="mailSubject" /></div>
+                <div class="field wide"><label for="mail-body">Message</label>
+                    <textarea id="mail-body" rows="16" @bind="mailBody"></textarea></div>
+            </div>
+            <details class="placeholders">
+                <summary>Words you can use</summary>
+                <table class="changes">
+                    @foreach (var (token, meaning) in FuelIntake.Core.Email.FuelOrderEmail.Placeholders)
+                    {
+                        <tr><td><code>@token</code></td><td>@meaning</td></tr>
+                    }
+                </table>
+            </details>
+            <div class="actions">
+                <button class="secondary" @onclick="ResetMail">Use the default wording</button>
+                @if (mailIsDefault) { <span class="note">Using the default wording.</span> }
+            </div>
+        </section>
+
         <div class="actions">
             <span class="spacer"></span>
             <button @onclick="SaveSettings">Save agency settings</button>
@@ -236,6 +260,8 @@
         fplAmounts = Enumerable.Range(0, 8).Select(i => i < g.BySize.Count ? g.BySize[i] : 0m).ToArray();
         invoiceEmail = s.DefaultInvoiceEmail; invoicePhone = s.DefaultInvoicePhone;
         templateFolder = s.TemplateFolder; templateFiles = string.Join("\n", s.TemplateFiles);
+        mailSubject = string.IsNullOrWhiteSpace(s.FuelOrderEmailSubject) ? FuelIntake.Core.Email.FuelOrderEmail.DefaultSubject : s.FuelOrderEmailSubject;
+        mailBody = string.IsNullOrWhiteSpace(s.FuelOrderEmailBody) ? FuelIntake.Core.Email.FuelOrderEmail.DefaultBody : s.FuelOrderEmailBody;
     }
 
     private static bool PhoneOk(string? p) => string.IsNullOrWhiteSpace(p) || Phone.IsValid(p);
@@ -284,21 +310,34 @@
         if (limitPercent <= 0) { Say("Enter an income limit above 0%.", true); return; }
         if (fplAmounts.Any(a => a <= 0) || fplExtra <= 0) { Say("Fill in every poverty guideline amount.", true); return; }
         if (!PhoneOk(invoicePhone)) { Say("The default invoice phone needs 10 digits.", true); return; }
-        var s = Session.Settings;
-        var updated = new AgencySettings
-        {
-            IncomeLimit = limitPercent / 100m,
-            PovertyGuidelines = new PovertyGuidelines(fplYear, fplRegion?.Trim() ?? "", fplAmounts.ToList(), fplExtra, fplSource?.Trim() ?? ""),
-            DefaultInvoiceEmail = Blank(invoiceEmail), DefaultInvoicePhone = Blank(invoicePhone),
-            TemplateFolder = templateFolder?.Trim() ?? "",
-            TemplateFiles = (templateFiles ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-            GrantSources = s.GrantSources,
-            ClientsRootFolderName = s.ClientsRootFolderName, FolderNameSeparator = s.FolderNameSeparator, FileDateFormat = s.FileDateFormat,
-        };
+        var updated = Session.Settings.Copy();
+        updated.IncomeLimit = limitPercent / 100m;
+        updated.PovertyGuidelines = new PovertyGuidelines(fplYear, fplRegion?.Trim() ?? "", fplAmounts.ToList(), fplExtra, fplSource?.Trim() ?? "");
+        updated.DefaultInvoiceEmail = Blank(invoiceEmail);
+        updated.DefaultInvoicePhone = Blank(invoicePhone);
+        updated.TemplateFolder = templateFolder?.Trim() ?? "";
+        updated.TemplateFiles = (templateFiles ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        // the default wording is stored as blank, so an improved default reaches everyone who didn't change it
+        updated.FuelOrderEmailSubject = SameText(mailSubject, FuelIntake.Core.Email.FuelOrderEmail.DefaultSubject) ? null : mailSubject?.Trim();
+        updated.FuelOrderEmailBody = SameText(mailBody, FuelIntake.Core.Email.FuelOrderEmail.DefaultBody) ? null : mailBody?.TrimEnd();
         await Run(() => Session.SaveSettingsAsync(updated), "Agency settings saved.");
     }
 
     private List<GrantRow> grants = [];
+
+    private string? mailSubject, mailBody;
+    private bool mailIsDefault => SameText(mailSubject, FuelIntake.Core.Email.FuelOrderEmail.DefaultSubject)
+                                  && SameText(mailBody, FuelIntake.Core.Email.FuelOrderEmail.DefaultBody);
+
+    private void ResetMail()
+    {
+        mailSubject = FuelIntake.Core.Email.FuelOrderEmail.DefaultSubject;
+        mailBody = FuelIntake.Core.Email.FuelOrderEmail.DefaultBody;
+        Say("Default wording put back. Click Save agency settings to keep it.", false);
+    }
+
+    private static bool SameText(string? a, string? b) =>
+        string.Equals((a ?? "").Replace("\r\n", "\n").Trim(), (b ?? "").Replace("\r\n", "\n").Trim(), StringComparison.Ordinal);
 
     private async Task SaveGrants()
     {
@@ -307,15 +346,8 @@
                          .Select(g => g.ToModel()).ToList();
         var problems = GrantSources.ListProblems(list);
         if (problems.Count > 0) { Say(string.Join(" ", problems), true); return; }
-        var s = Session.Settings;
-        var updated = new AgencySettings
-        {
-            IncomeLimit = s.IncomeLimit, PovertyGuidelines = s.PovertyGuidelines,
-            DefaultInvoiceEmail = s.DefaultInvoiceEmail, DefaultInvoicePhone = s.DefaultInvoicePhone,
-            TemplateFolder = s.TemplateFolder, TemplateFiles = s.TemplateFiles,
-            ClientsRootFolderName = s.ClientsRootFolderName, FolderNameSeparator = s.FolderNameSeparator, FileDateFormat = s.FileDateFormat,
-            GrantSources = list,
-        };
+        var updated = Session.Settings.Copy();
+        updated.GrantSources = list;
         await Run(() => Session.SaveSettingsAsync(updated), "Grant sources saved.");
         grants = Session.Settings.GrantSources.Select(GrantRow.From).ToList();
     }

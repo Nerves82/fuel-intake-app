@@ -39,6 +39,7 @@ public partial class MainWindow : Window
         services.AddSingleton<IPdfPrinter>(new WebView2PdfPrinter(Dispatcher, () => Blazor.WebView?.CoreWebView2?.Environment,
             Path.Combine(StartupLog.AppDataFolder, "WebView2-print")));
         services.AddSingleton<IFileOutput, LocalFileOutput>();
+        services.AddSingleton<IEmailComposer>(new EmailComposer(Dispatcher));
         services.AddSingleton<ICurrentUser, WindowsCurrentUser>();
         services.AddSingleton(BuildHostInfo());
         foreach (var target in CheckTargets(dataFolder.Root))
