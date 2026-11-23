@@ -43,6 +43,7 @@ else
     {
         <div class="banner">@Session.Notice <button class="link" @onclick="Session.DismissNotice">Dismiss</button></div>
     }
+    <RenameBanner />
     <NotesPanel />
     <main class="page @(Session.NotesOpen ? "with-notes" : "")">
         <CascadingValue Value="@(new FieldScope(Session.Screen))">

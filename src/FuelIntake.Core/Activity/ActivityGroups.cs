@@ -72,7 +72,7 @@ public static partial class ActivityLog
             run[^1].By, run[0].At, run[^1].At,
             run.Any(e => e.Action == "Created"),
             net,
-            run.Where(e => e.Action is "Added a note" or "Deleted a note").ToList(),
+            run.Where(e => e.Action is "Added a note" or "Deleted a note" or RenamedAction).ToList(),
             run);
     }
 }

@@ -6,6 +6,9 @@ namespace FuelIntake.Core.Storage;
 /// <param name="Id">Store-specific id: a folder path (phase 1) or a SharePoint item id (phase 2).</param>
 public sealed record ClientFolderInfo(string Id, string DisplayName, DateTimeOffset? LastModified, bool HasIntake);
 
+/// <summary>The folder after a rename, the files that were renamed, and any that couldn't be.</summary>
+public sealed record ClientRenameResult(ClientFolderInfo Folder, IReadOnlyList<FileRename> Renamed, IReadOnlyList<string> Problems);
+
 /// <summary>
 /// Where client folders and intake.json live. Phase 1: OneDrive-synced folders on disk.
 /// Phase 2: SharePoint through Microsoft Graph, as the signed-in user.
@@ -30,6 +33,13 @@ public interface IClientStore
     /// (and, for a synced SharePoint folder, SharePoint's recycle bin), so it can be restored.
     /// </summary>
     Task DeleteClientAsync(string clientId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Renames the client's folder to <paramref name="newFolderName"/> and the listed files inside it
+    /// (used to correct a misspelled name). The folder is renamed first; if that fails nothing changes.
+    /// A file that can't be renamed (open, already exists) is skipped and reported.
+    /// </summary>
+    Task<ClientRenameResult> RenameClientAsync(string clientId, string newFolderName, IReadOnlyList<FileRename> files, CancellationToken ct = default);
 
     /// <summary>When intake.json was last saved by anyone (to spot two people editing at once), or null if never.</summary>
     Task<DateTimeOffset?> GetLastSavedAsync(string clientId, CancellationToken ct = default);

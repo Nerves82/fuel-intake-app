@@ -75,6 +75,18 @@ public static partial class ActivityLog
         r.Activity.Add(new ActivityEntry { At = at, By = by, Action = "Edited", Changes = changes.ToList() });
     }
 
+    public const string RenamedAction = "Renamed the client folder";
+
+    /// <summary>Logs a corrected client name: the folder and each renamed file, old → new.</summary>
+    public static void RecordRename(IntakeRecord r, StaffStamp by, DateTimeOffset at, string folderFrom, string folderTo,
+        IEnumerable<Storage.FileRename> files)
+    {
+        var changes = new List<FieldChange>();
+        if (folderFrom != folderTo) changes.Add(new FieldChange("Client folder", folderFrom, folderTo));
+        changes.AddRange(files.Select(f => new FieldChange("File", f.From, f.To)));
+        r.Activity.Add(new ActivityEntry { At = at, By = by, Action = RenamedAction, Changes = changes });
+    }
+
     public static void RecordCreated(IntakeRecord r, StaffStamp by, DateTimeOffset at)
     {
         r.CreatedBy ??= by;
