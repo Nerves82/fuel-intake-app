@@ -193,6 +193,10 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   income line names…) and takes the text to its right, else below, else above, then shapes it to the field
   (date, SSN, phone, zip, money, list choice). Values that don't look right are marked "Unsure reading".
   Only blank, unticked fields are filled, so **Read the scans again** never overwrites staff work.
+  Pieces the reader splits on one row (table-style printouts like the GoEngage profile) are joined back first
+  (`ScanFieldReader.Rows`); "Name: Smith, Jane" is split into last/first. Re-reading replaces earlier readings
+  staff haven't changed or ticked. "What the reader saw" shows a copyable layout with letters → x and digits → 9
+  (printed label words kept) so missed fields can be diagnosed without sharing client details.
   Works best on typed/printed forms and block capitals; cursive is hit and miss. Household members 2+,
   checkboxes and tables aren't read yet.
 - Next: print blank forms with page codes and corner marks (known positions instead of label hunting),
