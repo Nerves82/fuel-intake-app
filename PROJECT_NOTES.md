@@ -442,3 +442,5 @@ Small deliberate changes from the workbook:
 - An answer on the tab beats what the intake implies (living situation, heat payment, rent based on income,
   self-employment). "No" is only printed when answered; it's never assumed.
 - The tab's fields are in the field catalog, so a standard can require any of them.
+- Steve (2026-11-24): no locked built-in Crisis Fuel standard. Applying the Crisis Fuel rules to any standard (its
+  checks list) is enough.
