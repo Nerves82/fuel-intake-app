@@ -1,0 +1,197 @@
+@* The state's Vermont Fuel Assistance Eligibility Review (DCF form 201SF): what it asks that tabs 1–5 don't.
+   Shown when the client's compliance standard adds this tab. Each answer fills the 201SF on the Print tab. *@
+@inject IntakeSession Session
+@using FuelIntake.Core.Lists
+@using FuelIntake.Core.Forms
+@{ var r = Session.Record!; var x = r.StateReview; var fe = r.FuelElectric; var calc = Session.Calc!; var members = calc.Members.Where(m => m.IsPresent || m.Number == 1).ToList(); }
+
+<h1>VT Eligibility Review (201SF)</h1>
+<p class="lead">Answers the state's Vermont Fuel Assistance Eligibility Review asks that the rest of the intake doesn't. They fill the
+    <strong>201SF Eligibility Review</strong> on the Print tab, together with what's on tabs 1–5. Anything answered here wins.</p>
+
+<Section Title="Page 1 · Contact and household">
+    <PhoneBox Label="Day / message phone" @bind-Value="x.DayPhone" Hint="The home phone comes from tab 1." />
+</Section>
+
+@foreach (var m in members)
+{
+    var member = m;
+    <Section Title="@($"Member {member.Number}: {(member.FullName.Length > 0 ? member.FullName : "(no name yet)")}")">
+        @if (member.Number == 1)
+        {
+            <CalcValue Label="Relationship" Value="SELF" />
+        }
+        else
+        {
+            <TextBox Label="Relationship to the client" @bind-Value="member.Data.Relationship" Placeholder="e.g. spouse, son, roommate" />
+        }
+        <CalcValue Label="Citizenship (tab 2)" Value="@(member.Data.Citizenship ?? "—")" />
+        @if (!string.IsNullOrWhiteSpace(member.Data.Citizenship) && member.Data.Citizenship != Citizenships.UsCitizen)
+        {
+            <TextBox Label="Immigration ID #" @bind-Value="member.Data.ImmigrationId" />
+        }
+    </Section>
+}
+@if (members.Count > FuelIntake.Core.Forms.Form201SF.MemberRows)
+{
+    <p class="note">The 201SF has rows for @FuelIntake.Core.Forms.Form201SF.MemberRows people; the rest print on a continuation sheet.</p>
+}
+
+<p class="note wide">Page 2 of the form, questions 1–11, in its order. Questions 8, 10 and 11 share their fields with tab 5: a change here changes it there too.</p>
+
+<Section Title="Page 2 · 1–3. Roomers, caregivers, students">
+    <RadioGroup Label="1. Do you rent a room to someone in your home?" @bind-Value="x.RentsRoom" Options="ChoiceLists.YesNo" />
+    @if (x.RentsRoom == "Yes")
+    {
+        <TextBox Label="Name of roomer" @bind-Value="x.RoomerName" />
+        <MoneyBox Label="Room rent they pay you (per month)" @bind-Value="x.RoomerRent" />
+    }
+    <RadioGroup Label="2. If 60 or older or disabled: does someone live with you to provide care or services?" @bind-Value="x.Caregiver" Options="ChoiceLists.YesNo" />
+    @if (x.Caregiver == "Yes")
+    {
+        <TextBox Label="Caregiver's name" @bind-Value="x.CaregiverName" />
+        <CheckBox Label="Medically-necessary personal care" @bind-Value="x.CareMedical" />
+        <CheckBox Label="Homemaker/caretaker or companionship services" @bind-Value="x.CareHomemaker" />
+    }
+    <RadioGroup Label="3. Is anyone in the household a full-time college student?" @bind-Value="x.Student" Options="ChoiceLists.YesNo" />
+    @if (x.Student == "Yes")
+    {
+        <TextBox Label="Student's name" @bind-Value="x.StudentName" />
+        <TextBox Label="Where they live while attending classes" @bind-Value="x.StudentLivesAt" />
+    }
+</Section>
+
+<Section Title="Page 2 · 4–9. Home and heat">
+    <SelectBox Label="4. Living situation" @bind-Value="x.LivingSituation" Options="ChoiceLists.LivingSituation"
+               Hint="@($"Blank uses the housing type on tab 1 ({r.Client.HousingType ?? "none"}).")" />
+    @if (x.LivingSituation == "Rent my home or apartment")
+    {
+        <MoneyBox Label="Rent per month" @bind-Value="x.RentAmount" Hint="Blank uses the Mortgage/Rent bill on tab 4." />
+    }
+    @if (x.LivingSituation == "Rent a room in someone's home")
+    {
+        <TextBox Label="Rents a room in the home of" @bind-Value="x.RoomHost" />
+        <MoneyBox Label="Pays per month" @bind-Value="x.RoomRent" />
+    }
+    @if (x.LivingSituation == "Other")
+    {
+        <TextBox Label="Living situation (describe)" @bind-Value="x.LivingOther" />
+    }
+    <SelectBox Label="5. Who pays the cost of heating the home?" @bind-Value="x.HeatPayment" Options="ChoiceLists.HeatPayment"
+               Hint="Blank uses “heat included in rent” from tab 3. If the landlord bills, the state sends the landlord a form." />
+    <SelectBox Label="6. Type of housing" @bind-Value="x.HousingKind" Options="ChoiceLists.HousingKind"
+               Hint="@(string.IsNullOrWhiteSpace(x.HousingKind) && Form201SF.HousingKindOf(r) is { Length: > 0 } k ? $"Blank uses tab 1: {k}." : null)" />
+    @if (Form201SF.HousingKindOf(r) == "Other")
+    {
+        <TextBox Label="Type of housing (describe)" @bind-Value="x.HousingOther" />
+    }
+    <TextBox Label="7. How many bedrooms?" @bind-Value="x.Bedrooms" Hint="Even if not presently used as bedrooms." />
+    <SelectBox Label="8. MAIN fuel used to heat the home" @bind-Value="fe.FuelType" Options="ChoiceLists.FuelType" Hint="Same as Fuel type on tab 5." />
+    @if (fe.FuelType is null or "" or "Other")
+    {
+        <SelectBox Label="Main fuel not on that list" @bind-Value="x.MainFuelOther" Options="ChoiceLists.MainFuelOther" />
+    }
+    <RadioGroup Label="9. Is the rent based on income?" @bind-Value="x.RentBasedOnIncome" Options="ChoiceLists.YesNo"
+                Hint="Blank: Yes when a housing benefit is ticked on tab 1." />
+    @if (x.RentBasedOnIncome == "Yes")
+    {
+        <SelectBox Label="Which housing program?" @bind-Value="x.RentProgram" Options="ChoiceLists.RentProgram" />
+        @if (x.RentProgram == "Other")
+        {
+            <TextBox Label="Housing program (describe)" @bind-Value="x.RentProgramOther" />
+        }
+    }
+</Section>
+
+<Section Title="Page 2 · 10. Fuel supplier">
+    <SelectBox Label="Name of supplier" Value="@fe.Vendor" ValueChanged="SetVendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
+               NotOnListNote="Not on the vendor list: its phone won't fill in." />
+    <TextBox Label="Supplier's address" @bind-Value="x.SupplierAddress" Wide="true" />
+    <CalcValue Label="Phone number (from the vendor list)" Value="@(calc.FuelVendor is null ? "—" : calc.VendorPhones)" />
+    <TextBox Label="Name on account" @bind-Value="x.SupplierAccountName" />
+    <TextBox Label="Account number" @bind-Value="fe.VendorAccount" />
+</Section>
+
+<Section Title="Page 2 · 11. Electricity provider">
+    <SelectBox Label="Name of provider" @bind-Value="fe.ElectricProvider" Options="ElectricNames" AllowOther="true" Wide="true" />
+    <TextBox Label="Name on account" @bind-Value="x.ElectricAccountName" />
+    <TextBox Label="Account number" @bind-Value="fe.ElectricAccount" />
+</Section>
+
+@foreach (var (job, number) in new[] { (x.Job1, 1), (x.Job2, 2) })
+{
+    var j = job;
+    <Section Title="@($"Page 3 · 13. Job {number}")">
+        <TextBox Label="First name" @bind-Value="j.FirstName" />
+        <TextBox Label="Initial" @bind-Value="j.Initial" />
+        <SelectBox Label="How often paid" @bind-Value="j.HowOften" Options="ChoiceLists.PayFrequency" />
+        @if (j.HowOften == "Other")
+        {
+            <TextBox Label="How often (describe)" @bind-Value="j.HowOftenOther" />
+        }
+        <TextBox Label="Employer" @bind-Value="j.Employer" />
+        <PhoneBox Label="Employer phone" @bind-Value="j.EmployerPhone" />
+        <div class="field wide">
+            <label>Pay dates (up to @FuelIntake.Core.Forms.Form201SF.PayRows)</label>
+            @if (j.Pay.Count > 0)
+            {
+                <table class="edit pay-rows">
+                    <thead><tr><th>Date paid</th><th>Hours worked</th><th>Hourly rate</th><th>Income before deductions</th><th>Tips &amp; commissions</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var p in j.Pay)
+                        {
+                            var pay = p;
+                            <tr>
+                                <td><input type="date" value="@pay.DatePaid?.ToString("yyyy-MM-dd")" @onchange="e => SetDate(pay, e.Value as string)" /></td>
+                                <td><input value="@pay.Hours" @onchange="e => { pay.Hours = Blank(e.Value as string); Session.Changed(); }" /></td>
+                                <td><MoneyCell Value="@pay.HourlyRate" ValueChanged="v => { pay.HourlyRate = v; Session.Changed(); }" Label="Hourly rate" /></td>
+                                <td><MoneyCell Value="@pay.Gross" ValueChanged="v => { pay.Gross = v; Session.Changed(); }" Label="Income before deductions" /></td>
+                                <td><MoneyCell Value="@pay.Tips" ValueChanged="v => { pay.Tips = v; Session.Changed(); }" Label="Tips and commissions" /></td>
+                                <td class="narrow"><button class="link danger" @onclick="() => { j.Pay.Remove(pay); Session.Changed(); }">Remove</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            @if (j.Pay.Count < FuelIntake.Core.Forms.Form201SF.PayRows)
+            {
+                <button class="secondary small" @onclick="() => { j.Pay.Add(new()); Session.Changed(); }">+ Add a pay date</button>
+            }
+        </div>
+    </Section>
+}
+
+<Section Title="Page 3 · 14–15. Other income">
+    <RadioGroup Label="14. Does anyone have self-employment income?" @bind-Value="x.SelfEmployment" Options="ChoiceLists.YesNo"
+                Hint="Blank: Yes when someone's income source on tab 2 is self-employment." />
+    <TextBox Label="15. Interest / dividends: who" @bind-Value="x.InterestNames" />
+    <MoneyBox Label="Interest / dividends per month" @bind-Value="x.InterestAmount" />
+    <TextBox Label="Adoption subsidy: who" @bind-Value="x.AdoptionNames" />
+    <MoneyBox Label="Adoption subsidy per month" @bind-Value="x.AdoptionAmount" />
+    <TextBox Label="Rental income: who" @bind-Value="x.RentalNames" />
+    <MoneyBox Label="Rental income per month" @bind-Value="x.RentalAmount" />
+    <p class="note wide">Social Security, SSI, VA, unemployment, workers' comp, child support, retirement and other income come from tab 4.</p>
+</Section>
+
+@code {
+    /// <summary>As on tab 5: a vendor that sells only one fuel fills in the fuel type, if still blank.</summary>
+    private void SetVendor(string? value)
+    {
+        var fe = Session.Record!.FuelElectric;
+        fe.Vendor = value;
+        if (string.IsNullOrWhiteSpace(fe.FuelType) && Session.Vendors.Find(value)?.SingleFuelType is { } fuel)
+            fe.FuelType = fuel;
+        Session.Changed();
+    }
+
+    private IReadOnlyList<string> FuelVendorNames => Session.Vendors.FuelVendors.Select(v => v.DisplayName).ToList();
+    private IReadOnlyList<string> ElectricNames => Session.Vendors.ElectricProviders.Select(v => v.DisplayName).ToList();
+
+    private void SetDate(FuelIntake.Core.Model.StatePay pay, string? text)
+    {
+        pay.DatePaid = DateOnly.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+        Session.Changed();
+    }
+
+    private static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}

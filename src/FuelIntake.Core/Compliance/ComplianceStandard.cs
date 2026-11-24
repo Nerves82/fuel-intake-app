@@ -42,6 +42,7 @@ public sealed class ComplianceSettings
     {
         Name = Vermont201SFName,
         Description = "Everything the Vermont Fuel Assistance Eligibility Review (DCF form 201SF) asks that the intake can fill in",
+        ExtraTabs = [InputTabs.Vermont201SF],
         Required =
         [
             "client.firstName", "client.lastName", "client.dateOfBirth", "client.addressPhysical", "client.city", "client.zip",
@@ -72,6 +73,9 @@ public sealed class ComplianceStandard
 
     /// <summary>Rule tests that apply (ids from <see cref="ComplianceChecks"/>), e.g. Crisis Fuel's income limit.</summary>
     public List<string> Checks { get; set; } = [];
+
+    /// <summary>Extra input tabs this standard adds to the intake (ids from <see cref="InputTabs"/>).</summary>
+    public List<string> ExtraTabs { get; set; } = [];
 
     /// <summary>Adds the Crisis Fuel rules (3100–3113): their checks and the fields rule 3104 requires. Keeps what's there.</summary>
     public void AddCrisisFuelRules()

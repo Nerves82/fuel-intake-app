@@ -20,8 +20,8 @@ public sealed record Form201SFFill(IReadOnlyList<FormMark> Marks, IReadOnlyList<
 
 /// <summary>
 /// DCF form 201SF, Vermont Fuel Assistance Eligibility Review (rev 01/2024), filled from the intake.
-/// Only answers the intake clearly gives are filled in; the rest (relationships, citizenship, pay stubs,
-/// roomers, caregivers, students, bedrooms, signatures) is left for the client and staff to complete.
+/// Only answers the intake clearly gives are filled in, plus the "VT Eligibility Review" tab's answers (relationships,
+/// roomers, caregivers, students, bedrooms, jobs and pay dates…); signatures are left for the client and staff.
 /// </summary>
 public static class Form201SF
 {
@@ -59,6 +59,8 @@ public static class Form201SF
         }
         else Text("Page1[0].Mailing_Address_Street_PO_Box_Town_State_and_Zip[0]", physical);
         Text("Page1[0].Home_Phone_with_area_code[0]", Formatting.Phone.Format(r.Client.Phone));
+        var x = r.StateReview;
+        Text("Page1[0].Day__Message_Phone_with_area_code[0]", Formatting.Phone.Format(x.DayPhone));
 
         // ---- page 1: household, four rows
         for (var i = 0; i < Math.Min(MemberRows, members.Count); i++)
@@ -80,48 +82,101 @@ public static class Form201SF
             Check(Box(b[7]), who.Race == RaceBox.AmericanIndian);
             Check(Box(b[8]), who.Race == RaceBox.White);
             if (CitizenshipBox(i, m.Data.Citizenship) is int box) Check(Box(box));
+            Text(IdFields[i], m.Data.ImmigrationId);
+            if (i > 0) Text(Relationships[i - 1], m.Data.Relationship);
         }
 
-        // ---- page 2
-        // 4. living situation (rent: the Mortgage/Rent bill on the worksheet)
+        // ---- page 2 (the VT Eligibility Review tab's answers come first; otherwise what the intake says)
+        // 1. roomer
+        YesNo("Page2[0].RadioButtonList[0]", x.RentsRoom);
+        Text("Page2[0].Roomer[0]", x.RoomerName);
+        Text("Page2[0].Rent[0]", M(x.RoomerRent));
+        // 2. live-in caregiver
+        YesNo("Page2[0].RadioButtonList[1]", x.Caregiver);
+        Text("Page2[0].If_yes_name[0]", x.CaregiverName);
+        Check("Page2[0].CheckBox1[0]", x.CareMedical);
+        Check("Page2[0].CheckBox1[1]", x.CareHomemaker);
+        // 3. full-time college student
+        YesNo("Page2[0].RadioButtonList[2]", x.Student);
+        Text("Page2[0].If_yes_name_2[0]", x.StudentName);
+        Text("Page2[0].Classes[0]", x.StudentLivesAt);
+        // 4. living situation (rent: the answer, else the Mortgage/Rent bill on the worksheet)
         var housing = T(r.Client.HousingType);
-        if (housing == "Own") Check("Page2[0].CheckBox1[2]");
-        if (housing == "Rent")
+        var living = T(x.LivingSituation) is { Length: > 0 } picked ? picked
+            : housing == "Own" ? "Own my home" : housing == "Rent" ? "Rent my home or apartment" : "";
+        switch (living)
         {
-            Check("Page2[0].CheckBox1[3]");
-            if (r.IncomeExpenses.Expenses.TryGetValue("Rent", out var rent) && rent.Bill is > 0)
-                Text("Page2[0].I_rent_my_home_or_apartment_and_pay[0]", M(rent.Bill));
+            case "Own my home": Check("Page2[0].CheckBox1[2]"); break;
+            case "Rent my home or apartment":
+                Check("Page2[0].CheckBox1[3]");
+                var rent = x.RentAmount ?? (r.IncomeExpenses.Expenses.TryGetValue("Rent", out var e) && e.Bill is > 0 ? e.Bill : null);
+                Text("Page2[0].I_rent_my_home_or_apartment_and_pay[0]", M(rent));
+                break;
+            case "Life lease": Check("Page2[0].CheckBox1[5]"); break;
+            case "Rent a room in someone's home":
+                Check("Page2[0].CheckBox1[4]");
+                Text("Page2[0].I_rent_a_room_in_the_home_of[0]", x.RoomHost);
+                Text("Page2[0].and_pay[0]", M(x.RoomRent));
+                break;
+            case "Other":
+                Check("Page2[0].CheckBox1[6]");
+                Text("Page2[0].Other[0]", x.LivingOther);
+                break;
         }
-        // 5. heat included in rent
-        Check("Page2[0].CheckBox1[7]", r.Application.HeatInRent);
+        // 5. who pays for heat
+        var heat = T(x.HeatPayment) is { Length: > 0 } hp ? hp : r.Application.HeatInRent ? "Heat is included in my rent" : "";
+        Check("Page2[0].CheckBox1[7]", heat == "Heat is included in my rent");
+        Check("Page2[0].CheckBox1[8]", heat == "I pay my fuel supplier directly");
+        Check("Page2[0].CheckBox1[9]", heat == "My landlord bills me for all fuel");
         // 6. type of housing
-        Check("Page2[0].CheckBox1[10]", housing == "House");
-        Check("Page2[0].CheckBox1[11]", housing == "Mobile Home/Trailer");
-        Check("Page2[0].CheckBox1[12]", housing == "Apartment");
+        var kind = HousingKindOf(r);
+        Check("Page2[0].CheckBox1[10]", kind == "Single-family house");
+        Check("Page2[0].CheckBox1[11]", kind == "Mobile home");
+        Check("Page2[0].CheckBox1[12]", kind == "Apartment");
+        if (kind == "Other")
+        {
+            Check("Page2[0].CheckBox1[13]");
+            Text("Page2[0].Type_of_housing[0]", x.HousingOther);
+        }
+        // 7. bedrooms
+        Text("Page2[0].Bedrooms[0]", x.Bedrooms);
         // 8. main heating fuel
         if (FuelBoxes.TryGetValue(T(r.FuelElectric.FuelType), out var fuelBox)) Check(fuelBox);
-        // 9. rent based on income: from the housing benefits on the client tab (No is never assumed)
+        else if (T(x.MainFuelOther) == "Natural gas") Check("Page2[0].CheckBox1[19]");
+        else if (T(x.MainFuelOther) == "Coal") Check("Page2[0].CheckBox1[21]");
+        // 9. rent based on income: the answer, else from the housing benefits on the client tab (No is never assumed)
         var b2 = r.Client.Benefits;
-        var section8 = b2.HousingChoiceVoucher || b2.HudVash;
-        if (section8 || b2.PublicHousing || b2.PermanentSupportiveHousing)
+        var program = T(x.RentProgram) is { Length: > 0 } rp ? rp
+            : b2.HousingChoiceVoucher || b2.HudVash ? "Section 8" : b2.PublicHousing ? "Public housing" : b2.PermanentSupportiveHousing ? "Subsidized housing" : "";
+        var rentByIncome = T(x.RentBasedOnIncome) is { Length: > 0 } rb ? rb : program.Length > 0 ? "Yes" : "";
+        YesNo("Page2[0].RadioButtonList[3]", rentByIncome);
+        if (rentByIncome == "Yes")
         {
-            Check(Radio("Page2[0].RadioButtonList[3]", yes: true));
-            Check("Page2[0].CheckBox1[22]", section8);
-            Check("Page2[0].CheckBox1[23]", b2.PublicHousing);
-            Check("Page2[0].CheckBox1[24]", b2.PermanentSupportiveHousing);
+            Check("Page2[0].CheckBox1[22]", program == "Section 8");
+            Check("Page2[0].CheckBox1[23]", program == "Public housing");
+            Check("Page2[0].CheckBox1[24]", program == "Subsidized housing");
+            Check("Page2[0].CheckBox1[25]", program == "Other");
+            if (program == "Other") Text("Page2[0].Other_2[0]", x.RentProgramOther);
         }
         // 10, 11. fuel supplier and electric provider
         Text("Page2[0].FuelSupplier[0]", c.FuelVendor?.Name ?? r.FuelElectric.Vendor);
+        Text("Page2[0].Address[0]", x.SupplierAddress);
         Text("Page2[0].Phone_number[0]", c.FuelVendor is null ? "" : c.VendorPhones);
+        Text("Page2[0].Name_on_account[0]", x.SupplierAccountName);
         Text("Page2[0].Account_number[0]", r.FuelElectric.VendorAccount);
         Text("Page2[0].ElectricProvider[0]", c.ElectricVendor?.Name ?? r.FuelElectric.ElectricProvider);
+        Text("Page2[0].Name_on_account_2[0]", x.ElectricAccountName);
         Text("Page2[0].Account_number_2[0]", r.FuelElectric.ElectricAccount);
 
         // ---- page 3
-        // 14. self-employment (Yes only; No is never assumed)
-        if (members.Any(m => T(m.Data.IncomeSource) == "Self-employment"))
-            Check(Radio("Page3[0].RadioButtonList[0]", yes: true));
-        // 15. unearned income: the worksheet's monthly amounts, with the names of members who have that source
+        // 13. jobs
+        Job(Jobs[0], x.Job1);
+        Job(Jobs[1], x.Job2);
+        // 14. self-employment: the answer, else Yes when someone's income source is self-employment (No is never assumed)
+        YesNo("Page3[0].RadioButtonList[0]", T(x.SelfEmployment) is { Length: > 0 } se ? se
+            : members.Any(m => T(m.Data.IncomeSource) == "Self-employment") ? "Yes" : "");
+        // 15. unearned income: the worksheet's monthly amounts, with the names of members who have that source,
+        //     plus interest, adoption subsidy and rental income from the VT Eligibility Review tab
         var anyUnearned = false;
         foreach (var line in Unearned)
         {
@@ -135,7 +190,46 @@ public static class Form201SF
             Text(line.NameField, who);
             if (amount > 0) Text(line.AmountField, M(amount));
         }
+        foreach (var (names, amount, nameField, amountField) in new[]
+        {
+            (x.InterestNames, x.InterestAmount, "Page3[0].Name_sInterestDividends[0]", "Page3[0].fill_86[0]"),
+            (x.AdoptionNames, x.AdoptionAmount, "Page3[0].Name_sAdoption_Subsidy[0]", "Page3[0].fill_88[0]"),
+            (x.RentalNames, x.RentalAmount, "Page3[0].Name_sRental_Income[0]", "Page3[0].fill_89[0]"),
+        })
+        {
+            if (T(names).Length == 0 && amount is not > 0) continue;
+            anyUnearned = true;
+            Text(nameField, names);
+            Text(amountField, M(amount));
+        }
         if (anyUnearned) Check(Radio("Page3[0].RadioButtonList[1]", yes: true));
+
+        void YesNo(string radio, string? answer)
+        {
+            if (T(answer) == "Yes") Check(Radio(radio, yes: true));
+            else if (T(answer) == "No") Check(Radio(radio, yes: false));
+        }
+
+        void Job(JobFields f, StateJob j)
+        {
+            Text(f.FirstName, j.FirstName);
+            Text(f.Initial, j.Initial);
+            var often = Array.IndexOf(Lists.ChoiceLists.PayFrequency.ToArray(), T(j.HowOften));
+            if (often >= 0) Check(Box3(f.OftenBoxes[often]));
+            if (T(j.HowOften) == "Other") Text(f.OftenOther, j.HowOftenOther);
+            Text(f.Employer, j.Employer);
+            Text(f.EmployerPhone, Formatting.Phone.Format(j.EmployerPhone));
+            for (var k = 0; k < Math.Min(PayRows, j.Pay.Count); k++)
+            {
+                var pay = j.Pay[k];
+                var row = f.Rows[k];
+                Text(row[0], D(pay.DatePaid));
+                Text(row[1], pay.Hours);
+                Text(row[2], M(pay.HourlyRate));
+                Text(row[3], M(pay.Gross));
+                Text(row[4], M(pay.Tips));
+            }
+        }
 
         // signature block. The PDF's field names don't match the lines they sit on: these are by position.
         Text(HelperName, r.Staff.StaffName);
@@ -200,6 +294,40 @@ public static class Form201SF
 
     private static string Box(int n) => $"Page1[0].CheckBox1[{n}]";
 
+    /// <summary>The "ID#" line under each row's citizenship boxes.</summary>
+    private static readonly string[] IdFields = ["Page1[0].ID[0]", "Page1[0].ID_2[0]", "Page1[0].ID_2[1]", "Page1[0].ID_2[2]"];
+
+    /// <summary>Relationship to the client, rows 2–4 (row 1 is printed "SELF").</summary>
+    private static readonly string[] Relationships = ["Page1[0].RelationshipRow1[0]", "Page1[0].RelationshipRow1_2[0]", "Page1[0].RelationshipRow1_3[0]"];
+
+    /// <summary>Pay dates per job on page 3.</summary>
+    public const int PayRows = 5;
+
+    private static string Box3(int n) => $"Page3[0].CheckBox1[{n}]";
+
+    /// <summary>A job box on page 3. <see cref="OftenBoxes"/> in <c>ChoiceLists.PayFrequency</c> order; each row: date, hours, rate, gross, tips.</summary>
+    private sealed record JobFields(string FirstName, string Initial, int[] OftenBoxes, string OftenOther, string Employer, string EmployerPhone, string[][] Rows);
+
+    private static readonly JobFields[] Jobs =
+    [
+        new("Page3[0].FirstName[0]", "Page3[0].Initial[0]", [0, 1, 3, 2, 4], "Page3[0].HowOften[0]", "Page3[0].EmployerName[0]", "Page3[0].Employer_Phone[0]",
+        [
+            ["Page3[0].Date_paidRow1[0]", "Page3[0].Hours_WorkedRow1[0]", "Page3[0].fill_46[0]", "Page3[0].fill_47[0]", "Page3[0].fill_48[0]"],
+            ["Page3[0].Date_paidRow2[0]", "Page3[0].Hours_WorkedRow2[0]", "Page3[0].fill_49[0]", "Page3[0].fill_50[0]", "Page3[0].fill_51[0]"],
+            ["Page3[0].Date_paidRow3[0]", "Page3[0].Hours_WorkedRow3[0]", "Page3[0].fill_52[0]", "Page3[0].fill_53[0]", "Page3[0].fill_54[0]"],
+            ["Page3[0].Date_paidRow4[0]", "Page3[0].Hours_WorkedRow4[0]", "Page3[0].fill_56[0]", "Page3[0].fill_57[0]", "Page3[0].fill_58[0]"],
+            ["Page3[0].Date_paidRow5[0]", "Page3[0].Hours_WorkedRow5[0]", "Page3[0].fill_59[0]", "Page3[0].fill_60[0]", "Page3[0].fill_61[0]"],
+        ]),
+        new("Page3[0].FirstName[1]", "Page3[0].Initial[1]", [5, 6, 8, 7, 9], "Page3[0].HowOften[1]", "Page3[0].EmployerName[1]", "Page3[0].Employer_Phone[1]",
+        [
+            ["Page3[0].Date_paidRow1_2[0]", "Page3[0].Hours_WorkedRow1_2[0]", "Page3[0].fill_63[0]", "Page3[0].fill_64[0]", "Page3[0].fill_65[0]"],
+            ["Page3[0].Date_paidRow2_2[0]", "Page3[0].Hours_WorkedRow2_2[0]", "Page3[0].fill_66[0]", "Page3[0].fill_67[0]", "Page3[0].fill_68[0]"],
+            ["Page3[0].Date_paidRow3_2[0]", "Page3[0].Hours_WorkedRow3_2[0]", "Page3[0].fill_69[0]", "Page3[0].fill_70[0]", "Page3[0].fill_71[0]"],
+            ["Page3[0].Date_paidRow4_2[0]", "Page3[0].Hours_WorkedRow4_2[0]", "Page3[0].fill_73[0]", "Page3[0].fill_74[0]", "Page3[0].fill_75[0]"],
+            ["Page3[0].Date_paidRow5_2[0]", "Page3[0].Hours_WorkedRow5_2[0]", "Page3[0].fill_76[0]", "Page3[0].fill_77[0]", "Page3[0].fill_78[0]"],
+        ]),
+    ];
+
     /// <summary>
     /// The page 1 checkbox for a member row's citizenship. Each row's five citizenship boxes are the ones after its
     /// nine demographic boxes; on the page they run U.S. citizen, Asylee, Legal immigrant down the left column, then
@@ -256,6 +384,21 @@ public static class Form201SF
         var name = key[..key.IndexOf('#')];
         var pair = Form201SFLayout.Spots.Where(s => s.Name == name).OrderBy(s => s.X).ToList();
         return key.EndsWith("#yes") ? pair[0] : pair[^1];
+    }
+
+    /// <summary>Question 6: the answer on the eligibility review tab, else what tab 1's housing type says (a typed "other" with no pick counts as Other).</summary>
+    public static string HousingKindOf(IntakeRecord r)
+    {
+        var x = r.StateReview;
+        if (T(x.HousingKind) is { Length: > 0 } picked) return picked;
+        if (T(x.HousingOther).Length > 0) return "Other";
+        return T(r.Client.HousingType) switch
+        {
+            "House" => "Single-family house",
+            "Mobile Home/Trailer" => "Mobile home",
+            "Apartment" => "Apartment",
+            _ => "",
+        };
     }
 
     private static string T(string? s) => s?.Trim() ?? "";

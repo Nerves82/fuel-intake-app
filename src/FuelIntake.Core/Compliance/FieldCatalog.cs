@@ -90,6 +90,7 @@ public static partial class FieldCatalog
     {
         "incomeExpenses" => "Income & Expenses",
         "fuelElectric" => "Fuel & Electric",
+        "stateReview" => "VT Eligibility Review (201SF)",
         _ => Humanize(key),
     };
 
@@ -104,6 +105,7 @@ public static partial class FieldCatalog
         "application" => "Application",
         "incomeExpenses" => "Income & Expenses",
         "fuelElectric" => "Fuel & Electric",
+        "stateReview" => InputTabs.Vermont201SFTitle,
         _ => "Client",
     };
 

@@ -8,7 +8,7 @@ using FuelIntake.Core.Validation;
 namespace FuelIntake.UI.Services;
 
 /// <summary>Which screen is showing.</summary>
-public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Print, Check, Settings, Verify }
+public enum Screen { Clients, Client, Household, Application, IncomeExpenses, FuelElectric, Review, Print, Check, Settings, Verify, StateReview }
 
 /// <summary>
 /// The open client and everything the screens share: the record, calculated values, lists,
@@ -180,6 +180,10 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     /// </summary>
     public bool ShowRuleHelp =>
         Record is not null && FuelIntake.Core.Compliance.ComplianceRules.Effective(Record, Compliance) is { UsesCrisisFuelRules: true };
+
+    /// <summary>Extra input tabs for the open client: those its compliance standard (picked, or from the grant) adds.</summary>
+    public IReadOnlyList<FuelIntake.Core.Compliance.InputTab> ExtraTabs =>
+        Record is null ? [] : FuelIntake.Core.Compliance.InputTabs.For(Record, Compliance);
 
     /// <summary>The rules panel stays open (or closed) while moving between tabs.</summary>
     public bool RulesOpen { get; private set; }
