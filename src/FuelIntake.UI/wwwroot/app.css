@@ -303,10 +303,28 @@ button.small { padding: 2px 10px; font-size: 13px; }
 /* paper applications (ClientsPage box, VerifyPage) */
 .paper-box h3 { font-size: 0.95rem; margin: 14px 0 4px; }
 .badge.pending { background: var(--warn-soft); color: var(--warn); }
-.badge.compliance { background: var(--info-soft); color: var(--info-ink); border: 1px solid transparent; }
-.badge.compliance.from-grant { background: transparent; border-style: dashed; border-color: var(--info-ink); }
-.badge.compliance.unknown { background: var(--warn-soft); color: var(--warn); }
-.verify-page { max-width: 1500px; }
+/* compliance standard tags: one colour per standard (std-0…7, by place in the settings list), none shared with the
+   other client-list tags (TEST purple, pending amber, no intake grey). Picked = filled; via grant = dashed outline. */
+.badge.compliance { --c: var(--info-ink); --c-soft: var(--info-soft); background: var(--c-soft); color: var(--c); border: 1px solid var(--c); }
+.badge.compliance.from-grant { background: transparent; border-style: dashed; }
+.badge.compliance.unknown { --c: var(--bad); --c-soft: var(--bad-soft); }
+.badge.std-0 { --c: #1d4f7a; --c-soft: #dcecf9; }  /* blue */
+.badge.std-1 { --c: #0d6b63; --c-soft: #d6f1ee; }  /* teal */
+.badge.std-2 { --c: #7a4a1e; --c-soft: #f3e6d8; }  /* brown */
+.badge.std-3 { --c: #34449a; --c-soft: #e2e6fa; }  /* indigo */
+.badge.std-4 { --c: #5a6600; --c-soft: #eef2cf; }  /* olive */
+.badge.std-5 { --c: #00687f; --c-soft: #d4eff6; }  /* cyan */
+.badge.std-6 { --c: #2f6b2f; --c-soft: #dcefdc; }  /* green */
+.badge.std-7 { --c: #a0255f; --c-soft: #fbe1ee; }  /* rose */
+:root[data-theme="dark"] .badge.std-0 { --c: #a3cff3; --c-soft: #1b3145; }
+:root[data-theme="dark"] .badge.std-1 { --c: #8ee0d6; --c-soft: #133632; }
+:root[data-theme="dark"] .badge.std-2 { --c: #e3b98f; --c-soft: #35261a; }
+:root[data-theme="dark"] .badge.std-3 { --c: #b5c0f5; --c-soft: #1f2547; }
+:root[data-theme="dark"] .badge.std-4 { --c: #d4df7a; --c-soft: #2d3110; }
+:root[data-theme="dark"] .badge.std-5 { --c: #8fd8ea; --c-soft: #0f3540; }
+:root[data-theme="dark"] .badge.std-6 { --c: #9ad49a; --c-soft: #1a3320; }
+:root[data-theme="dark"] .badge.std-7 { --c: #f4a6ca; --c-soft: #3d1a2b; }
+:root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] :root[data-theme="dark"] .verify-page { max-width: 1500px; }
 .verify-head { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
 .verify-progress { display: flex; flex-direction: column; gap: 4px; min-width: 14rem; }
 .verify-progress progress { width: 100%; height: 10px; accent-color: var(--accent); }
@@ -368,3 +386,4 @@ table.lines tr.line-note .field { margin: 0 0 6px; }
 label.check.issue { border-radius: 4px; outline: 2px solid currentColor; outline-offset: 2px; }
 label.check.issue-error { outline-color: var(--bad); } label.check.issue-warning { outline-color: var(--warn); } label.check.issue-info { outline-color: var(--info-ink); }
 label.check .issue-text { display: block; }
+.tag-key .badge { margin: 0 2px; }

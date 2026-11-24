@@ -103,10 +103,17 @@ public static class ComplianceRules
 /// <param name="Name">The standard's name.</param>
 /// <param name="FromGrant">True when it comes from the grant source rather than being picked.</param>
 /// <param name="Unknown">True when the picked name is no longer in the compliance settings.</param>
-public sealed record ComplianceBadge(string Name, bool FromGrant, bool Unknown)
+/// <param name="Color">Which of the <see cref="Colors"/> tag colours it uses (its place in the settings list), or -1.</param>
+public sealed record ComplianceBadge(string Name, bool FromGrant, bool Unknown, int Color = -1)
 {
-    public string Tooltip => Unknown ? $"{Name} isn't in the compliance settings any more"
-        : FromGrant ? $"{Name}, from the grant source" : $"Compliance standard: {Name}";
+    /// <summary>How many distinct tag colours there are; the 9th standard reuses the 1st's colour.</summary>
+    public const int Colors = 8;
+
+    public string Label => Unknown ? $"{Name} · not in settings" : FromGrant ? $"{Name} · via grant" : Name;
+
+    public string Tooltip => Unknown ? $"{Name} isn't in the compliance settings any more: pick another standard on the Review tab"
+        : FromGrant ? $"{Name}: not picked for this client, it applies because of the grant source on the order"
+        : $"Compliance standard: {Name} (picked for this client)";
 
     /// <summary>The badge for a record: the picked standard, else the one from the grant source, else none.</summary>
     public static ComplianceBadge? For(IntakeRecord? r, ComplianceSettings c)
@@ -116,9 +123,16 @@ public sealed record ComplianceBadge(string Name, bool FromGrant, bool Unknown)
         if (!string.IsNullOrEmpty(picked))
         {
             var s = ComplianceRules.Effective(r, c);
-            return s is null ? new(picked, false, true) : new(s.Name, false, false);
+            return s is null ? new(picked, false, true) : new(s.Name, false, false, ColorOf(s, c));
         }
-        return ComplianceRules.FromGrant(r, c) is { } g ? new(g.Name, true, false) : null;
+        return ComplianceRules.FromGrant(r, c) is { } g ? new(g.Name, true, false, ColorOf(g, c)) : null;
+    }
+
+    /// <summary>A standard's colour: its place in the settings list, so standards side by side never share one.</summary>
+    public static int ColorOf(ComplianceStandard s, ComplianceSettings c)
+    {
+        var i = c.Standards.IndexOf(s);
+        return i < 0 ? -1 : i % Colors;
     }
 
     /// <summary>

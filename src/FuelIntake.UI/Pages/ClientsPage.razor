@@ -152,6 +152,12 @@
             <p class="note folder-line">In <code>@Folder.Current.Path</code>
                 @if (Folder.Current.SyncedFrom is not null) { <span class="badge synced">@Folder.Current.SyncedFrom</span> }
                 · <button class="link" @onclick="Session.GoToDataFolder">change</button></p>
+            @if (badges.Values.Any(b => b is not null))
+            {
+                <p class="note tag-key">Compliance tags: <span class="badge compliance std-0">filled</span> = picked for the client ·
+                    <span class="badge compliance std-0 from-grant">outlined · via grant</span> = applies because of the grant source on the order ·
+                    each standard has its own colour.</p>
+            }
             <ul class="client-list">
                 @foreach (var p in pending.Where(p => string.IsNullOrWhiteSpace(search) || p.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)))
                 {
