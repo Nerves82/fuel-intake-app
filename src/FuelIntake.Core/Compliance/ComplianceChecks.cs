@@ -44,6 +44,15 @@ public static class ComplianceChecks
                     "application.secondCrisis")]
                 : []),
 
+        new("cf-citizenship", "A household member is a citizen, national or qualified immigrant", "3102-citizen", (r, c, _) =>
+        {
+            var known = c.Members.Where(m => m.IsPresent || m.Number == 1).Select(m => T(m.Data.Citizenship)).Where(x => x.Length > 0).ToList();
+            return known.Count > 0 && known.All(x => x == Citizenships.Other)
+                ? [new(IssueSeverity.Warning, "Household", "Citizenship",
+                    "A household member must be a U.S. citizen or national, or a qualified immigrant; everyone recorded so far is \"Other\".")]
+                : [];
+        }),
+
         new("cf-application-season", "Application date within the crisis application season", "3104-season", (r, c, today) =>
         {
             var date = r.Staff.AppDate;

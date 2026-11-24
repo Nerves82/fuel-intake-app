@@ -35,7 +35,7 @@
                     <tr>
                         <td>@m.FullName</td><td>@Ssn(m.Data.Ssn)</td><td>@D(m.DateOfBirth)</td><td></td>
                         <td>@(d.Hispanic switch { true => "Hispanic, Latino or Spanish", false => "Not Hispanic", _ => "" })</td>
-                        <td>@RaceText(d.Race)</td><td>@d.Gender</td><td></td>
+                        <td>@RaceText(d.Race)</td><td>@d.Gender</td><td>@m.Data.Citizenship</td>
                     </tr>
                 }
             </tbody>

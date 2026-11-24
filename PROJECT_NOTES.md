@@ -410,3 +410,12 @@ Small deliberate changes from the workbook:
   files folder.
 - The verify page closes its scan preview before discarding: an open scan blocked the Recycle Bin move, which failed
   partway and left the application listed. If a copy is still open elsewhere, the next listing finishes the removal.
+
+## Citizenship (2026-11-24)
+
+- New per-member field **Citizenship / immigration status** (Household tab): U.S. citizen, Asylee, Legal immigrant,
+  Refugee, Other (the 201SF's boxes; `ChoiceLists.Citizenship`). Stored as `household[n].citizenship`.
+- 201SF: ticks the matching box per row (`Form201SF.CitizenshipBox` sorts each row's five boxes by position, since
+  their field numbers aren't in page order); the continuation sheet shows it too. The built-in 201SF standard
+  requires it (saved settings: tick it under Household in Settings › Compliance).
+- Crisis Fuel: "?" links to 3102(c)(2); new check `cf-citizenship` warns when every member recorded is "Other".

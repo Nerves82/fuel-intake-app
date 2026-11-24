@@ -79,6 +79,7 @@ public static class Form201SF
             Check(Box(b[6]), who.Race == RaceBox.PacificIslander);
             Check(Box(b[7]), who.Race == RaceBox.AmericanIndian);
             Check(Box(b[8]), who.Race == RaceBox.White);
+            if (CitizenshipBox(i, m.Data.Citizenship) is int box) Check(Box(box));
         }
 
         // ---- page 2
@@ -198,6 +199,20 @@ public static class Form201SF
     ];
 
     private static string Box(int n) => $"Page1[0].CheckBox1[{n}]";
+
+    /// <summary>
+    /// The page 1 checkbox for a member row's citizenship. Each row's five citizenship boxes are the ones after its
+    /// nine demographic boxes; on the page they run U.S. citizen, Asylee, Legal immigrant down the left column, then
+    /// Refugee, Other down the right (their numbers don't follow that order, so they're sorted by position).
+    /// </summary>
+    public static int? CitizenshipBox(int row, string? citizenship)
+    {
+        var order = Array.IndexOf(Lists.ChoiceLists.Citizenship.ToArray(), citizenship?.Trim());
+        if (order < 0 || row < 0 || row >= MemberRows) return null;
+        var boxes = Enumerable.Range(row * 14 + 9, 5)
+            .OrderBy(n => Math.Round(Spot(Box(n)).X / 20)).ThenBy(n => Spot(Box(n)).Y).ToList();
+        return boxes[order];
+    }
 
     private static readonly Dictionary<string, string> FuelBoxes = new()
     {
