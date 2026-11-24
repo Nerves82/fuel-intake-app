@@ -156,3 +156,19 @@ public class CrisisFuelRulesTests
         Assert.All(reminders, i => Assert.Equal(IssueSeverity.Info, i.Severity));
     }
 }
+
+public class RuleHelpScopeTests
+{
+    [Fact]
+    public void OnlyStandardsWithCrisisFuelChecks_UseTheRules()
+    {
+        var c = FuelIntake.Core.Compliance.ComplianceSettings.Defaults();
+        Assert.True(c.Standards.Single(s => s.Name == "Crisis Fuel").UsesCrisisFuelRules);
+        Assert.False(c.Standards.Single(s => s.Name == "Warmth").UsesCrisisFuelRules);
+        Assert.False(c.Standards.Single(s => s.Name == FuelIntake.Core.Compliance.ComplianceSettings.Vermont201SFName).UsesCrisisFuelRules);
+        var mine = new FuelIntake.Core.Compliance.ComplianceStandard { Name = "Crisis Fuel (ours)" };
+        Assert.False(mine.UsesCrisisFuelRules);
+        mine.Checks.Add("cf-income-limit");
+        Assert.True(mine.UsesCrisisFuelRules);
+    }
+}

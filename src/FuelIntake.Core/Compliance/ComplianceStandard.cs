@@ -80,6 +80,10 @@ public sealed class ComplianceStandard
         foreach (var k in ComplianceChecks.CrisisFuel) if (!Checks.Contains(k)) Checks.Add(k);
     }
 
+    /// <summary>True when any Crisis Fuel rule check is switched on: the intake then shows the Crisis Fuel rule help.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool UsesCrisisFuelRules => Checks.Any(ComplianceChecks.CrisisFuel.Contains);
+
     [System.Text.Json.Serialization.JsonIgnore]
     public bool HasAllCrisisFuelRules =>
         ComplianceChecks.CrisisFuel.All(Checks.Contains) && ComplianceChecks.CrisisFuelRequired.All(Required.Contains);

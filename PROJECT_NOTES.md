@@ -385,6 +385,9 @@ Small deliberate changes from the workbook:
 - `Core/Rules/CrisisFuelRules.cs`: each rule (or part) with its citation, a plain-language summary (NEKCA's notes,
   not the rule text; the official PDF governs), the printed page, which fields it applies to (`ForField`, by record
   path), and the 3104(k)/(l) application windows. Update it when DCF revises the rules.
+- The "?" rule help shows only when the client's compliance standard (picked, or from its grant source) uses the
+  Crisis Fuel rules, i.e. has any Crisis Fuel check switched on (`ComplianceStandard.UsesCrisisFuelRules`). The
+  Rules panel itself is always available from the header.
 - Screens: a "?" beside every field a rule applies to (hover = the rule in plain words; click = the Rules panel at
   that rule). The header's **Rules** button toggles the panel (it shares the right side with Notes). Review-tab issues
   from a rule check have a "?" too. The panel links to the official PDF (opens in the browser).
