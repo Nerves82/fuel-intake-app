@@ -126,4 +126,23 @@ public class StateReviewTests
             Assert.True(Ticked(Fill(r), $"Page3[0].CheckBox1[{box}]"), often);
         }
     }
+
+    [Fact]
+    public void Vermont201SFSample_MeetsTheStandard_AndFillsEveryPage()
+    {
+        var r = FuelIntake.Core.TestData.SampleIntakes.Vermont201SFOnly("Testy", "Sampleton", FakeIntake.Today);
+        Assert.True(r.IsTestData);
+        Assert.Equal(ComplianceSettings.Vermont201SFName, r.Application.ComplianceStandard);
+        // the staff name comes from whoever starts the test client
+        Assert.Empty(ComplianceRules.Missing(r, ComplianceSettings.Vermont201SF()).Where(m => m.Field.Key != "staff.staffName"));
+        Assert.Equal([InputTabs.Vermont201SF], InputTabs.For(r, ComplianceSettings.Defaults()).Select(t => t.Id));
+        var f = Fill(r);
+        Assert.True(Ticked(f, "Page2[0].RadioButtonList[2]#yes"));           // full-time student
+        Assert.True(Ticked(f, "Page2[0].CheckBox1[3]"));                     // rents
+        Assert.True(Ticked(f, "Page2[0].CheckBox1[12]"));                    // apartment
+        Assert.Equal("Example Diner", TextAt(f, "Page3[0].EmployerName[0]"));
+        Assert.Equal("Example Grocery", TextAt(f, "Page3[0].EmployerName[1]"));
+        Assert.Equal("A000000000", TextAt(f, "Page1[0].ID_2[1]"));           // member 3's immigration ID
+        Assert.Null(r.Application.CrisisType);
+    }
 }

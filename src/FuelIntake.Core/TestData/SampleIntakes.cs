@@ -25,6 +25,7 @@ public static class SampleIntakes
         new("Household of 10, propane with fees", "Every household row filled, special trip + pressure test, invoice received", LargeHousehold),
         new("Multigenerational, SSDI + SSI, pellets", "Grandparent, parents, child; electric runs the pellet stove", Multigenerational),
         new("Temporary shelter, kerosene, second crisis", "Hotel/Motel, no SNAP, second crisis assist, after-hours", ShelterKerosene),
+        new("Vermont Fuel Assistance application (201SF) only", "Family of 3 under the 201SF standard: every 201SF answer filled, no crisis order", Vermont201SFOnly),
         new("Needs fixing (Review tab practice)", "Bad phone, zip and SSN, income mismatch, missing crisis type", NeedsFixing, HasErrors: true),
     ];
 
@@ -326,6 +327,86 @@ public static class SampleIntakes
     }
 
     /// <summary>Deliberately wrong entries, to practise with the Review tab.</summary>
+    /// <summary>
+    /// Just the state's Vermont Fuel Assistance Eligibility Review (201SF): the 201SF compliance standard, everything it
+    /// requires, and every question on the VT Eligibility Review tab answered, so the printed 201SF can be checked
+    /// box by box. No crisis, Fuel Order or Electric Pledge.
+    /// </summary>
+    public static IntakeRecord Vermont201SFOnly(string first, string last, DateOnly today)
+    {
+        var r = Base(first, last, today);
+        r.Application.ComplianceStandard = Compliance.ComplianceSettings.Vermont201SFName;
+        r.Client.DateOfBirth = new DateOnly(1984, 3, 14);
+        r.Client.HousingType = "Rent";
+        r.Client.HouseholdType = "Single Parent Female";
+        r.Client.Email = "testy.sampleton@example.org";
+        r.Client.Interests.FuelAssistance = true;
+        r.Household =
+        [
+            new() { Gender = "Female", Disabled = "N", Education = "Some college (but no degree)", Race = "White", Hispanic = "No",
+                    HealthInsurance = "Medicaid", IncomePerMonth = 1650m, IncomeSource = "Employment", MilitaryStatus = "Never",
+                    Ssn = "000-12-3601", Occupation = "Employed Part-time", Citizenship = Lists.Citizenships.UsCitizen, IncomeVerifiedDate = today },
+            new() { FirstName = "Student", LastName = last, DateOfBirth = new DateOnly(2006, 9, 1), Gender = "Male", Disabled = "N",
+                    Education = "High school graduate (high school diploma or equivalent)", Race = "White", Hispanic = "No",
+                    HealthInsurance = "Medicaid", IncomePerMonth = 320m, IncomeSource = "Employment", MilitaryStatus = "Never",
+                    Ssn = "000-12-3602", Occupation = "In school full-time and employed part-time", Citizenship = Lists.Citizenships.UsCitizen,
+                    Relationship = "Son", IncomeVerifiedDate = today },
+            new() { FirstName = "Cousin", LastName = "Example", DateOfBirth = new DateOnly(1979, 11, 30), Gender = "Female", Disabled = "Y",
+                    Race = "Asian", Hispanic = "No", HealthInsurance = "Medicare", IncomePerMonth = 943m,
+                    IncomeSource = "Supplemental Security Income (SSI)", MilitaryStatus = "Never", Ssn = "000-12-3603",
+                    Citizenship = Lists.Citizenships.LegalImmigrant, ImmigrationId = "A000000000", Relationship = "Cousin",
+                    IncomeVerifiedDate = today },
+        ];
+        r.IncomeExpenses.Income["Earned"] = 1970m;
+        r.IncomeExpenses.Income["SSI"] = 943m;
+        r.IncomeExpenses.Expenses["Rent"] = new() { PaidLast30Days = 850m, Bill = 850m };
+        r.IncomeExpenses.Expenses["HomeHeating"] = new() { PaidLast30Days = 180m, Bill = 180m };
+        r.IncomeExpenses.Expenses["Electricity"] = new() { PaidLast30Days = 95m, Bill = 95m };
+        r.IncomeExpenses.IncomeChangeNextMonth = "No";
+        r.IncomeExpenses.DocumentsAttached30Days = true;
+        r.FuelElectric.FuelType = "Propane";
+        r.FuelElectric.Vendor = "Example Propane (test vendor)";
+        r.FuelElectric.VendorAccount = "TEST-6006";
+        r.FuelElectric.ElectricProvider = "Example Power (test provider)";
+        r.FuelElectric.ElectricAccount = "TEST-6007";
+
+        var x = r.StateReview;
+        x.DayPhone = "8025550177";
+        x.RentsRoom = "No";
+        x.Caregiver = "No";
+        x.Student = "Yes"; x.StudentName = $"Student {last}"; x.StudentLivesAt = "At home";
+        x.LivingSituation = "Rent my home or apartment"; x.RentAmount = 850m;
+        x.HeatPayment = "I pay my fuel supplier directly";
+        x.HousingKind = "Apartment";
+        x.Bedrooms = "3";
+        x.RentBasedOnIncome = "No";
+        x.SupplierAddress = "1 Example Way, St. Johnsbury, VT 05819";
+        x.SupplierAccountName = $"{first} {last}";
+        x.ElectricAccountName = $"{first} {last}";
+        x.Job1 = new()
+        {
+            FirstName = first, HowOften = "Every two weeks", Employer = "Example Diner", EmployerPhone = "8025550188",
+            Pay =
+            [
+                new() { DatePaid = today.AddDays(-24), Hours = "55", HourlyRate = 15m, Gross = 825m, Tips = 40m },
+                new() { DatePaid = today.AddDays(-10), Hours = "52", HourlyRate = 15m, Gross = 780m, Tips = 35m },
+            ],
+        };
+        x.Job2 = new()
+        {
+            FirstName = "Student", HowOften = "Weekly", Employer = "Example Grocery", EmployerPhone = "8025550199",
+            Pay =
+            [
+                new() { DatePaid = today.AddDays(-21), Hours = "6", HourlyRate = 13.5m, Gross = 81m },
+                new() { DatePaid = today.AddDays(-14), Hours = "5", HourlyRate = 13.5m, Gross = 67.5m },
+                new() { DatePaid = today.AddDays(-7), Hours = "6", HourlyRate = 13.5m, Gross = 81m },
+            ],
+        };
+        x.SelfEmployment = "No";
+        x.InterestNames = $"{first} {last}"; x.InterestAmount = 2m;
+        return r;
+    }
+
     public static IntakeRecord NeedsFixing(string first, string last, DateOnly today)
     {
         var r = SingleSenior(first, last, today);
