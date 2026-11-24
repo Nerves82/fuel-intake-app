@@ -15,17 +15,20 @@ var endpoints = app.MapRazorComponents<HostPage>();
 endpoints.AddInteractiveServerRenderMode();
 #endif
 // Dev only: /print-html?sample=0&forms=FuelOrder,Access returns the printable HTML (fake data) for checking layouts.
-app.MapGet("/print-html", async (int? sample, string? forms, IServiceProvider services, FuelIntake.Core.Storage.IListSource lists) =>
+app.MapGet("/print-html", async (int? sample, string? forms, bool? blank, IServiceProvider services, FuelIntake.Core.Storage.IListSource lists) =>
 {
     var today = DateOnly.FromDateTime(DateTime.Now);
     var s = FuelIntake.Core.TestData.SampleIntakes.All[Math.Clamp(sample ?? 0, 0, FuelIntake.Core.TestData.SampleIntakes.All.Count - 1)];
-    var record = s.Build("Testy", "Sampleton", today);
+    var record = blank == true ? FuelIntake.UI.Printing.PrintContext.BlankRecord() : s.Build("Testy", "Sampleton", today);
     var vendors = await lists.GetVendorsAsync();
-    record.FuelElectric.Vendor = vendors.FuelVendors.First().DisplayName;
-    record.FuelElectric.ElectricProvider = vendors.ElectricProviders.First().DisplayName;
-    record.Staff.StaffName = "Pat Example";
+    if (blank != true)
+    {
+        record.FuelElectric.Vendor = vendors.FuelVendors.First().DisplayName;
+        record.FuelElectric.ElectricProvider = vendors.ElectricProviders.First().DisplayName;
+        record.Staff.StaffName = "Pat Example";
+    }
     var ctx = new FuelIntake.Core.Model.CalculationContext(await lists.GetSettingsAsync(), await lists.GetStaffAsync(), vendors, today);
-    var p = new FuelIntake.UI.Printing.PrintContext(record, new FuelIntake.Core.Model.IntakeCalculations(record, ctx), ctx.Settings, today);
+    var p = new FuelIntake.UI.Printing.PrintContext(record, new FuelIntake.Core.Model.IntakeCalculations(record, ctx), ctx.Settings, today) { Blank = blank == true };
     var list = string.IsNullOrEmpty(forms) ? FuelIntake.Core.Packets.PacketCatalog.AllForms
         : forms.Split(',').Select(f => Enum.Parse<FuelIntake.Core.Packets.FormId>(f, true)).ToList();
     var html = await new FuelIntake.UI.Printing.PacketRenderer(services).RenderAsync(p, list, "preview");

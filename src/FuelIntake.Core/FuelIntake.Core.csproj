@@ -10,6 +10,8 @@
   <!-- Built-in starting vendor list (Microsoft Lists CSV export). Staff can re-import a newer export in Settings. -->
   <ItemGroup>
     <EmbeddedResource Include="Data\Fuel_Team_Vendor_List.csv" LogicalName="Fuel_Team_Vendor_List.csv" />
+    <!-- Answer boxes on the forms the app prints for clients to fill in by hand (reference/forms/make_scan_layout.js). -->
+    <EmbeddedResource Include="Import\scan-forms.json" LogicalName="scan-forms.json" />
   </ItemGroup>
 
 </Project>

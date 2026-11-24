@@ -17,10 +17,14 @@
 
   <ItemGroup>
     <Resource Include="Assets\nekca.ico" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.0" />
+    <!-- Scan reading: PaddleOCR PP-OCRv5 models through ONNX Runtime (Apache-2.0). Its build step copies the models
+         into models\v5 next to the app, so the portable folder carries them; nothing to install. -->
+    <PackageReference Include="RapidOcrNet" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>

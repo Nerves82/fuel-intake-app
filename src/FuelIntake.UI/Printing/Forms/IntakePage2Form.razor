@@ -2,6 +2,7 @@
 @using FuelIntake.Core.Mapping
 @{ var r = P.R; var c = P.C; var b = r.Client.Benefits; var it = r.Client.Interests; var rows = c.OccupationRows; }
 <div class="sheet landscape">
+    <ScanCode Form="IntakePage2" />
     <div style="display:flex; gap:0.25in; align-items:center">
         <div class="logo small"></div>
         <div style="flex:1; text-align:center">
@@ -11,18 +12,18 @@
     </div>
 
     <div class="bx"><div class="choices"><b>Housing Type:</b>
-        <Ch T="Own" C="@(c.HousingBox == HousingBox.Own)" /><Ch T="Rent" C="@(c.HousingBox == HousingBox.Rent)" />
-        <Ch T="Homeless/Temporary Shelter" C="@(c.HousingBox == HousingBox.HomelessTemporaryShelter)" /><Ch T="Other" C="@(c.HousingBox == HousingBox.Other)" />
+        <Ch T="Own" C="@(c.HousingBox == HousingBox.Own)" S="client.housingType" SV="Own" /><Ch T="Rent" C="@(c.HousingBox == HousingBox.Rent)" S="client.housingType" SV="Rent" />
+        <Ch T="Homeless/Temporary Shelter" C="@(c.HousingBox == HousingBox.HomelessTemporaryShelter)" S="client.housingType" SV="Homeless" /><Ch T="Other" C="@(c.HousingBox == HousingBox.Other)" S="client.housingType" SV="Other" />
     </div></div>
     <div class="bx" style="margin-top:8px"><div class="choices"><b>Household Type:</b>
-        @foreach (var (box, text) in HhTypes) { <Ch T="@text" C="@(c.HouseholdTypeBox == box)" /> }
+        @foreach (var (box, text) in HhTypes) { <Ch T="@text" C="@(c.HouseholdTypeBox == box)" S="client.householdType" SV="@PaperMappings.ValueFor(box)" /> }
     </div></div>
 
     <h3>Do You Receive Any Of The Following? (Please Check All That Apply):</h3>
     <div class="bx"><div class="choices">
-        <span class="choice"><span class="tick">@(b.Snap ? "X" : "")</span> SNAP (Amount: $<span class="v" style="width:0.8in">@PrintContext.M(b.SnapAmount)</span>/<span class="v" style="width:0.5in">@(b.Snap ? b.SnapPeriod : "")</span>)</span>
-        <Ch T="WIC" C="b.Wic" /><Ch T="LIHEAP" C="b.Liheap" /><Ch T="Housing Choice Voucher" C="b.HousingChoiceVoucher" /><Ch T="Public Housing" C="b.PublicHousing" />
-        <Ch T="Permanent Supportive Housing" C="b.PermanentSupportiveHousing" /><Ch T="HUD-VASH" C="b.HudVash" /><Ch T="Childcare Voucher" C="b.ChildcareVoucher" /><Ch T="Affordable Care Act Subsidy" C="b.AcaSubsidy" />
+        <span class="choice"><span class="tick" data-scan="client.benefits.snap" data-kind="tick">@(b.Snap ? "X" : "")</span> SNAP (Amount: $<span class="v" style="width:0.8in" data-scan="client.benefits.snapAmount" data-kind="text">@PrintContext.M(b.SnapAmount)</span>/<span class="v" style="width:0.5in">@(b.Snap ? b.SnapPeriod : "")</span>)</span>
+        <Ch T="WIC" C="b.Wic" S="client.benefits.wic" /><Ch T="LIHEAP" C="b.Liheap" S="client.benefits.liheap" /><Ch T="Housing Choice Voucher" C="b.HousingChoiceVoucher" S="client.benefits.housingChoiceVoucher" /><Ch T="Public Housing" C="b.PublicHousing" S="client.benefits.publicHousing" />
+        <Ch T="Permanent Supportive Housing" C="b.PermanentSupportiveHousing" /><Ch T="HUD-VASH" C="b.HudVash" /><Ch T="Childcare Voucher" C="b.ChildcareVoucher" S="client.benefits.childcareVoucher" /><Ch T="Affordable Care Act Subsidy" C="b.AcaSubsidy" S="client.benefits.acaSubsidy" />
     </div></div>
 
     <h3>FOR Household Members 14 + (Occupation Status)</h3>

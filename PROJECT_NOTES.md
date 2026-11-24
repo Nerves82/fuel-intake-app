@@ -453,3 +453,33 @@ Small deliberate changes from the workbook:
 - An answer on the tab beats what the intake implies (living situation, heat payment, rent based on income,
   self-employment). "No" is only printed when answered; it's never assumed.
 - The tab's fields are in the field catalog, so a standard can require any of them.
+
+## Scannable forms and PaddleOCR (2026-11-24)
+
+- Steve: the old reader was "really bad"; go with known answer boxes on the app's own forms plus PaddleOCR.
+  Azure Document Intelligence is on the back burner (cloud). Fillable PDFs aren't an option: clients write by hand;
+  staff at a computer use the app itself.
+- **Forms clients fill in by hand**: Intake page 1, Intake page 2 and the Income/Expense Worksheet carry a solid
+  0.15 in square near each corner (0.30 in in from the edges) and, beside the bottom-left one, a strip of ten cells
+  coding the form and layout version (`ScanMarks`, printed by `Printing/ScanCode.razor`). Clients page →
+  **Print blank forms for clients** saves "Blank application forms (for scanning).pdf" in `_Fuel Intake Settings`
+  and opens it (blank copies leave totals, "VT" and the circled "Same" off: `PrintContext.Blank`).
+- Answer boxes are tagged in the Razor forms (`data-scan` on `F`/`Ch` via `S`/`SV`, and on table cells) and measured by
+  `reference/forms/make_scan_layout.js` into `src/FuelIntake.Core/Import/scan-forms.json` (embedded in Core).
+  **After moving anything on those three forms, re-run the script, and bump `ScanForms.Version` if boxes moved**
+  (old printouts then stop matching instead of being misread). Form codes: page 1 = 1, page 2 = 2, Income/Expense = 3;
+  never reuse a code.
+- Reading (`ScanFormReader`, Core, no packages): find the four squares (any way round: upside down or sideways
+  works), map page inches to the scan (homography: skew, "fit to page" shrink, offset), read the code, then per box:
+  ticks by ink just above the blank's line compared with the page's other blanks; writing boxes only when they
+  have ink, cut out straightened, printed rules whited out, trimmed to the writing, and read as one line.
+  Household rows with writing become members. A box's reading beats the label reader; an empty box clears a guess.
+  Number boxes turn look-alike letters into digits ("o5819", "000.-12-34o1") but flag them.
+- Engine (Desktop `PaddleScanReader`): RapidOcrNet 4.2.0 (Apache-2.0) runs PaddleOCR PP-OCRv5 Latin models with ONNX
+  Runtime; the package copies the models into `models\v5` in the app folder. App-form boxes use recognition only
+  (`TextRecognizer`, about 30 ms a box); other pages are read whole and go to the label/table readers. PDFs are
+  rendered at 200 dpi. If the models can't load, Windows' text recognition is used as before.
+- Checked end to end in the sandbox with Chromium-drawn fake handwriting (three handwriting fonts), scans turned
+  0.6–1.4°, shrunk 2–4 %, one upside down, speckled and blurred: forms found every time, ticks exact, 37–45 of 45
+  answers right. Real handwriting will do worse; every field still needs a tick.
+- Next: test on real filled-in forms (staff, fake data); the occupation rows on page 2 aren't read yet.

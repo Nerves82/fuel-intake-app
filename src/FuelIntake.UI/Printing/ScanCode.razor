@@ -1,0 +1,22 @@
+@* Corner squares and the form code (FuelIntake.Core.Import.ScanMarks) on forms clients fill in by hand, so a scan can
+   be lined up and read box by box. Positions are fixed in inches from the page edges; don't move them. *@
+@using FuelIntake.Core.Import
+@{ var bits = ScanMarks.Encode(ScanForms.Codes[Form], ScanForms.Version); var inset = Px(ScanMarks.Inset); var size = Px(ScanMarks.Size); }
+<div class="scan-code" data-scan-form="@Form" aria-hidden="true">
+    <i style="left:@inset; top:@inset; width:@size; height:@size"></i>
+    <i style="right:@inset; top:@inset; width:@size; height:@size"></i>
+    <i style="right:@inset; bottom:@inset; width:@size; height:@size"></i>
+    <i style="left:@inset; bottom:@inset; width:@size; height:@size"></i>
+    @for (var k = 0; k < bits.Length; k++)
+    {
+        if (!bits[k]) continue;
+        <i style="left:@Px(ScanMarks.CodeStart + k * ScanMarks.CellPitch); bottom:@Px(ScanMarks.Center - ScanMarks.CellSize / 2); width:@Px(ScanMarks.CellSize); height:@Px(ScanMarks.CellSize)"></i>
+    }
+</div>
+
+@code {
+    /// <summary>Key in <see cref="ScanForms.Codes"/>.</summary>
+    [Parameter, EditorRequired] public string Form { get; set; } = "";
+
+    private static string Px(double inches) => inches.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "in";
+}

@@ -85,7 +85,9 @@ public static partial class ScanFieldReader
             filled++;
         }
         // household tables (one row per person) win over the label guesses for their columns, and add members 2+
-        return filled + FillHousehold(import, pages);
+        filled += FillHousehold(import, pages);
+        // the app's own forms, read box by box, win over everything above
+        return filled + FillFromForms(import, pages);
     }
 
     /// <summary>
@@ -242,21 +244,34 @@ public static partial class ScanFieldReader
         {
             case ImportFieldKind.Date:
                 var d = DatePattern().Match(raw);
-                return d.Success && PaperImportRules.ParseDate(d.Value.Replace('.', '/').Replace('-', '/')) is { } date
-                    ? (date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture), true) : (raw, false);
+                if (d.Success && PaperImportRules.ParseDate(d.Value.Replace('.', '/').Replace('-', '/')) is { } date)
+                    return (date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture), true);
+                // "2/.3/197o": look-alike letters and doubled separators, read again but flagged
+                var dd = DatePattern().Match(DateSeparators().Replace(Digits(raw), "/"));
+                return dd.Success && PaperImportRules.ParseDate(dd.Value) is { } date2
+                    ? (date2.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture), false) : (raw, false);
             case ImportFieldKind.Ssn:
                 var s = SsnPattern().Match(raw);
-                return s.Success ? (Ssn.Format(s.Value), true) : (raw, false);
+                if (s.Success) return (Ssn.Format(s.Value), true);
+                var ssnDigits = new string(Digits(raw).Where(char.IsDigit).ToArray());
+                return ssnDigits.Length == 9 ? (Ssn.Format(ssnDigits), false) : (raw, false);
             case ImportFieldKind.Phone:
                 var p = PhonePattern().Match(raw);
-                return p.Success ? (Phone.Format(p.Value), true) : (raw, false);
+                if (p.Success) return (Phone.Format(p.Value), true);
+                var phoneDigits = new string(Digits(raw).Where(char.IsDigit).ToArray());
+                return phoneDigits.Length == 10 ? (Phone.Format(phoneDigits), false) : (raw, false);
             case ImportFieldKind.Zip:
                 var z = ZipPattern().Match(raw);
-                return z.Success ? (z.Value, true) : (raw, false);
+                if (z.Success) return (z.Value, true);
+                var z2 = ZipPattern().Match(Digits(raw));
+                return z2.Success ? (z2.Value, false) : (raw, false);
             case ImportFieldKind.Money:
                 var m = MoneyPattern().Match(raw);
-                return m.Success && PaperImportRules.ParseMoney(m.Value) is { } amount
-                    ? (amount.ToString("0.00", CultureInfo.InvariantCulture), true) : ("", false);
+                if (m.Success && PaperImportRules.ParseMoney(m.Value) is { } amount)
+                    return (amount.ToString("0.00", CultureInfo.InvariantCulture), true);
+                var m2 = MoneyPattern().Match(Digits(raw));
+                return m2.Success && PaperImportRules.ParseMoney(m2.Value) is { } amount2
+                    ? (amount2.ToString("0.00", CultureInfo.InvariantCulture), false) : ("", false);
             case ImportFieldKind.Choice when f.Options is { Count: > 0 } yn && yn.Contains("Y") && yn.Contains("N"):
                 var first = Norm(raw).Split(' ').FirstOrDefault() ?? "";
                 return first is "yes" or "y" ? ("Y", true) : first is "no" or "n" ? ("N", true) : (raw, false);
@@ -279,6 +294,22 @@ public static partial class ScanFieldReader
     }
 
     /// <summary>
+    /// For boxes that only hold numbers: letters handwriting readers mix up with digits ("o5819", "l2OO") as those
+    /// digits. Only used when the reading didn't already look right, and the result is flagged for a closer look.
+    /// </summary>
+    public static string Digits(string raw) => new(raw.Select(c => c switch
+    {
+        'o' or 'O' or 'D' or 'Q' => '0',
+        'l' or 'I' or 'i' or '|' or '!' => '1',
+        'z' or 'Z' => '2',
+        's' or 'S' => '5',
+        'b' or 'G' => '6',
+        'B' or '&' => '8',
+        'q' or 'g' => '9',
+        _ => c,
+    }).ToArray());
+
+    /// <summary>
     /// What the reader saw, laid out row by row with positions, but with names, numbers and other writing
     /// hidden (letters → x, digits → 9). Printed label words stay, so the layout can be shared to improve
     /// the reading without sharing anything about the client.
@@ -290,6 +321,15 @@ public static partial class ScanFieldReader
         foreach (var page in pages)
         {
             sb.Append("== ").Append(Mask(page.File, vocab, keepExtension: true)).Append(" page ").Append(page.Page).AppendLine(" ==");
+            if (page.Form is { } form)
+            {
+                // the app's own form: each box, how much ink, and the reading's shape (field names say nothing about the client)
+                sb.Append(CultureInfo.InvariantCulture, $"app form {form.FormId} v{form.Version}{(form.UpsideDown ? ", upside down" : "")}, ")
+                  .AppendLine(CultureInfo.InvariantCulture, $"tick baseline {ScanFormReader.TickBaseline(form.Values):0.000}");
+                foreach (var v in form.Values.Where(v => v.Ink > 0 || !string.IsNullOrEmpty(v.Text)))
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"  {v.Zone.Path}{(v.Zone.Value is null ? "" : "=" + v.Zone.Value)}: ink {v.Ink:0.000}{(v.Text is { Length: > 0 } t ? " read " + Mask(t, vocab, keepExtension: false) : "")}");
+            }
             foreach (var line in page.Lines.OrderBy(l => l.Y))
             {
                 sb.Append(CultureInfo.InvariantCulture, $"y{line.Y:0.000} x{line.X:0.000}: ");
@@ -390,5 +430,7 @@ public static partial class ScanFieldReader
     [GeneratedRegex(@"\b\d{3}[\s\-]?\d{2}[\s\-]?\d{4}\b")] private static partial Regex SsnPattern();
     [GeneratedRegex(@"\(?\b\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}\b")] private static partial Regex PhonePattern();
     [GeneratedRegex(@"\b\d{5}\b")] private static partial Regex ZipPattern();
-    [GeneratedRegex(@"\$?\s?\d{1,3}(,\d{3})*(\.\d{2})?|\$?\s?\d+(\.\d{2})?")] private static partial Regex MoneyPattern();
+    [GeneratedRegex(@"\s*[/.\-]+\s*")] private static partial Regex DateSeparators();
+    // "1,234.50" with thousands commas, else plain digits ("1200", "980.5"): the first alone would read "1200" as "120"
+    [GeneratedRegex(@"\$?\s?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\$?\s?\d+(?:\.\d{1,2})?")] private static partial Regex MoneyPattern();
 }
