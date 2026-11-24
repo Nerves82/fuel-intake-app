@@ -84,7 +84,8 @@ public static partial class ScanFieldReader
             field.Spot = found.Value.Spot;
             filled++;
         }
-        return filled;
+        // household tables (one row per person) win over the label guesses for their columns, and add members 2+
+        return filled + FillHousehold(import, pages);
     }
 
     /// <summary>
