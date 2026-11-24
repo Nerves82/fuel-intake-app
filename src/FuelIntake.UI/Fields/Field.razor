@@ -1,7 +1,7 @@
 @* Layout wrapper: label on top, control, then a hint, a problem with what was typed, or a review issue about the field. *@
 @using FuelIntake.Core.Validation
 <div class="field @(Wide ? "wide" : "") @(Problem is null ? "" : "has-problem") @IssueClass(Issue)" @attributes="Scope?.Attributes(Label)">
-    <label for="@For">@Label<NoteMarker Label="@Label" /></label>
+    <label for="@For">@Label<RuleHelp Path="@Path" /><NoteMarker Label="@Label" /></label>
     @ChildContent
     @if (Problem is not null)
     {
@@ -25,6 +25,8 @@
     [Parameter] public bool Wide { get; set; }
     /// <summary>A Review-tab issue about this field: the field is outlined and the message shown under it.</summary>
     [Parameter] public ValidationIssue? Issue { get; set; }
+    /// <summary>The field's record path: shows a "?" when a Crisis Fuel rule applies to it.</summary>
+    [Parameter] public string? Path { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [CascadingParameter] public FieldScope? Scope { get; set; }
 

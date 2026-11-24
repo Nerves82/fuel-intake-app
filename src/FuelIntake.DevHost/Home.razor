@@ -17,6 +17,9 @@
     [SupplyParameterFromQuery(Name = "lastname")] public string? NewLast { get; set; }
     [SupplyParameterFromQuery(Name = "paper")] public int? Paper { get; set; }
     [SupplyParameterFromQuery(Name = "clients")] public int? SeedClients { get; set; }
+    [SupplyParameterFromQuery(Name = "std")] public string? Standard { get; set; }
+    [SupplyParameterFromQuery(Name = "rule")] public string? Rule { get; set; }
+    [SupplyParameterFromQuery(Name = "unlock")] public int? Unlock { get; set; }
     [Inject] public FuelIntake.Core.Import.IPendingImports Pending { get; set; } = default!;
     private bool ready;
 
@@ -24,7 +27,7 @@
     {
         await Session.InitializeAsync();
         if (Sample is int i && i >= 0 && i < SampleIntakes.All.Count)
-            await Session.CreateAsync("Testy", "Sampleton" + (i + 1), SampleIntakes.All[i].Build);
+            await Session.CreateAsync("Testy", "Sampleton" + (i + 1), SampleIntakes.All[i].Build, Standard);
         if (Session.Record is { } r && Sample is not null)
         {
             // show the vendor details in the preview
@@ -77,6 +80,13 @@
             Session.Record.FuelElectric.Invoice.FundingSource = null;
             Session.Changed(); await Session.SaveAsync();
             await Session.CloseAsync();
+        }
+        if (Rule is not null) Session.OpenRule(Rule);
+        if (Unlock is 1)
+        {
+            if (!FuelIntake.Core.Compliance.ComplianceRules.HasPasscode(Session.Compliance))
+                FuelIntake.Core.Compliance.ComplianceRules.SetPasscode(Session.Compliance, "dev-only");
+            Session.ComplianceUnlocked = true;
         }
         if (SettingsTab is int t) Session.SettingsTab = t;
         if (Enum.TryParse<Screen>(ScreenName, true, out var s)) Session.Go(s);

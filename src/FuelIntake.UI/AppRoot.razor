@@ -50,7 +50,8 @@ else
     }
     <RenameBanner />
     <NotesPanel />
-    <main class="page @(Session.NotesOpen ? "with-notes" : "")">
+    <RulesPanel />
+    <main class="page @(Session.NotesOpen || Session.RulesOpen ? "with-notes" : "")">
         <CascadingValue Value="@(new FieldScope(Session.Screen))">
         @switch (Session.Screen)
         {

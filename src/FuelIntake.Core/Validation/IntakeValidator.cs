@@ -9,7 +9,8 @@ public enum IssueSeverity { Info, Warning, Error }
 /// <summary>A problem to show before printing. <paramref name="Section"/> names the screen ("Client", "Household"…).</summary>
 /// <param name="Path">The field it's about, as a <see cref="RecordPaths"/> path ("client.zip", "household[2].ssn"), so the
 /// screen can mark that field. Null for issues about several fields or a total.</param>
-public sealed record ValidationIssue(IssueSeverity Severity, string Section, string Field, string Message, string? Path = null);
+/// <param name="Rule">The rule it comes from (a <see cref="Rules.CrisisFuelRules"/> id), for a "?" link to it.</param>
+public sealed record ValidationIssue(IssueSeverity Severity, string Section, string Field, string Message, string? Path = null, string? Rule = null);
 
 /// <summary>
 /// Checks an intake for mistakes the workbook used to catch with cell validation, plus cross-tab checks.
@@ -95,6 +96,13 @@ public static class IntakeValidator
                     $"Required for {standard.Name}: {(m.Field.IsCheck ? "tick" : "fill in")} {m.Field.Group} › {m.Field.Label}" +
                     (m.Member is int k ? $" for member {k}." : "."),
                     m.Member is int i ? m.Field.Key.Replace("household[*]", $"household[{i - 1}]") : m.Field.Key);
+        // …and its rule checks (Crisis Fuel's income limit, delivery limit…)
+        if (Compliance.ComplianceRules.Effective(r, calc.Context.ComplianceOrEmpty) is { } withChecks)
+            foreach (var id in withChecks.Checks.Distinct())
+                if (Compliance.ComplianceChecks.Find(id) is { } check)
+                    foreach (var x in check.Run(r, calc, today))
+                        issues.Add(new(x.Severity, x.Section, x.Field,
+                            $"{withChecks.Name} rule {check.Rule?.Cite ?? check.RuleId}: {x.Message}", x.Path, check.RuleId));
         if (!string.IsNullOrWhiteSpace(r.Application.ComplianceStandard) && Compliance.ComplianceRules.Effective(r, calc.Context.ComplianceOrEmpty) is null)
             Add(IssueSeverity.Warning, "Review", "Compliance standard", $"\"{r.Application.ComplianceStandard}\" isn't a compliance standard any more; pick another.", "application.complianceStandard");
 

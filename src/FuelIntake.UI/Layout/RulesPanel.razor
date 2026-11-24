@@ -1,0 +1,65 @@
+@* The Vermont Crisis Fuel Assistance Rules in plain words, beside the intake. Opened by the header's Rules button,
+   a "?" beside a field, or an issue's rule link (which scrolls to and highlights that rule). *@
+@implements IDisposable
+@using FuelIntake.Core.Rules
+@inject IntakeSession Session
+@inject FuelIntake.Core.Storage.IFileOutput Files
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+@if (Session.Record is not null && Session.RulesOpen)
+{
+    if (Session.ActiveRule is { } asked)
+    {
+        // opened at a rule: highlight it (and scroll to it once drawn)
+        Session.ActiveRule = null;
+        search = null;
+        highlighted = scrollTo = asked;
+    }
+    var shown = CrisisFuelRules.All.Where(Matches).ToList();
+    <aside class="notes-panel rules-panel" aria-label="Crisis Fuel rules">
+        <div class="row-between">
+            <h2>Crisis Fuel rules</h2>
+            <button class="link" @onclick="Session.ToggleRules" title="Hide the rules">Hide ✕</button>
+        </div>
+        <p class="note">Plain-language notes on the @CrisisFuelRules.Name (effective @CrisisFuelRules.Effective).
+            The official rules govern. <button class="link" @onclick="OpenOfficial">Open the official rules (DCF PDF) ↗</button></p>
+        <input class="search" placeholder="Search the rules…" @bind="search" @bind:event="oninput" />
+        <ul class="rules-list">
+            @foreach (var rule in shown)
+            {
+                <li id="rule-@rule.Id" class="@(rule.Id == highlighted ? "active" : "")">
+                    <div class="rule-head"><span class="rule-cite">@rule.Cite</span> <strong>@rule.Title</strong>
+                        <span class="rule-page" title="Page in the printed rules">p. @rule.Page</span></div>
+                    <div class="rule-text">@rule.Summary</div>
+                </li>
+            }
+            @if (shown.Count == 0) { <li class="note">No rule mentions “@search”.</li> }
+        </ul>
+    </aside>
+}
+
+@code {
+    private string? search, highlighted, scrollTo;
+
+    protected override void OnInitialized() => Session.StateChanged += OnState;
+
+    private void OnState() => InvokeAsync(StateHasChanged);
+
+    private bool Matches(RuleRef r) => string.IsNullOrWhiteSpace(search)
+        || $"{r.Cite} {r.Title} {r.Summary}".Contains(search.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private async Task OpenOfficial()
+    {
+        try { await Files.OpenAsync(CrisisFuelRules.OfficialUrl); }
+        catch (Exception) { /* no browser: the link is in the panel's text too */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (scrollTo is not { } id) return;
+        scrollTo = null;
+        try { await JS.InvokeVoidAsync("fuelIntake.scrollToId", "rule-" + id); } catch (Exception) { }
+    }
+
+    public void Dispose() => Session.StateChanged -= OnState;
+}

@@ -376,3 +376,26 @@ Small deliberate changes from the workbook:
   "Type a name not on the list…" that switches to a text box (Enter or leaving the box keeps it, Esc goes back).
 - Staff phones are formatted "(802) 555-0123": `IntakeCalculations.StaffPhone` (forms, email, 201SF), the Settings
   staff table (on load, on leaving the box, on save) and the default invoice phone. Anything not 10 digits stays as typed.
+
+## Crisis Fuel rules: reference and compliance checks (2026-11-24)
+
+- Source: Vermont DCF Crisis Fuel Assistance Rules 3100–3113, effective 06/22/2024 (official PDF:
+  https://outside.vermont.gov/dept/DCF/Shared%20Documents/ESD/Rules/3100-Crisis-Fuel.pdf). Steve supplied a scan
+  (`reference/rules/`), which has only the even-numbered pages; the odd pages' content was taken from the official PDF.
+- `Core/Rules/CrisisFuelRules.cs`: each rule (or part) with its citation, a plain-language summary (NEKCA's notes,
+  not the rule text; the official PDF governs), the printed page, which fields it applies to (`ForField`, by record
+  path), and the 3104(k)/(l) application windows. Update it when DCF revises the rules.
+- Screens: a "?" beside every field a rule applies to (hover = the rule in plain words; click = the Rules panel at
+  that rule). The header's **Rules** button toggles the panel (it shares the right side with Notes). Review-tab issues
+  from a rule check have a "?" too. The panel links to the official PDF (opens in the browser).
+- Compliance standards now have **rule checks** (`ComplianceChecks`, written in code; standards just tick them) as
+  well as required fields. Crisis Fuel's defaults: every `cf-` check, and required SSNs for all members, electric
+  provider + account, fuel type, crisis type, application date (3104(e), (m)). The fuel supplier + account is a check
+  (not needed when the main heat is electric). Existing compliance.json files get them with Settings › Compliance ›
+  Crisis Fuel › "Apply the Crisis Fuel rules (3100–3113)" (keeps anything already set).
+- Checks and how strict they are: over 200% FPL, a second benefit at or under 185%, over 125 gallons of a liquid fuel,
+  missing supplier/account → errors. Outside the application season, no seasonal fuel status at or under 185%,
+  tank over 25% or no disconnect notice, no circumstances described, landlord verification, no referral → warnings.
+  Verification due date (+5 days), life-threatening (18 h / 30 days), after hours, special trip → info.
+- Not checkable from the intake (judgment or history): residency, citizenship, one application per request, crisis
+  benefits already used this season (only the "second crisis" box), identity verification.

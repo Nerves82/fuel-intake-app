@@ -7,7 +7,7 @@
   The plain dropdown draws its own list in the page instead of using the browser's <select> popup: in the
   desktop app (WebView2 inside WPF) the native popup of long lists could close as soon as it opened.
 *@
-<Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Problem="@Problem" Wide="Wide">
+<Field Label="@Label" Issue="@Issue" Path="@FieldPath" For="@Id" Hint="@Hint" Problem="@Problem" Wide="Wide">
     @if (AllowOther && typing)
     {
         @* a name that isn't on the list: typed in, then back to the dropdown *@
