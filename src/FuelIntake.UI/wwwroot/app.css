@@ -206,7 +206,14 @@ button.secondary { color: var(--green); border-color: var(--green); }
 button.danger { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
 button.link.danger { background: none; color: var(--bad); }
 .page.with-notes { margin-right: 340px; }
-@media (min-width: 1500px) { .page.with-notes { margin-right: auto; } }
+.page.with-rules { margin-left: 340px; }
+@media (min-width: 1500px) {
+  .page.with-notes:not(.with-rules) { margin-right: auto; }
+  .page.with-rules:not(.with-notes) { margin-left: auto; }
+}
+@media (min-width: 1850px) { .page.with-notes, .page.with-rules { margin-left: auto; margin-right: auto; } }
+/* the Crisis Fuel rules panel sits on the left, so it can be open alongside the notes */
+.notes-panel.rules-panel { right: auto; left: 0; border-left: none; border-right: 1px solid var(--line); box-shadow: 2px 0 8px var(--shadow-soft); }
 .app-header button.secondary.on { background: var(--calc); }
 
 /* note references */
@@ -394,7 +401,7 @@ label.check .issue-text { display: block; }
   padding: 0; border-radius: 50%; border: 1px solid var(--info-ink); background: var(--info-soft); color: var(--info-ink);
   font: 700 10px/1 system-ui, sans-serif; cursor: help; vertical-align: 1px; }
 .rule-help:hover { background: var(--info-ink); color: var(--surface); }
-.rules-panel .search { width: 100%; margin: 4px 0 8px; }
+.rules-panel .search { width: 100%; max-width: none; box-sizing: border-box; margin: 4px 0 8px; }
 .rules-list { list-style: none; margin: 0; padding: 0; }
 .rules-list li { padding: 8px 6px; border-top: 1px solid var(--line); border-radius: 4px; scroll-margin-top: 8px; }
 .rules-list li.active { background: var(--flash); transition: background 1.5s; }
