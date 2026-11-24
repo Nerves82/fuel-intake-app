@@ -25,6 +25,20 @@ public sealed record PrintContext(IntakeRecord R, IntakeCalculations C, AgencySe
 
     public static string Ssn(string? s) => FuelIntake.Core.Formatting.Ssn.Format(s);
 
+    /// <summary>A blank copy for a client to fill in by hand: worked-out values (totals, "Same" mailing address) are left off.</summary>
+    public bool Blank { get; init; }
+
+    /// <summary>An empty record for printing blank copies (no state filled in either).</summary>
+    public static IntakeRecord BlankRecord()
+    {
+        var r = new IntakeRecord();
+        r.Client.State = null;
+        return r;
+    }
+
+    /// <summary>A worked-out value, or nothing on a blank copy.</summary>
+    public string Calc(string? value) => Blank ? "" : value ?? "";
+
     /// <summary>The application date, used beside signatures.</summary>
     public string AppDate => D(R.Staff.AppDate);
 }

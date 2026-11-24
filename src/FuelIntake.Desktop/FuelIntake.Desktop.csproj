@@ -17,15 +17,20 @@
 
   <ItemGroup>
     <Resource Include="Assets\nekca.ico" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.0" />
+    <!-- Scan reading (FuelIntake.Scanning): referenced here as well because the package's build step, which copies the
+         PaddleOCR models into models\v5 next to the app, only runs for projects that reference it directly. -->
+    <PackageReference Include="RapidOcrNet" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FuelIntake.UI\FuelIntake.UI.csproj" />
     <ProjectReference Include="..\FuelIntake.Core\FuelIntake.Core.csproj" />
+    <ProjectReference Include="..\FuelIntake.Scanning\FuelIntake.Scanning.csproj" />
   </ItemGroup>
 
 </Project>

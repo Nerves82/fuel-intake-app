@@ -27,6 +27,9 @@ public static class PaperMappings
         [HousingBox.Other] = ["Apartment", "House", "Migrant Housing", "Mobile Home/Trailer", "Other", "Prison", "Shared Housing by Choice"],
     };
 
+    /// <summary>The list value a ticked household-type box on a paper form stands for (its first match).</summary>
+    public static string ValueFor(HouseholdTypeBox box) => HouseholdType[box][0];
+
     private static readonly Dictionary<HouseholdTypeBox, string[]> HouseholdType = new()
     {
         [HouseholdTypeBox.SingleIndividual] = ["Single Person"],

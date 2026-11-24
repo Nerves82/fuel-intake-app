@@ -1,5 +1,6 @@
-@* A labelled, underlined value: <F L="Date:" V="@x" W="1.1in" />. Grow = takes the rest of the row. *@
-<span class="f @(Grow ? "grow" : "") @Class"><span class="l @(Bold ? "b" : "")">@L</span><span class="v @(Wrap ? "wrap" : "")" style="@(W is null ? null : $"width:{W}")">@V</span></span>
+@* A labelled, underlined value: <F L="Date:" V="@x" W="1.1in" />. Grow = takes the rest of the row.
+   S = the paper-application field it answers, so a scan of a blank copy can be read box by box. *@
+<span class="f @(Grow ? "grow" : "") @Class"><span class="l @(Bold ? "b" : "")">@L</span><span class="v @(Wrap ? "wrap" : "")" style="@(W is null ? null : $"width:{W}")" data-scan="@S" data-kind="@(S is null ? null : "text")">@V</span></span>
 
 @code {
     [Parameter] public string? L { get; set; }
@@ -9,4 +10,5 @@
     [Parameter] public bool Bold { get; set; }
     [Parameter] public bool Wrap { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string? S { get; set; }
 }

@@ -3,6 +3,7 @@
 @using FuelIntake.Core.Model
 @{ var r = P.R; var c = P.C; var ie = r.IncomeExpenses; var inc = IncomeExpenseCatalog.IncomeLines; var exp = IncomeExpenseCatalog.ExpenseLines; }
 <div class="sheet">
+    <ScanCode Form="IncomeExpense" />
     <div class="title" style="font-size:12pt; margin-bottom:0.1in">Income/Expense Worksheet</div>
     <table class="grid ie">
         <colgroup><col style="width:2.7in" /><col style="width:0.8in" /><col style="width:1.85in" /><col style="width:1.0in" /><col style="width:1.0in" /></colgroup>
@@ -13,11 +14,11 @@
             <tr>
                 @if (i < 10)
                 {
-                    <td>@inc[i].Label</td><td class="n">@M(ie.Income.GetValueOrDefault(inc[i].Key))</td>
+                    <td>@inc[i].Label</td><td class="n" data-scan="incomeExpenses.income.@inc[i].Key">@M(ie.Income.GetValueOrDefault(inc[i].Key))</td>
                 }
                 else if (i == 10)
                 {
-                    <td rowspan="5">Other@(string.IsNullOrWhiteSpace(ie.IncomeOtherDescription) ? "" : ": ")<em>@ie.IncomeOtherDescription</em></td><td rowspan="5" class="n">@M(ie.Income.GetValueOrDefault("Other"))</td>
+                    <td rowspan="5">Other@(string.IsNullOrWhiteSpace(ie.IncomeOtherDescription) ? "" : ": ")<em>@ie.IncomeOtherDescription</em></td><td rowspan="5" class="n" data-scan="incomeExpenses.income.Other">@M(ie.Income.GetValueOrDefault("Other"))</td>
                 }
                 else if (i == 15)
                 {
@@ -34,11 +35,11 @@
                 <td>@exp[i].Label</td><td class="n">@M(e?.PaidLast30Days)</td><td class="n">@M(e?.Bill)</td>
             </tr>
         }
-        <tr><td>Total Gross Monthly Income:</td><td class="n">@M(c.IncomeTotal)</td><td>Total Expenses:</td><td class="n">@M(c.ExpensesPaidTotal)</td><td class="n">@M(c.ExpensesBillTotal)</td></tr>
+        <tr><td>Total Gross Monthly Income:</td><td class="n">@P.Calc(M(c.IncomeTotal))</td><td>Total Expenses:</td><td class="n">@P.Calc(M(c.ExpensesPaidTotal))</td><td class="n">@P.Calc(M(c.ExpensesBillTotal))</td></tr>
     </table>
 
     <div class="row gap">
-        <F L="Income – Expenses (difference):" V="@M(c.IncomeMinusExpenses)" W="0.8in" Class="money" />
+        <F L="Income – Expenses (difference):" V="@P.Calc(M(c.IncomeMinusExpenses))" W="0.8in" Class="money" />
         <F L="Checking:" V="@M(ie.AssetChecking)" W="0.75in" Class="money" />
         <F L="Savings:" V="@M(ie.AssetSavings)" W="0.75in" Class="money" />
         <F L="Cash:" V="@M(ie.AssetCash)" W="0.7in" Class="money" />
@@ -51,13 +52,13 @@
     <div class="notes" style="height:0.75in; overflow:hidden">@ie.Notes</div>
 
     <div class="row">
-        <F L="Total Gross Income:" V="@M(c.IncomeTotal)" W="1.6in" Class="money" />
-        <F L="# HH Members:" V="@c.HouseholdSize.ToString()" W="0.8in" />
-        <F L="FPL %:" V="@FuelIntake.Core.Formatting.Percent.Format(c.FplPercent)" W="1.1in" />
+        <F L="Total Gross Income:" V="@P.Calc(M(c.IncomeTotal))" W="1.6in" Class="money" />
+        <F L="# HH Members:" V="@P.Calc(c.HouseholdSize.ToString())" W="0.8in" />
+        <F L="FPL %:" V="@P.Calc(FuelIntake.Core.Formatting.Percent.Format(c.FplPercent))" W="1.1in" />
     </div>
     <div class="row tall">
         <span>Documents Attached for 30 days Income<Bx C="ie.DocumentsAttached30Days" /></span>
-        <span style="margin-left:0.35in">FPL Less Than @(FuelIntake.Core.Formatting.Percent.Format(P.Settings.IncomeLimit))<Bx C="@(c.UnderIncomeLimit == true)" /></span>
+        <span style="margin-left:0.35in">FPL Less Than @(FuelIntake.Core.Formatting.Percent.Format(P.Settings.IncomeLimit))<Bx C="@(!P.Blank && c.UnderIncomeLimit == true)" /></span>
         <span style="margin-left:auto"><span class="hl-b">Staff Initials:</span> <span class="v" style="width:0.8in">@c.StaffInitials</span></span>
     </div>
     <div class="row gap tall">

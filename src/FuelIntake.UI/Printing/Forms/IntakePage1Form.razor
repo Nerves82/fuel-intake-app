@@ -2,18 +2,19 @@
 @using static FuelIntake.UI.Printing.PrintContext
 @{ var r = P.R; var c = P.C; var cl = r.Client; var members = c.Members.Where(m => m.IsPresent).Take(10).ToList(); }
 <div class="sheet landscape">
+    <ScanCode Form="IntakePage1" />
     <div style="display:flex; gap:0.2in">
         <div class="logo"></div>
         <div style="flex:1">
             <div class="title" style="font-size:13pt; text-decoration:underline">NEKCA STANDARD INTAKE FORM – Page 1 of 2</div>
-            <div class="row"><F L="Physical Address:" V="@cl.AddressPhysical" Grow="true" /></div>
-            <div class="row"><F L="City/Town, State, Zip:" V="@c.CityStateZip" Grow="true" /></div>
-            <div class="row"><span class="l">Mailing Address:</span><Opt Text="Same" On="@string.IsNullOrWhiteSpace(cl.AddressMailing)" /><F L="or" V="@cl.AddressMailing" Grow="true" /></div>
-            <div class="row"><F L="Phone Number:" V="@Ph(cl.Phone)" W="2.0in" /><F L="Email (optional):" V="@cl.Email" Grow="true" /></div>
+            <div class="row"><F L="Physical Address:" V="@cl.AddressPhysical" Grow="true" S="client.addressPhysical" /></div>
+            <div class="row"><F L="City/Town, State, Zip:" V="@c.CityStateZip" Grow="true" S="@FuelIntake.Core.Import.ScanFieldReader.CityStateZipPath" /></div>
+            <div class="row"><span class="l">Mailing Address:</span><Opt Text="Same" On="@(!P.Blank && string.IsNullOrWhiteSpace(cl.AddressMailing))" /><F L="or" V="@cl.AddressMailing" Grow="true" S="client.addressMailing" /></div>
+            <div class="row"><F L="Phone Number:" V="@Ph(cl.Phone)" W="2.0in" S="client.phone" /><F L="Email (optional):" V="@cl.Email" Grow="true" S="client.email" /></div>
         </div>
     </div>
     <div class="row">
-        <F L="Primary Language:" V="@cl.PrimaryLanguage" W="0.9in" />
+        <F L="Primary Language:" V="@cl.PrimaryLanguage" W="0.9in" S="client.primaryLanguage" />
         <F L="Other (Please Specify):" V="@cl.LanguageOther" W="1.0in" />
         <F L="English Fluency (if applicable):" V="@cl.EnglishFluency" W="0.8in" />
         <span class="nowrap">Translator Needed? <Opt Text="Y" On="@(cl.TranslatorNeeded == "Y")" /><Opt Text="N" On="@(cl.TranslatorNeeded == "N")" /></span>
@@ -30,9 +31,9 @@
             var m = i < members.Count ? members[i] : null;
             var d = m?.Data;
             <tr class="@(i == 0 ? "first" : "")">
-                <td>@m?.LastName</td><td>@m?.FirstName</td><td>@D(m?.DateOfBirth)</td><td>@d?.Gender</td><td>@d?.Disabled</td>
-                <td>@d?.Education</td><td>@d?.Race</td><td>@d?.Hispanic</td><td>@d?.HealthInsurance</td><td>@M(d?.IncomePerMonth)</td>
-                <td>@(d is null ? "" : IntakeCalculations.IncomeSourceText(d))</td><td>@d?.MilitaryStatus</td><td>@Ssn(d?.Ssn)</td>
+                <td data-scan="@Cell(i, "lastName")">@m?.LastName</td><td data-scan="@Cell(i, "firstName")">@m?.FirstName</td><td data-scan="@Cell(i, "dateOfBirth")">@D(m?.DateOfBirth)</td><td data-scan="@Cell(i, "gender")">@d?.Gender</td><td data-scan="@Cell(i, "disabled")">@d?.Disabled</td>
+                <td data-scan="@Cell(i, "education")">@d?.Education</td><td data-scan="@Cell(i, "race")">@d?.Race</td><td data-scan="@Cell(i, "hispanic")">@d?.Hispanic</td><td data-scan="@Cell(i, "healthInsurance")">@d?.HealthInsurance</td><td data-scan="@Cell(i, "incomePerMonth")">@M(d?.IncomePerMonth)</td>
+                <td data-scan="@Cell(i, "incomeSource")">@(d is null ? "" : IntakeCalculations.IncomeSourceText(d))</td><td data-scan="@Cell(i, "militaryStatus")">@d?.MilitaryStatus</td><td data-scan="@Cell(i, "ssn")">@Ssn(d?.Ssn)</td>
             </tr>
         }
     </table>
@@ -46,6 +47,11 @@
 
 @code {
     [Parameter, EditorRequired] public PrintContext P { get; set; } = default!;
+
+    /// <summary>The paper-application field a household cell answers: row 1 is the client, whose name and birth date are client fields.</summary>
+    private static string Cell(int row, string field) =>
+        row == 0 && field is "lastName" or "firstName" or "dateOfBirth" ? $"client.{field}" : $"household[{row}].{field}";
+
     private static readonly string[] Heads =
     [
         "Last Name", "First Name", "Date of Birth", "Gender Identity", "Disabled<br/>(Y/N)", "Last Grade<br/>Completed", "Race",

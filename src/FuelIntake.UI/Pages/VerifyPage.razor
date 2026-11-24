@@ -230,9 +230,13 @@
             var filled = ScanFieldReader.Fill(import, pages);
             import.ReadLayout = ScanFieldReader.MaskedLayout(pages.Select(ScanFieldReader.Rows).ToList());
             var words = pages.Sum(p => p.Lines.Sum(l => l.Words.Count));
-            import.ReadNote = words == 0
+            var forms = pages.Count(p => p.Form is not null);
+            var formNote = forms == 0 ? ""
+                : forms == pages.Count ? " All pages are the app's own forms, read box by box."
+                : $" {forms} of them {(forms == 1 ? "is one" : "are")} of the app's own forms, read box by box.";
+            import.ReadNote = words == 0 && forms == 0
                 ? $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")} but found no text. The scan may be too faint or handwritten; type the values from the scan."
-                : $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")}: filled in {filled} field{(filled == 1 ? "" : "s")}. " +
+                : $"Read {pages.Count} page{(pages.Count == 1 ? "" : "s")}: filled in {filled} field{(filled == 1 ? "" : "s")}.{formNote} " +
                   "Check every one against the scan; unsure readings are marked.";
         }
         catch (Exception ex)

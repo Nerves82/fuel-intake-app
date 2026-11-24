@@ -5,6 +5,9 @@
 @inject IDataFolder Folder
 @inject FuelIntake.Core.Import.IPendingImports Pending
 @inject FuelIntake.Core.Import.IFilePicker Picker
+@inject FuelIntake.UI.Printing.PacketRenderer Renderer
+@inject IPdfPrinter Printer
+@inject IFileOutput Output
 
 <main class="page narrow">
     @if (Session.Notice is not null)
@@ -93,6 +96,10 @@
         {
             <button class="secondary" disabled="@busy" @onclick="StartPaper" title="The preview can't pick files: starts an empty one">Start (no scans in the preview)</button>
         }
+        <p class="note">For best results, clients fill in the app's own forms:
+            <button class="link" disabled="@busy" @onclick="PrintBlank">Print blank forms for clients</button>
+            (Intake pages 1 and 2 and the Income/Expense Worksheet). The squares in their corners let the app find every answer
+            box on the scan, read the ticks and read each answer on its own. Other forms are still read, less reliably.</p>
         @if (paperError is not null) { <p class="problem">@paperError</p> }
         @if (pending.Count > 0)
         {
@@ -211,6 +218,25 @@
     {
         try { pending = await Pending.ListAsync(); }
         catch (Exception) { pending = []; } // the client list shows the folder problem
+    }
+
+    /// <summary>Blank Intake pages 1–2 and Income/Expense Worksheet with scan marks, saved with the shared settings and opened.</summary>
+    private async Task PrintBlank()
+    {
+        busy = true; paperError = null;
+        try
+        {
+            var r = FuelIntake.UI.Printing.PrintContext.BlankRecord();
+            var calc = new IntakeCalculations(r, new CalculationContext(Session.Settings, Session.Staff, Session.Vendors, Session.Today, Session.Compliance));
+            var p = new FuelIntake.UI.Printing.PrintContext(r, calc, Session.Settings, Session.Today) { Blank = true };
+            var html = await Renderer.RenderAsync(p, [FuelIntake.Core.Packets.FormId.IntakePage1, FuelIntake.Core.Packets.FormId.IntakePage2,
+                FuelIntake.Core.Packets.FormId.IncomeExpense], "Blank application forms");
+            var pdf = await Printer.PrintAsync(html);
+            var at = await Output.SaveAsync(DataFolderRules.SettingsFolder(Folder.Current.Path), "Blank application forms (for scanning).pdf", pdf);
+            await Output.OpenAsync(at);
+        }
+        catch (Exception ex) { paperError = "Couldn't make the blank forms: " + ex.Message; }
+        finally { busy = false; }
     }
 
     private async Task StartPaper()

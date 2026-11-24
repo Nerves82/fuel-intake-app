@@ -19,7 +19,11 @@ public sealed record OcrLine(IReadOnlyList<OcrWord> Words)
 }
 
 /// <summary>The text found on one page of a scan.</summary>
-public sealed record OcrPage(string File, int Page, IReadOnlyList<OcrLine> Lines);
+public sealed record OcrPage(string File, int Page, IReadOnlyList<OcrLine> Lines)
+{
+    /// <summary>Set when the page is one of the app's scannable forms: every answer box read where it's printed.</summary>
+    public FormReading? Form { get; init; }
+}
 
 /// <summary>
 /// Reads the text on scanned pages, on this computer only (nothing is sent anywhere).

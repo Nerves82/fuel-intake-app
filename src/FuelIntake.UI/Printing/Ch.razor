@@ -1,5 +1,8 @@
-@* "___ Option" with an X on the blank when chosen (paper-form style). *@<span class="choice"><span class="tick">@(C ? "X" : "")</span> @T</span>
+@* "___ Option" with an X on the blank when chosen (paper-form style). S/SV = the paper-application field and the
+   value a mark on this blank means (no SV for a yes/no field). *@<span class="choice"><span class="tick" data-scan="@S" data-kind="@(S is null ? null : "tick")" data-value="@SV">@(C ? "X" : "")</span> @T</span>
 @code {
     [Parameter] public string T { get; set; } = "";
     [Parameter] public bool C { get; set; }
+    [Parameter] public string? S { get; set; }
+    [Parameter] public string? SV { get; set; }
 }
