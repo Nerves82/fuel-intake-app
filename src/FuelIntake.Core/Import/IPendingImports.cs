@@ -27,8 +27,11 @@ public interface IPendingImports
     /// <summary>Moves the scans into the new client's folder and removes the holding folder.</summary>
     Task FinishAsync(string id, string clientId, CancellationToken ct = default);
 
-    /// <summary>Throws the application away (holding folder to the Recycle Bin).</summary>
-    Task DiscardAsync(string id, CancellationToken ct = default);
+    /// <summary>
+    /// Throws the application away: its checking work and the holding folder with the app's copies of the scans
+    /// (Recycle Bin). The original files staff picked are never touched. Returns null (kept for a future location).
+    /// </summary>
+    Task<string?> DiscardAsync(string id, CancellationToken ct = default);
 }
 
 /// <summary>Lets staff pick files (the scans). Desktop: the Windows Open dialog.</summary>

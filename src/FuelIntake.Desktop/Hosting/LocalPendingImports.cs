@@ -31,7 +31,13 @@ public sealed class LocalPendingImports(LocalDataFolder folder) : IPendingImport
         foreach (var dir in new DirectoryInfo(folder.Root).EnumerateDirectories(PaperImportRules.HoldingPrefix + "*"))
         {
             var file = Path.Combine(dir.FullName, ImportFileName);
-            if (!File.Exists(file)) continue;
+            if (!File.Exists(file))
+            {
+                // discarded, but a copy of a scan was open at the time: finish removing the copies now
+                try { RemoveHoldingFolder(dir.FullName); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+                continue;
+            }
             try
             {
                 var i = Read(await File.ReadAllTextAsync(file, ct));
@@ -92,11 +98,48 @@ public sealed class LocalPendingImports(LocalDataFolder folder) : IPendingImport
         return Task.CompletedTask;
     }
 
-    public Task DiscardAsync(string id, CancellationToken ct = default)
+    public async Task<string?> DiscardAsync(string id, CancellationToken ct = default)
     {
-        RecycleBin.Send(Dir(id));
-        StartupLog.Write("A pending paper application was discarded (Recycle Bin)");
-        return Task.CompletedTask;
+        var dir = Dir(id);
+        // the checking work goes first: once import.json is gone it's no longer a pending application
+        await Retry(() => File.Delete(Path.Combine(dir, ImportFileName)), ct);
+        // then the holding folder: only the app's copies of the scans (the files staff picked were copied, never moved)
+        for (var attempt = 1; ; attempt++)
+        {
+            try { RemoveHoldingFolder(dir); break; }
+            catch (IOException) when (attempt < 5) { await Task.Delay(500, ct); }
+            catch (IOException ex)
+            {
+                // a copy is still open somewhere: the next listing removes the folder
+                StartupLog.Write("Couldn't remove a discarded paper application's folder yet", ex);
+                break;
+            }
+        }
+        StartupLog.Write("A pending paper application was discarded (its copies of the scans to the Recycle Bin)");
+        return null;
+    }
+
+    /// <summary>
+    /// Sends a holding folder to the Recycle Bin. Only ever a "_PENDING …" folder directly in the client files folder,
+    /// which holds the app's own copies: the original scans are elsewhere and are never touched.
+    /// </summary>
+    private void RemoveHoldingFolder(string dir)
+    {
+        var full = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(full);
+        if (!string.Equals(parent, Path.GetFullPath(folder.Root).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+            || !Path.GetFileName(full).StartsWith(PaperImportRules.HoldingPrefix, StringComparison.Ordinal))
+            throw new InvalidOperationException("Refusing to remove a folder that isn't a paper application's holding folder.");
+        RecycleBin.Send(full);
+    }
+
+    private static async Task Retry(Action step, CancellationToken ct)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try { step(); return; }
+            catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && attempt < 10) { await Task.Delay(300, ct); }
+        }
     }
 
     private string Dir(string id)
