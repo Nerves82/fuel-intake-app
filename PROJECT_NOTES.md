@@ -202,8 +202,14 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
   (`ScanFieldReader.Rows`); "Name: Smith, Jane" is split into last/first. Re-reading replaces earlier readings
   staff haven't changed or ticked. "What the reader saw" shows a copyable layout with letters → x and digits → 9
   (printed label words kept) so missed fields can be diagnosed without sharing client details.
-  Works best on typed/printed forms and block capitals; cursive is hit and miss. Household members 2+,
-  checkboxes and tables aren't read yet.
+  Works best on typed/printed forms and block capitals; cursive is hit and miss. Checkboxes aren't
+  read yet.
+- Household tables (2026-11-24, Steve: a 5-person test only gave 1 member): `ScanFieldReader.ReadHousehold` finds a
+  row of column headings (NEKCA Intake page 1, GoEngage printout, short "Last / First / DOB / SSN" headings), including
+  headings that wrap over several lines and sit centred in tall cells, read top to bottom. Each later row with a name
+  is a person: row 1 is the client, the rest are added as members 2, 3… (never removed on re-reading). A table column
+  wins over the label reader's guess for that field, and an empty cell clears such a guess (the "(Y/N)" under
+  "Disabled" isn't an answer). The table ends at the certification/signature line or a big gap.
 - Next: print blank forms with page codes and corner marks (known positions instead of label hunting),
   read ticked boxes by ink, map the agency's existing forms (need a blank copy of each).
 - Known limit: two people editing the same pending application at the same moment: last save wins.
