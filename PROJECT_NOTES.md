@@ -424,3 +424,21 @@ Small deliberate changes from the workbook:
   their field numbers aren't in page order); the continuation sheet shows it too. The built-in 201SF standard
   requires it (saved settings: tick it under Household in Settings › Compliance).
 - Crisis Fuel: "?" links to 3102(c)(2); new check `cf-citizenship` warns when every member recorded is "Other".
+
+## Extra input tabs per compliance standard; VT Eligibility Review tab (2026-11-24)
+
+- Steve: the 201SF asks things the intake doesn't normally capture; they go on their own tab, and which extra tabs a
+  client gets is set **in the compliance standard** (Settings › Compliance › each standard › "Extra input tabs").
+- `ComplianceStandard.ExtraTabs` (ids from `InputTabs.All`); the client's effective standard decides the tabs
+  (`InputTabs.For`). Unknown ids are ignored. One tab so far: `vt-201sf`, **VT Eligibility Review**, ticked on the
+  built-in 201SF standard. Saved settings from before this keep their old standard, so tick it there once.
+- The tab follows the form: page 1 (day/message phone, each member's relationship, immigration ID # when not a U.S.
+  citizen), **all of page 2, questions 1–11 in order**, page 3 (two jobs with up to 5 pay dates each, self-employment,
+  interest/dividends, adoption subsidy, rental income). Stored in `IntakeRecord.StateReview`.
+- Page 2 questions the intake already answers are shown there too, editing the same fields: 8 (fuel type), 10
+  (supplier, account #) and 11 (electric provider, account #) are tab 5's fields. Question 6 (type of housing) has its
+  own answer, because tab 1's housing type mixes Own/Rent with House/Apartment; blank falls back to tab 1 when that
+  says House, Mobile Home/Trailer or Apartment.
+- An answer on the tab beats what the intake implies (living situation, heat payment, rent based on income,
+  self-employment). "No" is only printed when answered; it's never assumed.
+- The tab's fields are in the field catalog, so a standard can require any of them.

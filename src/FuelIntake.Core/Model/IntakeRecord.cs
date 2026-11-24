@@ -31,6 +31,8 @@ public sealed class IntakeRecord
     public ApplicationSection Application { get; set; } = new();
     public IncomeExpenseSection IncomeExpenses { get; set; } = new();
     public FuelElectricSection FuelElectric { get; set; } = new();
+    /// <summary>Answers only the state's 201SF Eligibility Review asks (its own tab, shown by the compliance standard).</summary>
+    public StateReviewSection StateReview { get; set; } = new();
 }
 
 /// <summary>Tab 1 "Application &amp; staff".</summary>
@@ -160,6 +162,10 @@ public sealed class HouseholdMember
     public string? Hispanic { get; set; }
     /// <summary>Citizenship or immigration status, as on the state's 201SF (see <c>ChoiceLists.Citizenship</c>).</summary>
     public string? Citizenship { get; set; }
+    /// <summary>Immigration document number (the 201SF's "ID#" under citizenship), when not a U.S. citizen.</summary>
+    public string? ImmigrationId { get; set; }
+    /// <summary>Relationship to the client (the 201SF's household table; the client is "SELF").</summary>
+    public string? Relationship { get; set; }
     public string? HealthInsurance { get; set; }
     public decimal? IncomePerMonth { get; set; }
     public string? IncomeSource { get; set; }
@@ -347,4 +353,95 @@ public sealed class ElectricPledge
     public decimal? NextBill { get; set; }
     public DateOnly? NextBillDue { get; set; }
     public string? ClientResponsibilities { get; set; }
+}
+
+/// <summary>
+/// The state's Vermont Fuel Assistance Eligibility Review (DCF form 201SF): what it asks that the rest of the intake
+/// doesn't. Each answer overrides what the 201SF would otherwise work out from the intake.
+/// </summary>
+public sealed class StateReviewSection
+{
+    // page 1
+    public string? DayPhone { get; set; }
+
+    // page 2
+    /// <summary>1. Rents a room to someone: "Yes" or "No".</summary>
+    public string? RentsRoom { get; set; }
+    public string? RoomerName { get; set; }
+    public decimal? RoomerRent { get; set; }
+
+    /// <summary>2. Someone lives in to provide care (60+ or disabled): "Yes" or "No".</summary>
+    public string? Caregiver { get; set; }
+    public string? CaregiverName { get; set; }
+    public bool CareMedical { get; set; }
+    public bool CareHomemaker { get; set; }
+
+    /// <summary>3. A full-time college student in the household: "Yes" or "No".</summary>
+    public string? Student { get; set; }
+    public string? StudentName { get; set; }
+    public string? StudentLivesAt { get; set; }
+
+    /// <summary>4. Living situation (see <c>ChoiceLists.LivingSituation</c>).</summary>
+    public string? LivingSituation { get; set; }
+    public decimal? RentAmount { get; set; }
+    public string? RoomHost { get; set; }
+    public decimal? RoomRent { get; set; }
+    public string? LivingOther { get; set; }
+
+    /// <summary>5. Who pays for heat (see <c>ChoiceLists.HeatPayment</c>).</summary>
+    public string? HeatPayment { get; set; }
+    /// <summary>6. Type of housing (ChoiceLists.HousingKind). Blank: from the housing type on tab 1 when that says House, Mobile Home or Apartment.</summary>
+    public string? HousingKind { get; set; }
+    /// <summary>6. Type of housing when it's "Other" (describe).</summary>
+    public string? HousingOther { get; set; }
+    /// <summary>7. Number of bedrooms (text, as written).</summary>
+    public string? Bedrooms { get; set; }
+    /// <summary>8. Main heating fuel when the intake's fuel types don't have it: "Natural gas" or "Coal".</summary>
+    public string? MainFuelOther { get; set; }
+
+    /// <summary>9. Rent based on income: "Yes" or "No", and which program.</summary>
+    public string? RentBasedOnIncome { get; set; }
+    public string? RentProgram { get; set; }
+    public string? RentProgramOther { get; set; }
+
+    /// <summary>10, 11.</summary>
+    public string? SupplierAddress { get; set; }
+    public string? SupplierAccountName { get; set; }
+    public string? ElectricAccountName { get; set; }
+
+    // page 3
+    /// <summary>13. Income from a job: up to two jobs on the form.</summary>
+    public StateJob Job1 { get; set; } = new();
+    public StateJob Job2 { get; set; } = new();
+    /// <summary>14. Self-employment income: "Yes" or "No".</summary>
+    public string? SelfEmployment { get; set; }
+    /// <summary>15. Unearned income the intake's worksheet doesn't have.</summary>
+    public string? InterestNames { get; set; }
+    public decimal? InterestAmount { get; set; }
+    public string? AdoptionNames { get; set; }
+    public decimal? AdoptionAmount { get; set; }
+    public string? RentalNames { get; set; }
+    public decimal? RentalAmount { get; set; }
+}
+
+/// <summary>One job on the 201SF: who, how often paid, employer, and up to five pay dates.</summary>
+public sealed class StateJob
+{
+    public string? FirstName { get; set; }
+    public string? Initial { get; set; }
+    /// <summary>See <c>ChoiceLists.PayFrequency</c>.</summary>
+    public string? HowOften { get; set; }
+    public string? HowOftenOther { get; set; }
+    public string? Employer { get; set; }
+    public string? EmployerPhone { get; set; }
+    public List<StatePay> Pay { get; set; } = [];
+}
+
+public sealed class StatePay
+{
+    public DateOnly? DatePaid { get; set; }
+    public string? Hours { get; set; }
+    public decimal? HourlyRate { get; set; }
+    public decimal? Gross { get; set; }
+    public decimal? Tips { get; set; }
 }

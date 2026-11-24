@@ -34,7 +34,7 @@
             var s = std;
             <details class="standard" open="@(work.Standards.Count == 1)">
                 <summary><strong>@(string.IsNullOrWhiteSpace(s.Name) ? "(no name)" : s.Name)</strong>
-                    <span class="note">@s.Required.Count required field@(s.Required.Count == 1 ? "" : "s")@(s.Checks.Count > 0 ? $" · {s.Checks.Count} rule check{(s.Checks.Count == 1 ? "" : "s")}" : "")@(s.GrantSources.Count > 0 ? " · grant: " + string.Join(", ", s.GrantSources) : "")</span></summary>
+                    <span class="note">@s.Required.Count required field@(s.Required.Count == 1 ? "" : "s")@(s.Checks.Count > 0 ? $" · {s.Checks.Count} rule check{(s.Checks.Count == 1 ? "" : "s")}" : "")@(s.ExtraTabs.Count > 0 ? $" · {s.ExtraTabs.Count} extra tab{(s.ExtraTabs.Count == 1 ? "" : "s")}" : "")@(s.GrantSources.Count > 0 ? " · grant: " + string.Join(", ", s.GrantSources) : "")</span></summary>
                 <div class="grid">
                     <div class="field"><label>Name</label><input @bind="s.Name" /></div>
                     <div class="field"><label>Description</label><input @bind="s.Description" /></div>
@@ -51,6 +51,18 @@
                             var name = g.Name.Trim();
                             <label class="check-line"><input type="checkbox" checked="@s.GrantSources.Contains(name)"
                                    @onchange="e => Toggle(s.GrantSources, name, e.Value is true)" /> @name</label>
+                        }
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Extra input tabs</label>
+                    <div class="hint">Tabs added to the intake for applications under this standard (their fields can be required below).</div>
+                    <div class="check-list">
+                        @foreach (var t in FuelIntake.Core.Compliance.InputTabs.All)
+                        {
+                            var id = t.Id;
+                            <label class="check-line"><input type="checkbox" checked="@s.ExtraTabs.Contains(id)" @onchange="e => Toggle(s.ExtraTabs, id, e.Value is true)" />
+                                <span>@t.Title <span class="note">: @t.Description</span></span></label>
                         }
                     </div>
                 </div>

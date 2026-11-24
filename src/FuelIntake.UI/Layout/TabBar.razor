@@ -2,7 +2,7 @@
 @inject IntakeSession Session
 
 <nav class="tabs">
-    @foreach (var (screen, title) in Tabs)
+    @foreach (var (screen, title) in Tabs.Concat(Session.ExtraTabs.Select(t => (ScreenOf(t.Id), t.Title))).Where(t => t.Item1 is not null).Select(t => (t.Item1!.Value, t.Item2)))
     {
         var count = Session.Issues.Count(i => i.Section == SectionOf(screen) && i.Severity == FuelIntake.Core.Validation.IssueSeverity.Error);
         <button class="@(Session.Screen == screen ? "active" : "")" @onclick="() => Session.Go(screen)">
@@ -18,7 +18,7 @@
 </nav>
 
 @code {
-    private static readonly (Screen, string)[] Tabs =
+    private static readonly (Screen?, string)[] Tabs =
     [
         (Screen.Client, "1 · Client"),
         (Screen.Household, "2 · Household"),
@@ -35,7 +35,15 @@
         Screen.Application => "Application",
         Screen.IncomeExpenses => "Income & Expenses",
         Screen.FuelElectric => "Fuel & Electric",
+        Screen.StateReview => FuelIntake.Core.Compliance.InputTabs.Vermont201SFTitle,
         _ => "",
+    };
+
+    /// <summary>The screen for an extra input tab a compliance standard adds.</summary>
+    public static Screen? ScreenOf(string tabId) => tabId switch
+    {
+        FuelIntake.Core.Compliance.InputTabs.Vermont201SF => Screen.StateReview,
+        _ => null,
     };
 
     protected override void OnInitialized() => Session.StateChanged += OnState;

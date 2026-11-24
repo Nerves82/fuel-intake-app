@@ -84,6 +84,24 @@ public static class ChoiceLists
 
     public static readonly IReadOnlyList<string> SeasonalFuelStatus = ["Active", "Pending", "Closed/Denied"];
 
+    /// <summary>201SF question 4.</summary>
+    public static readonly IReadOnlyList<string> LivingSituation = ["Own my home", "Rent my home or apartment", "Life lease", "Rent a room in someone's home", "Other"];
+
+    /// <summary>201SF question 5.</summary>
+    public static readonly IReadOnlyList<string> HeatPayment = ["Heat is included in my rent", "I pay my fuel supplier directly", "My landlord bills me for all fuel"];
+
+    /// <summary>201SF question 6.</summary>
+    public static readonly IReadOnlyList<string> HousingKind = ["Single-family house", "Mobile home", "Apartment", "Other"];
+
+    /// <summary>201SF question 8, beyond the intake's fuel types.</summary>
+    public static readonly IReadOnlyList<string> MainFuelOther = ["Natural gas", "Coal"];
+
+    /// <summary>201SF question 9.</summary>
+    public static readonly IReadOnlyList<string> RentProgram = ["Section 8", "Public housing", "Subsidized housing", "Other"];
+
+    /// <summary>201SF question 13.</summary>
+    public static readonly IReadOnlyList<string> PayFrequency = ["Weekly", "Twice a month", "Every two weeks", "Monthly", "Other"];
+
     /// <summary>Citizenship or immigration status: the five boxes on the state's 201SF.</summary>
     public static readonly IReadOnlyList<string> Citizenship = [Citizenships.UsCitizen, Citizenships.Asylee, Citizenships.LegalImmigrant, Citizenships.Refugee, Citizenships.Other];
 
