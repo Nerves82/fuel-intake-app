@@ -22,14 +22,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.0" />
-    <!-- Scan reading: PaddleOCR PP-OCRv5 models through ONNX Runtime (Apache-2.0). Its build step copies the models
-         into models\v5 next to the app, so the portable folder carries them; nothing to install. -->
+    <!-- Scan reading (FuelIntake.Scanning): referenced here as well because the package's build step, which copies the
+         PaddleOCR models into models\v5 next to the app, only runs for projects that reference it directly. -->
     <PackageReference Include="RapidOcrNet" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FuelIntake.UI\FuelIntake.UI.csproj" />
     <ProjectReference Include="..\FuelIntake.Core\FuelIntake.Core.csproj" />
+    <ProjectReference Include="..\FuelIntake.Scanning\FuelIntake.Scanning.csproj" />
   </ItemGroup>
 
 </Project>
