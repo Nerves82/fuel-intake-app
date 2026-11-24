@@ -38,6 +38,17 @@ public class DataFolderTests
         Assert.NotNull(DataFolderRules.Warning(Synced + @"\_Fuel Intake Settings", hasIntakeFile: false));
         Assert.NotNull(DataFolderRules.Warning(Synced + @"\_TEST Sampleton, Testy", hasIntakeFile: true));
     }
+
+    [Fact]
+    public void NotShared_WarnsForTheDefaultAndUnsyncedFolders()
+    {
+        Assert.NotNull(DataFolderRules.NotSharedReason(new(Default, Default, true, true, null)));
+        // Documents backed up to the user's own OneDrive is still the default, so still only theirs
+        Assert.NotNull(DataFolderRules.NotSharedReason(new(Default, Default, true, true, "OneDrive / SharePoint")));
+        Assert.NotNull(DataFolderRules.NotSharedReason(new(@"D:\Clients", Default, false, true, null)));
+        Assert.Null(DataFolderRules.NotSharedReason(new(Synced, Default, false, true, "OneDrive / SharePoint")));
+        Assert.Null(DataFolderRules.NotSharedReason(new(Synced, Default, false, false, null)));   // missing: its own message
+    }
 }
 
 public class DeleteClientTests

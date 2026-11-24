@@ -45,7 +45,12 @@ Full plan: "Fuel Assistance Intake App — Development Plan" (Claude doc, Nov 20
 - Test clients: folders starting with `_TEST ` (made-up data only).
 - Lists and settings: `<client files folder>\_Fuel Intake Settings\`
   `staff.json`, `vendors.json`, `settings.json` (created empty on first run).
-  Open question: move these to the shared Crisis Fuel folder so the team shares one copy.
+  They live inside whichever client files folder is chosen, so everyone pointed at the synced SharePoint folder
+  shares one copy (staff, vendors, settings, compliance standards, test data sets).
+- Staff on the default Documents folder, or any folder OneDrive doesn't sync, get a warning on the clients page and
+  the data folder card ("Only on this computer", `DataFolderRules.NotSharedReason`): their clients and settings
+  wouldn't reach the team. The default counts as not shared even when Documents is backed up to the user's own
+  OneDrive, since that's still only theirs.
 - New client folders get the consent forms copied from the Masters template folder.
 - Logs: `%LOCALAPPDATA%\FuelIntake\logs`.
 

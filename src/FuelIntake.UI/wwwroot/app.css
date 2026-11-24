@@ -411,3 +411,8 @@ label.check .issue-text { display: block; }
 .rule-text { font-size: 13px; margin-top: 3px; line-height: 1.4; }
 ul.issues .rule-help { margin-left: 6px; }
 .check-list { display: grid; gap: 4px; margin: 6px 0; } .check-list .check-line { align-items: flex-start; }
+
+/* Client files folder that only lives on this laptop */
+.not-shared { border: 1px solid var(--warn); border-left-width: 4px; border-radius: 6px; padding: .6rem .8rem; margin: .5rem 0 1rem;
+    background: color-mix(in srgb, var(--warn) 10%, transparent); }
+.not-shared button { margin-left: .5rem; }
