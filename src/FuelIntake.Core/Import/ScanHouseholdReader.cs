@@ -57,7 +57,8 @@ public static partial class ScanFieldReader
             for (var i = 0; i < lines.Count; i++)
             {
                 var seed = Headings(lines[i]);
-                if (seed.Count < 3 || !seed.Any(h => h.Key is "lastName" or "firstName" or "name")) continue;
+                // a heading row is (nearly) all heading words; "Last Name: Smith First Name: Jane" is labelled fields
+                if (seed.Count < 3 || !seed.Any(h => h.Key is "lastName" or "firstName" or "name") || !IsHeadingLine(lines[i])) continue;
                 var table = ReadTable(page, lines, i);
                 if (table is { Rows.Count: > 0 }) return table;
             }
