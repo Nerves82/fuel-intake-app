@@ -49,6 +49,17 @@ public static class DataFolderRules
     public static string SettingsFolder(string root) => System.IO.Path.Combine(root, SettingsFolderName);
     public static string TestDataFolder(string root) => System.IO.Path.Combine(SettingsFolder(root), TestDataFolderName);
 
+    /// <summary>
+    /// Why this folder is probably only on this computer, or null when it looks shared. The team folder is never the
+    /// default (Documents), and it's always kept in sync by OneDrive; anything else keeps its clients and its
+    /// settings (staff, vendors, compliance standards) to this one laptop.
+    /// </summary>
+    public static string? NotSharedReason(DataFolderInfo f) =>
+        !f.Available ? null
+        : f.IsDefault ? "This is the default folder in Documents on this computer, not the team's SharePoint folder."
+        : f.SyncedFrom is null ? "This folder isn't kept in sync by OneDrive, so it's only on this computer."
+        : null;
+
     /// <summary>The saved choice if there is one, otherwise the default.</summary>
     public static string Resolve(string? saved, string defaultPath) =>
         string.IsNullOrWhiteSpace(saved) ? defaultPath : Clean(saved);

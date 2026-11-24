@@ -11,6 +11,11 @@
         @if (cur.SyncedFrom is not null) { <span class="badge synced" title="OneDrive keeps this folder in sync">@cur.SyncedFrom</span> }
         @if (!cur.Available) { <span class="badge bad">not available</span> }
     </p>
+    @if (DataFolderRules.NotSharedReason(cur) is { } notShared)
+    {
+        <p class="not-shared"><strong>Only on this computer.</strong> @notShared Choose the synced SharePoint folder so everyone
+            shares the same clients, staff, vendors and compliance standards.</p>
+    }
     <p class="note">
         Client folders and the shared lists (staff, vendors, settings, saved test data sets) are kept here.
         Your choice is remembered on this computer, so new versions of the app open the same folder.

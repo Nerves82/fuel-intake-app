@@ -149,6 +149,14 @@
             {
                 <p class="note">No client folders yet.</p>
             }
+@if (DataFolderRules.NotSharedReason(Folder.Current) is { } notShared)
+            {
+                <div class="not-shared" role="alert">
+                    <strong>Only on this computer.</strong> @notShared Clients you start here, and the staff, vendor and compliance
+                    settings you change, won't reach the rest of the team.
+                    <button class="secondary small" @onclick="Session.GoToDataFolder">Choose the team's SharePoint folder</button>
+                </div>
+            }
             <p class="note folder-line">In <code>@Folder.Current.Path</code>
                 @if (Folder.Current.SyncedFrom is not null) { <span class="badge synced">@Folder.Current.SyncedFrom</span> }
                 · <button class="link" @onclick="Session.GoToDataFolder">change</button></p>
