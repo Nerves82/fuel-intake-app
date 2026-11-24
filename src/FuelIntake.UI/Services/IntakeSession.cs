@@ -174,6 +174,13 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
 
     // ---- Crisis Fuel rules panel (on the left; can be open alongside the notes on the right)
 
+    /// <summary>
+    /// The "?" rule help beside fields shows only when the open client's compliance standard (picked, or from its
+    /// grant source) uses the Crisis Fuel rules.
+    /// </summary>
+    public bool ShowRuleHelp =>
+        Record is not null && FuelIntake.Core.Compliance.ComplianceRules.Effective(Record, Compliance) is { UsesCrisisFuelRules: true };
+
     /// <summary>The rules panel stays open (or closed) while moving between tabs.</summary>
     public bool RulesOpen { get; private set; }
 

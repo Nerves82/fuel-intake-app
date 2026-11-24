@@ -1,8 +1,8 @@
-@* "?" beside a field's label when a Crisis Fuel rule applies to it: hover for the rule in plain words, click to open
-   the rules panel at it. *@
+@* "?" beside a field's label when a Crisis Fuel rule applies to it and the client's compliance standard uses the
+   Crisis Fuel rules: hover for the rule in plain words, click to open the rules panel at it. *@
 @using FuelIntake.Core.Rules
 @inject IntakeSession Session
-@if (Rules.Count > 0)
+@if (Session.ShowRuleHelp && Rules.Count > 0)
 {
     <button type="button" class="rule-help" tabindex="-1" title="@Tooltip"
             @onclick="() => Session.OpenRule(Rules[0].Id)" @onclick:preventDefault @onclick:stopPropagation>?</button>
