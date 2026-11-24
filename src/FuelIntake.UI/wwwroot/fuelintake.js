@@ -52,5 +52,10 @@ window.fuelIntake = {
   scrollToNotes(ids) {
     const els = ids.map(id => document.getElementById(id)).filter(Boolean);
     if (els.length > 0) els[els.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  },
+  // Scrolls an element into view at the top of its scrolling panel (the rules panel's active rule).
+  scrollToId(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 };

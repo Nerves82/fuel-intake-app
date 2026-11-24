@@ -15,7 +15,7 @@
 </Section>
 
 <Section Title="Fuel vendor">
-    <SelectBox Label="Fuel vendor" Value="@fe.Vendor" ValueChanged="SetVendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
+    <SelectBox Label="Fuel vendor" Value="@fe.Vendor" ValueChanged="SetVendor" Path="fuelElectric.vendor" Options="FuelVendorNames" AllowOther="true" Wide="true"
                NotOnListNote="Not on the vendor list: contact details won't fill in." />
     <VendorDetails Vendor="calc.FuelVendor" />
     <CalcValue Label="Contact email(s) (used on forms)" Value="@calc.VendorEmails" />

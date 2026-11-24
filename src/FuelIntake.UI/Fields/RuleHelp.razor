@@ -1,0 +1,19 @@
+@* "?" beside a field's label when a Crisis Fuel rule applies to it: hover for the rule in plain words, click to open
+   the rules panel at it. *@
+@using FuelIntake.Core.Rules
+@inject IntakeSession Session
+@if (Rules.Count > 0)
+{
+    <button type="button" class="rule-help" tabindex="-1" title="@Tooltip"
+            @onclick="() => Session.OpenRule(Rules[0].Id)" @onclick:preventDefault @onclick:stopPropagation>?</button>
+}
+
+@code {
+    /// <summary>The field's record path ("fuelElectric.fuelType").</summary>
+    [Parameter] public string? Path { get; set; }
+
+    private IReadOnlyList<RuleRef> Rules => CrisisFuelRules.ForField(Path);
+
+    private string Tooltip => string.Join("\n\n", Rules.Select(r => $"Crisis Fuel rule {r.Cite}, {r.Title}: {r.Summary}"))
+        + "\n\nClick to open the Crisis Fuel rules.";
+}

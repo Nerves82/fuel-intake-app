@@ -27,14 +27,14 @@
     }
     else
     {
-        <p class="note">Pick the fields each standard requires. A missing required field shows as an error on the Review tab of every
+        <p class="note">Pick the fields each standard requires and the rule checks it runs. A missing required field shows as an error on the Review tab of every
             application under that standard. An application uses the standard picked on its Review tab, or else the one linked to its grant source.</p>
         @foreach (var std in work!.Standards)
         {
             var s = std;
             <details class="standard" open="@(work.Standards.Count == 1)">
                 <summary><strong>@(string.IsNullOrWhiteSpace(s.Name) ? "(no name)" : s.Name)</strong>
-                    <span class="note">@s.Required.Count required field@(s.Required.Count == 1 ? "" : "s")@(s.GrantSources.Count > 0 ? " · grant: " + string.Join(", ", s.GrantSources) : "")</span></summary>
+                    <span class="note">@s.Required.Count required field@(s.Required.Count == 1 ? "" : "s")@(s.Checks.Count > 0 ? $" · {s.Checks.Count} rule check{(s.Checks.Count == 1 ? "" : "s")}" : "")@(s.GrantSources.Count > 0 ? " · grant: " + string.Join(", ", s.GrantSources) : "")</span></summary>
                 <div class="grid">
                     <div class="field"><label>Name</label><input @bind="s.Name" /></div>
                     <div class="field"><label>Description</label><input @bind="s.Description" /></div>
@@ -53,6 +53,23 @@
                                    @onchange="e => Toggle(s.GrantSources, name, e.Value is true)" /> @name</label>
                         }
                     </div>
+                </div>
+                <div class="field">
+                    <label>Rule checks (Vermont Crisis Fuel Assistance Rules 3100–3113)</label>
+                    <div class="hint">Tests the application against the rule; each problem shows on its field and on the Review tab, with a ? link to the rule.</div>
+                    <div class="check-list">
+                        @foreach (var check in FuelIntake.Core.Compliance.ComplianceChecks.All)
+                        {
+                            var id = check.Id;
+                            <label class="check-line"><input type="checkbox" checked="@s.Checks.Contains(id)" @onchange="e => Toggle(s.Checks, id, e.Value is true)" />
+                                <span>@check.Title <span class="note">(@(check.Rule?.Cite ?? check.RuleId))</span></span></label>
+                        }
+                    </div>
+                    @if (!s.HasAllCrisisFuelRules)
+                    {
+                        <button class="secondary small" @onclick="() => s.AddCrisisFuelRules()"
+                                title="Ticks every Crisis Fuel rule check and requires the fields rule 3104 asks for at application (keeps what's already set)">Apply the Crisis Fuel rules (3100–3113)</button>
+                    }
                 </div>
                 <div class="actions">
                     <input class="filter" placeholder="Find a field…" @bind="filter" @bind:event="oninput" />

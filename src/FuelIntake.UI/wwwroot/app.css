@@ -388,3 +388,19 @@ label.check.issue-error { outline-color: var(--bad); } label.check.issue-warning
 label.check .issue-text { display: block; }
 .tag-key .badge { margin: 0 2px; }
 .picker-list li.other { font-style: italic; color: var(--quiet); border-top: 1px solid var(--line); }
+
+/* Crisis Fuel rule help: "?" beside fields, and the rules panel (shares the notes panel's place) */
+.rule-help { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 5px;
+  padding: 0; border-radius: 50%; border: 1px solid var(--info-ink); background: var(--info-soft); color: var(--info-ink);
+  font: 700 10px/1 system-ui, sans-serif; cursor: help; vertical-align: 1px; }
+.rule-help:hover { background: var(--info-ink); color: var(--surface); }
+.rules-panel .search { width: 100%; margin: 4px 0 8px; }
+.rules-list { list-style: none; margin: 0; padding: 0; }
+.rules-list li { padding: 8px 6px; border-top: 1px solid var(--line); border-radius: 4px; scroll-margin-top: 8px; }
+.rules-list li.active { background: var(--flash); transition: background 1.5s; }
+.rule-head { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+.rule-cite { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--info-ink); }
+.rule-page { margin-left: auto; font-size: 11px; color: var(--quiet); }
+.rule-text { font-size: 13px; margin-top: 3px; line-height: 1.4; }
+ul.issues .rule-help { margin-left: 6px; }
+.check-list { display: grid; gap: 4px; margin: 6px 0; } .check-list .check-line { align-items: flex-start; }

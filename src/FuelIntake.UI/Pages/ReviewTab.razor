@@ -55,6 +55,10 @@ else
                     <li>
                         <button class="link" @onclick="() => Session.Go(ScreenFor(i.Section))">@i.Section</button>
                         <span>@i.Message</span>
+                        @if (i.Rule is { } rule)
+                        {
+                            <button class="rule-help" title="Open this rule in the Crisis Fuel rules" @onclick="() => Session.OpenRule(rule)">?</button>
+                        }
                     </li>
                 }
             </ul>

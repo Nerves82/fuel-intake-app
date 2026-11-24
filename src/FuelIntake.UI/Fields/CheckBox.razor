@@ -2,7 +2,7 @@
 @{ var issue = Issue; }
 <label class="check @Field.IssueClass(issue)" @attributes="Scope?.Attributes(Label)" title="@issue?.Message">
     <input type="checkbox" checked="@Value" @onchange="e => SetAsync(e.Value is true)" />
-    <span>@Label</span><NoteMarker Label="@Label" />
+    <span>@Label</span><RuleHelp Path="@FieldPath" /><NoteMarker Label="@Label" />
     @if (issue is not null)
     {
         <small class="issue-text">@Field.IssueIcon(issue) @issue.Message</small>

@@ -19,10 +19,18 @@ public sealed class ComplianceSettings
         Standards =
         [
             new() { Name = "Warmth", Description = "Applications paid from Warmth funds" },
-            new() { Name = "Crisis Fuel", Description = "Applications paid from Crisis Fuel funds" },
+            CrisisFuel(),
             Vermont201SF(),
         ],
     };
+
+    /// <summary>Crisis Fuel with the Vermont Crisis Fuel Assistance Rules (3100–3113) switched on.</summary>
+    public static ComplianceStandard CrisisFuel()
+    {
+        var s = new ComplianceStandard { Name = "Crisis Fuel", Description = "Applications paid from Crisis Fuel funds (Vermont Crisis Fuel Assistance Rules 3100–3113)" };
+        s.AddCrisisFuelRules();
+        return s;
+    }
 
     public const string Vermont201SFName = "Vermont Fuel Assistance (201SF)";
 
@@ -46,6 +54,7 @@ public sealed class ComplianceSettings
     };
 
     /// <summary>True when a standard with the built-in 201SF standard's name is already in the list.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool Has201SF => Standards.Any(x => string.Equals(x.Name.Trim(), Vermont201SFName, StringComparison.OrdinalIgnoreCase));
 }
 
@@ -60,4 +69,18 @@ public sealed class ComplianceStandard
 
     /// <summary>Field keys (see <see cref="FieldCatalog"/>) that must be filled in.</summary>
     public List<string> Required { get; set; } = [];
+
+    /// <summary>Rule tests that apply (ids from <see cref="ComplianceChecks"/>), e.g. Crisis Fuel's income limit.</summary>
+    public List<string> Checks { get; set; } = [];
+
+    /// <summary>Adds the Crisis Fuel rules (3100–3113): their checks and the fields rule 3104 requires. Keeps what's there.</summary>
+    public void AddCrisisFuelRules()
+    {
+        foreach (var k in ComplianceChecks.CrisisFuelRequired) if (!Required.Contains(k)) Required.Add(k);
+        foreach (var k in ComplianceChecks.CrisisFuel) if (!Checks.Contains(k)) Checks.Add(k);
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool HasAllCrisisFuelRules =>
+        ComplianceChecks.CrisisFuel.All(Checks.Contains) && ComplianceChecks.CrisisFuelRequired.All(Required.Contains);
 }

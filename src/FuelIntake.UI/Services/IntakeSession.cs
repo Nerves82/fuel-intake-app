@@ -163,9 +163,38 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     }
 
     /// <summary>The notes panel stays open (or closed) while moving between tabs.</summary>
-    public bool NotesOpen { get; private set; }
+    public bool NotesOpen
+    {
+        get => notesOpen;
+        private set { notesOpen = value; if (value) RulesOpen = false; }
+    }
+    private bool notesOpen;
 
     public void ToggleNotes() { NotesOpen = !NotesOpen; Notify(); }
+
+    // ---- Crisis Fuel rules panel (shares the right-hand side with notes)
+
+    /// <summary>The rules panel stays open (or closed) while moving between tabs.</summary>
+    public bool RulesOpen { get; private set; }
+
+    /// <summary>The rule to scroll to and highlight in the rules panel after the next render.</summary>
+    public string? ActiveRule { get; set; }
+
+    public void ToggleRules()
+    {
+        RulesOpen = !RulesOpen;
+        if (RulesOpen) notesOpen = false;
+        Notify();
+    }
+
+    /// <summary>Opens the rules panel at one rule (the "?" beside a field, or an issue's rule link).</summary>
+    public void OpenRule(string ruleId)
+    {
+        RulesOpen = true;
+        notesOpen = false;
+        ActiveRule = ruleId;
+        Notify();
+    }
 
     public async Task AddNoteAsync(string text)
     {

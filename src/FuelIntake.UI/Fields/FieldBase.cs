@@ -31,7 +31,10 @@ public abstract class FieldBase<T> : ComponentBase
     [Parameter] public string? Path { get; set; }
 
     /// <summary>The most serious validation issue about this field (shown on the field), or null.</summary>
-    protected ValidationIssue? Issue => Session.IssueAt(Path ?? BoundPath.Of(ValueExpression, Session.Paths));
+    protected ValidationIssue? Issue => Session.IssueAt(FieldPath);
+
+    /// <summary>The record path this field edits ("household[2].ssn"), or null when it can't be told.</summary>
+    protected string? FieldPath => Path ?? BoundPath.Of(ValueExpression, Session.Paths);
 
     protected async Task SetAsync(T value)
     {
