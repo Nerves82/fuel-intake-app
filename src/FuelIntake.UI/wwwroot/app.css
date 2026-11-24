@@ -387,3 +387,4 @@ label.check.issue { border-radius: 4px; outline: 2px solid currentColor; outline
 label.check.issue-error { outline-color: var(--bad); } label.check.issue-warning { outline-color: var(--warn); } label.check.issue-info { outline-color: var(--info-ink); }
 label.check .issue-text { display: block; }
 .tag-key .badge { margin: 0 2px; }
+.picker-list li.other { font-style: italic; color: var(--quiet); border-top: 1px solid var(--line); }

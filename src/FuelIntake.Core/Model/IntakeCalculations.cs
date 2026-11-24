@@ -150,7 +150,8 @@ public sealed class IntakeCalculations(IntakeRecord record, CalculationContext c
         : StaffDirectory.AutoInitials(r.Staff.StaffName);
 
     /// <summary>Raw staff phone: override, else Staff list.</summary>
-    public string StaffPhone => !Blank(r.Staff.PhoneOverride) ? T(r.Staff.PhoneOverride) : T(StaffRow?.Phone);
+    /// <summary>The staff phone as it prints: "(802) 555-0123" (kept as typed if it isn't 10 digits).</summary>
+    public string StaffPhone => Phone.Format(!Blank(r.Staff.PhoneOverride) ? T(r.Staff.PhoneOverride) : T(StaffRow?.Phone));
 
     public string StaffEmail => !Blank(r.Staff.EmailOverride) ? T(r.Staff.EmailOverride) : T(StaffRow?.Email);
 

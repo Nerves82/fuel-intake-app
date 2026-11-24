@@ -366,3 +366,13 @@ Small deliberate changes from the workbook:
 - Filled = picked for the client. Dashed outline + "· via grant" = not picked; applies because of the grant source on
   the order. Red "· not in settings" = the picked standard was removed. A key above the list says so.
 - Reordering standards in Settings changes their colours.
+
+## Staff dropdown and staff phones (2026-11-24)
+
+- Bug: the Staff, fuel vendor and electric provider fields (dropdowns that also accept a typed name) used the
+  browser's `<datalist>`, which only lists options matching what's already in the box. With a name filled in (e.g.
+  the signed-in staff member, stamped on new clients) only that name showed, so newly added staff looked missing.
+  `SelectBox` with `AllowOther` now uses the app's own picker listing every option, plus a last entry
+  "Type a name not on the list…" that switches to a text box (Enter or leaving the box keeps it, Esc goes back).
+- Staff phones are formatted "(802) 555-0123": `IntakeCalculations.StaffPhone` (forms, email, 201SF), the Settings
+  staff table (on load, on leaving the box, on save) and the default invoice phone. Anything not 10 digits stays as typed.
