@@ -1,20 +1,18 @@
 @inherits FieldBase<string?>
 @inject IJSRuntime JS
 @*
-  A dropdown. With AllowOther, the user can also type a value that isn't on the list (shown with a note).
+  A dropdown. With AllowOther, its last entry lets the user type a value that isn't on the list (shown with a note).
+  (Not the browser's <datalist>: that only lists the options matching what's already in the box, so a filled-in
+  field showed just its own value.)
   The plain dropdown draws its own list in the page instead of using the browser's <select> popup: in the
   desktop app (WebView2 inside WPF) the native popup of long lists could close as soon as it opened.
 *@
 <Field Label="@Label" Issue="@Issue" For="@Id" Hint="@Hint" Problem="@Problem" Wide="Wide">
-    @if (AllowOther)
+    @if (AllowOther && typing)
     {
-        <input id="@Id" type="text" list="@(Id + "-list")" value="@Value" placeholder="Pick or type…" @onchange="e => SetAsync(e.Value as string)" />
-        <datalist id="@(Id + "-list")">
-            @foreach (var o in Options)
-            {
-                <option value="@o"></option>
-            }
-        </datalist>
+        @* a name that isn't on the list: typed in, then back to the dropdown *@
+        <input id="@Id" type="text" value="@Value" placeholder="Type the name, then press Enter"
+               @onchange="TypedAsync" @onkeydown="TypingKey" />
     }
     else
     {
@@ -34,7 +32,7 @@
                         var index = i;
                         var item = items[i];
                         <li role="option" aria-selected="@(item.Value == Value ? "true" : "false")"
-                            class="@(index == active ? "active" : "") @(item.Value == Value ? "chosen" : "") @(item.Value is null ? "none" : "")"
+                            class="@(index == active ? "active" : "") @(item.Value == Value ? "chosen" : "") @(item.Value is null ? "none" : "") @(item.Value == OtherChoice ? "other" : "")"
                             @onclick="() => Pick(item.Value)" @onmousemove="() => Hover(index)">@item.Text</li>
                     }
                 </ul>
@@ -48,7 +46,21 @@
     [Parameter] public bool AllowOther { get; set; }
     [Parameter] public string? NotOnListNote { get; set; }
 
-    private bool open, place;
+    private bool open, place, typing, focusTyping;
+
+    /// <summary>The list entry that switches to typing (a value no option can have).</summary>
+    private const string OtherChoice = "\u0001other";
+
+    private async Task TypedAsync(ChangeEventArgs e)
+    {
+        typing = false;
+        await SetAsync(string.IsNullOrWhiteSpace(e.Value as string) ? null : ((string)e.Value!).Trim());
+    }
+
+    private void TypingKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Escape" or "Esc") typing = false;
+    }
     private int active;
 
     protected override string? Problem =>
@@ -65,6 +77,7 @@
             var list = new List<Item> { new(null, "—") };
             if (!string.IsNullOrEmpty(Value) && !Options.Contains(Value)) list.Add(new(Value, Value + " (not on list)"));
             list.AddRange(Options.Select(o => new Item(o, o)));
+            if (AllowOther) list.Add(new(OtherChoice, "Type a name not on the list…"));
             return list;
         }
     }
@@ -90,6 +103,12 @@
     private async Task Pick(string? value)
     {
         open = false;
+        if (value == OtherChoice)
+        {
+            typing = true;
+            focusTyping = true;
+            return;
+        }
         if (value != (string.IsNullOrEmpty(Value) ? null : Value)) await SetAsync(value);
         await Focus();
     }
@@ -140,6 +159,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (focusTyping)
+        {
+            focusTyping = false;
+            await Focus();
+            return;
+        }
         if (!open || !place) return;
         place = false;
         try { await JS.InvokeVoidAsync("fuelIntake.placeList", Id + "-list", active); }

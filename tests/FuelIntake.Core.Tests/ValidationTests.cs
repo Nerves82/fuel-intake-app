@@ -228,3 +228,19 @@ public class OtherIncomeTests
         Assert.Equal("Other: Help from family", IntakeCalculations.IncomeSourceText(r.Household[1]));
     }
 }
+
+public class StaffPhoneTests
+{
+    [Theory]
+    [InlineData("8025550111", "(802) 555-0111")]
+    [InlineData("802.555.0111", "(802) 555-0111")]
+    [InlineData("555-0111", "555-0111")]   // not 10 digits: kept as typed
+    [InlineData(null, "")]
+    public void StaffPhone_PrintsFormatted(string? typed, string expected)
+    {
+        var r = FakeIntake.Family();
+        r.Staff.PhoneOverride = typed;
+        if (typed is null) r.Staff.StaffName = null;
+        Assert.Equal(expected, new FuelIntake.Core.Model.IntakeCalculations(r, FakeIntake.Context()).StaffPhone);
+    }
+}

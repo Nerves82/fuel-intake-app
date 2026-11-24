@@ -34,7 +34,7 @@
                             <td><input @bind="s.Name" placeholder="First Last" /></td>
                             <td class="narrow"><input @bind="s.Initials" placeholder="@StaffDirectory.AutoInitials(s.Name)" /></td>
                             <td>
-                                <input @bind="s.Phone" placeholder="802-555-0123" class="@(PhoneOk(s.Phone) ? "" : "bad")" />
+                                <input @bind="s.Phone" @bind:after="() => s.Phone = Phone.Format(s.Phone)" placeholder="802-555-0123" class="@(PhoneOk(s.Phone) ? "" : "bad")" />
                                 @if (!PhoneOk(s.Phone)) { <div class="problem small">Needs 10 digits</div> }
                             </td>
                             <td><input @bind="s.Email" placeholder="name@nekcavt.org" /></td>
@@ -142,7 +142,7 @@
             <p class="note">Used only when the staff member on the client has no email or phone.</p>
             <div class="grid">
                 <div class="field"><label>Default invoice email</label><input @bind="invoiceEmail" /></div>
-                <div class="field"><label>Default invoice phone</label><input @bind="invoicePhone" placeholder="802-555-0123" /></div>
+                <div class="field"><label>Default invoice phone</label><input @bind="invoicePhone" @bind:after="() => invoicePhone = Phone.Format(invoicePhone)" placeholder="802-555-0123" /></div>
             </div>
         </section>
 
@@ -263,7 +263,7 @@
         var g = s.PovertyGuidelines;
         fplYear = g.Year; fplRegion = g.Region; fplSource = g.Source; fplExtra = g.EachAdditionalPerson;
         fplAmounts = Enumerable.Range(0, 8).Select(i => i < g.BySize.Count ? g.BySize[i] : 0m).ToArray();
-        invoiceEmail = s.DefaultInvoiceEmail; invoicePhone = s.DefaultInvoicePhone;
+        invoiceEmail = s.DefaultInvoiceEmail; invoicePhone = Phone.Format(s.DefaultInvoicePhone);
         templateFolder = s.TemplateFolder; templateFiles = string.Join("\n", s.TemplateFiles);
         mailSubject = string.IsNullOrWhiteSpace(s.FuelOrderEmailSubject) ? FuelIntake.Core.Email.FuelOrderEmail.DefaultSubject : s.FuelOrderEmailSubject;
         mailBody = string.IsNullOrWhiteSpace(s.FuelOrderEmailBody) ? FuelIntake.Core.Email.FuelOrderEmail.DefaultBody : s.FuelOrderEmailBody;
@@ -401,8 +401,8 @@
         public string? Initials { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
-        public static StaffRow From(StaffMember m) => new() { Name = m.Name, Initials = m.Initials, Phone = m.Phone, Email = m.Email };
-        public StaffMember ToModel() => new(Name!.Trim(), Blank(Initials)?.ToUpperInvariant(), Blank(Phone), Blank(Email));
+        public static StaffRow From(StaffMember m) => new() { Name = m.Name, Initials = m.Initials, Phone = FuelIntake.Core.Formatting.Phone.Format(m.Phone), Email = m.Email };
+        public StaffMember ToModel() => new(Name!.Trim(), Blank(Initials)?.ToUpperInvariant(), Blank(FuelIntake.Core.Formatting.Phone.Format(Phone)), Blank(Email));
     }
 
     private sealed class VendorRow
