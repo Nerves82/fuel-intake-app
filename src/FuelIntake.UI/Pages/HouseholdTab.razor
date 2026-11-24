@@ -65,6 +65,8 @@
             <SelectBox Label="Last grade completed" @bind-Value="member.Education" Options="ChoiceLists.Education" />
             <SelectBox Label="Race" @bind-Value="member.Race" Options="ChoiceLists.Race" />
             <SelectBox Label="Hispanic/Latino?" @bind-Value="member.Hispanic" Options="ChoiceLists.Hispanic" />
+            <SelectBox Label="Citizenship / immigration status" @bind-Value="member.Citizenship" Options="ChoiceLists.Citizenship"
+                       Hint="As on the state's 201SF." />
             <SelectBox Label="Health insurance source" @bind-Value="member.HealthInsurance" Options="ChoiceLists.HealthInsurance" />
             <SelectBox Label="Military status" @bind-Value="member.MilitaryStatus" Options="ChoiceLists.Military" />
             <SelectBox Label="Occupation (14+)" @bind-Value="member.Occupation" Options="ChoiceLists.Occupation"

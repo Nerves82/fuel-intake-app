@@ -97,6 +97,7 @@ public static class CrisisFuelRules
     {
         ["staff.appDate"] = ["3104-season", "3106", "3107-deadline"],
         ["household[*].ssn"] = ["3104-ssn"],
+        ["household[*].citizenship"] = ["3102-citizen", "3104-identity"],
         ["household[*].incomeSource"] = ["3102-income", "3107-income"],
         ["household[*].incomePerMonth"] = ["3102-income", "3107-income"],
         ["household[*].disabled"] = ["3101-disabled"],

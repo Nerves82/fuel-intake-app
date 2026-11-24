@@ -166,13 +166,13 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public bool NotesOpen
     {
         get => notesOpen;
-        private set { notesOpen = value; if (value) RulesOpen = false; }
+        private set => notesOpen = value;
     }
     private bool notesOpen;
 
     public void ToggleNotes() { NotesOpen = !NotesOpen; Notify(); }
 
-    // ---- Crisis Fuel rules panel (shares the right-hand side with notes)
+    // ---- Crisis Fuel rules panel (on the left; can be open alongside the notes on the right)
 
     /// <summary>
     /// The "?" rule help beside fields shows only when the open client's compliance standard (picked, or from its
@@ -190,7 +190,6 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public void ToggleRules()
     {
         RulesOpen = !RulesOpen;
-        if (RulesOpen) notesOpen = false;
         Notify();
     }
 
@@ -198,7 +197,6 @@ public sealed class IntakeSession(IClientStore store, IListSource lists, ICurren
     public void OpenRule(string ruleId)
     {
         RulesOpen = true;
-        notesOpen = false;
         ActiveRule = ruleId;
         Notify();
     }
