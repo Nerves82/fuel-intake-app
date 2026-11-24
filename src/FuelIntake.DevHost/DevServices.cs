@@ -65,7 +65,7 @@ public static class DevServices
         public string? ViewUrl(string id, string scanFile) => null;
         public string? ScanLocation(string id, string scanFile) => null;
         public Task FinishAsync(string id, string clientId, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
-        public Task DiscardAsync(string id, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.CompletedTask; }
+        public Task<string?> DiscardAsync(string id, CancellationToken ct = default) { imports.TryRemove(id, out _); return Task.FromResult<string?>(null); }
 
         private static readonly System.Text.Json.JsonSerializerOptions Json = new() { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
         private static string Write(FuelIntake.Core.Import.PaperImport i) => System.Text.Json.JsonSerializer.Serialize(i, Json);

@@ -138,13 +138,13 @@
                         <span class="spacer"></span>
                         @if (confirmDiscard)
                         {
-                            <span class="note">Throw away this application and its scans (Recycle Bin)?</span>
+                            <span class="note">Throw away this application and the app's copies of its scans (Recycle Bin)? The original scan files aren't touched.</span>
                             <button class="danger" @onclick="Discard">Yes, discard</button>
                             <button class="link" @onclick="() => confirmDiscard = false">Keep</button>
                         }
                         else
                         {
-                            <button class="link danger" @onclick="() => confirmDiscard = true">Discard application…</button>
+                            <button class="link danger" @onclick="() => confirmDiscard = true" title="Throws away this application and the app's copies of the scans; the original files aren't touched">Discard application…</button>
                         }
                     </div>
                 </section>
@@ -164,7 +164,7 @@
                             <button class="@(f == scan ? "active" : "")" title="@f" @onclick="() => scan = f">@f</button>
                         }
                     </div>
-                    @if (scan is not null && Pending.ViewUrl(Session.PendingImportId!, scan) is { } url)
+                    @if (!discarding && scan is not null && Pending.ViewUrl(Session.PendingImportId!, scan) is { } url)
                     {
                         <iframe class="scan-view" src="@url" title="Scanned page"></iframe>
                     }
@@ -189,7 +189,7 @@
     private bool reading;
     private string? readProgress;
     private string? loadError, message, scan;
-    private bool busy, messageIsError, confirmDiscard;
+    private bool busy, messageIsError, confirmDiscard, discarding;
     private readonly SemaphoreSlim saving = new(1, 1);
 
     protected override async Task OnInitializedAsync()
@@ -316,11 +316,20 @@
 
     private async Task Discard()
     {
+        // close the scan preview first: Windows won't move a folder while a file in it is open
+        discarding = true;
+        StateHasChanged();
+        await Task.Delay(500);
         try
         {
             await Pending.DiscardAsync(Session.PendingImportId!);
             Session.LeavePendingImport();
+            Session.ShowNotice("The paper application was discarded. The app's copies of its scans went to the Recycle Bin; the original scan files weren't touched.");
         }
-        catch (Exception ex) { message = "Couldn't discard: " + ex.Message; messageIsError = true; }
+        catch (Exception ex)
+        {
+            discarding = false;
+            message = "Couldn't discard: " + ex.Message; messageIsError = true;
+        }
     }
 }

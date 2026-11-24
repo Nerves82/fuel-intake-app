@@ -399,3 +399,14 @@ Small deliberate changes from the workbook:
   Verification due date (+5 days), life-threatening (18 h / 30 days), after hours, special trip → info.
 - Not checkable from the intake (judgment or history): residency, citizenship, one application per request, crisis
   benefits already used this season (only the "second crisis" box), identity verification.
+
+## Discarding a paper application: copies only, never the originals (2026-11-24)
+
+- Steve: the originals must never be deleted; deleting the app's copies is fine.
+- Picking scans always **copies** them into the holding folder (`LocalPendingImports.CreateAsync`); the app never
+  writes to, moves or deletes the originals. Finishing moves the copies into the client's folder.
+- Discard deletes import.json first (so it's no longer pending, right away), then sends the holding folder (the
+  copies) to the Recycle Bin. `RemoveHoldingFolder` refuses anything but a "_PENDING …" folder directly in the client
+  files folder.
+- The verify page closes its scan preview before discarding: an open scan blocked the Recycle Bin move, which failed
+  partway and left the application listed. If a copy is still open elsewhere, the next listing finishes the removal.
