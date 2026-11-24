@@ -64,7 +64,8 @@ Shortcut: `/?sample=1&screen=Household`. In an offline sandbox use `-p:OfflinePr
 - Built-in practice cases live in `SampleIntakes.All` (Core). Each one uses SSNs starting 000 and
   555 phone numbers. Cases: single senior/oil, family of 4/disconnect, over income/denied/phone app,
   household of 10/propane with fees and invoice, multigenerational SSDI+SSI/pellets, shelter/kerosene/
-  second crisis, and "Needs fixing" (deliberate errors for Review-tab practice; `HasErrors` exempts it
+  second crisis, Vermont Fuel Assistance application (201SF) only (201SF standard, every VT Eligibility Review
+  answer, no crisis order), and "Needs fixing" (deliberate errors for Review-tab practice; `HasErrors` exempts it
   from the no-errors test).
 - **Save as test data set** is on the Review tab of a **test client only**. A real client can never be
   saved as a set, because its SSNs and income would become practice data. Core enforces this:
