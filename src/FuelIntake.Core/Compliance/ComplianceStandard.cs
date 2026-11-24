@@ -46,7 +46,7 @@ public sealed class ComplianceSettings
         [
             "client.firstName", "client.lastName", "client.dateOfBirth", "client.addressPhysical", "client.city", "client.zip",
             "client.phone", "client.housingType",
-            "household[*].firstName", "household[*].lastName", "household[*].dateOfBirth", "household[*].ssn",
+            "household[*].firstName", "household[*].lastName", "household[*].dateOfBirth", "household[*].ssn", "household[*].citizenship",
             "fuelElectric.fuelType", "fuelElectric.vendor", "fuelElectric.vendorAccount",
             "fuelElectric.electricProvider", "fuelElectric.electricAccount",
             "staff.staffName",

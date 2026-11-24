@@ -84,7 +84,19 @@ public static class ChoiceLists
 
     public static readonly IReadOnlyList<string> SeasonalFuelStatus = ["Active", "Pending", "Closed/Denied"];
 
+    /// <summary>Citizenship or immigration status: the five boxes on the state's 201SF.</summary>
+    public static readonly IReadOnlyList<string> Citizenship = [Citizenships.UsCitizen, Citizenships.Asylee, Citizenships.LegalImmigrant, Citizenships.Refugee, Citizenships.Other];
+
     public static readonly IReadOnlyList<string> FuelType = ["Oil", "Kerosene", "Propane", "Wood", "Pellet", "Electric", "Other"];
+}
+
+public static class Citizenships
+{
+    public const string UsCitizen = "U.S. citizen";
+    public const string Asylee = "Asylee";
+    public const string LegalImmigrant = "Legal immigrant";
+    public const string Refugee = "Refugee";
+    public const string Other = "Other";
 }
 
 /// <summary>Crisis type values (tab 3). The Application Forms Pack adds the Fuel Order or Electric Pledge by these.</summary>

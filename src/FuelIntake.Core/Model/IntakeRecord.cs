@@ -158,6 +158,8 @@ public sealed class HouseholdMember
     public string? Education { get; set; }
     public string? Race { get; set; }
     public string? Hispanic { get; set; }
+    /// <summary>Citizenship or immigration status, as on the state's 201SF (see <c>ChoiceLists.Citizenship</c>).</summary>
+    public string? Citizenship { get; set; }
     public string? HealthInsurance { get; set; }
     public decimal? IncomePerMonth { get; set; }
     public string? IncomeSource { get; set; }

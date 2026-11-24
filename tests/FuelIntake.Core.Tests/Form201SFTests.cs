@@ -192,3 +192,61 @@ public class Form201SFTests
         return r;
     }
 }
+
+public class CitizenshipTests
+{
+    [Theory]
+    [InlineData(0, "U.S. citizen", 10)]
+    [InlineData(0, "Asylee", 11)]
+    [InlineData(0, "Legal immigrant", 9)]
+    [InlineData(0, "Refugee", 12)]
+    [InlineData(0, "Other", 13)]
+    [InlineData(1, "U.S. citizen", 24)]
+    [InlineData(1, "Legal immigrant", 23)]
+    [InlineData(1, "Other", 27)]
+    public void Boxes_MatchTheirPlaceOnThePage(int row, string value, int box) =>
+        Assert.Equal(box, FuelIntake.Core.Forms.Form201SF.CitizenshipBox(row, value));
+
+    [Fact]
+    public void EveryRow_HasFiveDistinctBoxes_InItsOwnBlock()
+    {
+        for (var row = 0; row < FuelIntake.Core.Forms.Form201SF.MemberRows; row++)
+        {
+            var boxes = FuelIntake.Core.Lists.ChoiceLists.Citizenship.Select(v => FuelIntake.Core.Forms.Form201SF.CitizenshipBox(row, v)!.Value).ToList();
+            Assert.Equal(5, boxes.Distinct().Count());
+            Assert.All(boxes, b => Assert.InRange(b, row * 14 + 9, row * 14 + 13));
+        }
+        Assert.Null(FuelIntake.Core.Forms.Form201SF.CitizenshipBox(0, null));
+        Assert.Null(FuelIntake.Core.Forms.Form201SF.CitizenshipBox(0, "Martian"));
+    }
+
+    [Fact]
+    public void Fill_TicksEachMembersStatus()
+    {
+        var r = FakeIntake.Family();
+        r.Household[0].Citizenship = "U.S. citizen";
+        r.Household[1].Citizenship = "Refugee";
+        var f = FuelIntake.Core.Forms.Form201SF.Fill(r, new FuelIntake.Core.Model.IntakeCalculations(r, FakeIntake.Context()));
+        bool Ticked(int n) => f.Marks.Any(m => m.IsCheck && m.Spot == FuelIntake.Core.Forms.Form201SF.Spot($"Page1[0].CheckBox1[{n}]"));
+        Assert.True(Ticked(10));
+        Assert.True(Ticked(26)); // row 2, Refugee
+        Assert.False(Ticked(9) || Ticked(11) || Ticked(12) || Ticked(13));
+    }
+
+    [Fact]
+    public void Standards_201SFRequiresIt_CrisisFuelChecksIt()
+    {
+        var c = FuelIntake.Core.Compliance.ComplianceSettings.Defaults();
+        Assert.Contains("household[*].citizenship", c.Standards.Single(s => s.Name == FuelIntake.Core.Compliance.ComplianceSettings.Vermont201SFName).Required);
+        Assert.NotNull(FuelIntake.Core.Compliance.FieldCatalog.Find("household[*].citizenship"));
+
+        var r = FakeIntake.Family();
+        r.Application.ComplianceStandard = "Crisis Fuel";
+        foreach (var m in r.Household) m.Citizenship = "Other";
+        var issues = FuelIntake.Core.Validation.IntakeValidator.Validate(r, new FuelIntake.Core.Model.IntakeCalculations(r, FakeIntake.Context() with { Compliance = c }), FakeIntake.Today);
+        Assert.Contains(issues, i => i.Rule == "3102-citizen");
+        r.Household[0].Citizenship = "Legal immigrant";
+        issues = FuelIntake.Core.Validation.IntakeValidator.Validate(r, new FuelIntake.Core.Model.IntakeCalculations(r, FakeIntake.Context() with { Compliance = c }), FakeIntake.Today);
+        Assert.DoesNotContain(issues, i => i.Rule == "3102-citizen");
+    }
+}
