@@ -67,6 +67,10 @@
             Session.Record!.Application.ComplianceStandard = null;
             Session.Record.FuelElectric.FuelOrder.FundingSource = "Crisis Fuel";
             Session.Changed(); await Session.SaveAsync();
+            await Session.CreateAsync("Testy", "Stateform", SampleIntakes.All[3].Build, "Vermont Fuel Assistance (201SF)");
+            await Session.CreateAsync("Testy", "Retired", SampleIntakes.All[4].Build);
+            Session.Record!.Application.ComplianceStandard = "Old Standard";
+            Session.Changed(); await Session.SaveAsync();
             await Session.CreateAsync("Testy", "Plainfield", SampleIntakes.All[2].Build);
             Session.Record!.FuelElectric.FuelOrder.FundingSource = null;
             Session.Record.FuelElectric.ElectricPledge.FundingSource = null;

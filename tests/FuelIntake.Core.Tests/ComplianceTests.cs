@@ -97,15 +97,18 @@ public class ComplianceTests
         Assert.Null(ComplianceBadge.For(null, c));
 
         r.FuelElectric.FuelOrder.FundingSource = "Example Crisis Fund";
-        Assert.Equal(new ComplianceBadge("Crisis Fuel", true, false), ComplianceBadge.For(r, c));
+        Assert.Equal(new ComplianceBadge("Crisis Fuel", true, false, 1), ComplianceBadge.For(r, c));
+        Assert.Equal("Crisis Fuel · via grant", ComplianceBadge.For(r, c)!.Label);
 
         r.Application.ComplianceStandard = "warmth";
-        Assert.Equal(new ComplianceBadge("Warmth", false, false), ComplianceBadge.For(r, c));
+        Assert.Equal(new ComplianceBadge("Warmth", false, false, 0), ComplianceBadge.For(r, c));
+        Assert.Equal("Warmth", ComplianceBadge.For(r, c)!.Label);
 
         r.Application.ComplianceStandard = "Retired Standard";
         var b = ComplianceBadge.For(r, c)!;
         Assert.True(b.Unknown);
         Assert.Equal("Retired Standard", b.Name);
+        Assert.Equal("Retired Standard · not in settings", b.Label);
     }
 
     [Theory]
@@ -116,4 +119,14 @@ public class ComplianceTests
     [InlineData("Not A Standard", null)]
     public void NewClient_UsesTheSettingsSpelling_OrNone(string? chosen, string? expected) =>
         Assert.Equal(expected, ComplianceBadge.ForNewClient(chosen, Settings()));
+
+    [Fact]
+    public void Badge_EachStandardHasItsOwnColour()
+    {
+        var c = ComplianceSettings.Defaults();
+        var colours = c.Standards.Select(s => ComplianceBadge.ColorOf(s, c)).ToList();
+        Assert.Equal(colours.Count, colours.Distinct().Count());
+        Assert.All(colours, i => Assert.InRange(i, 0, ComplianceBadge.Colors - 1));
+        Assert.Equal(-1, ComplianceBadge.ColorOf(new ComplianceStandard { Name = "Not in the list" }, c));
+    }
 }

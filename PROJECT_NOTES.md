@@ -356,3 +356,13 @@ Small deliberate changes from the workbook:
   and account, electric provider and account, staff). It's in the defaults for new settings; existing
   compliance.json files get it from Settings › Compliance (passcode) › "+ Add built-in". Not linked to a grant: pick
   it on the Review tab or when creating the client.
+
+## Compliance tag colours (2026-11-23)
+
+- Each compliance standard's tag in the clients list has its own colour, by its place in the settings list
+  (`ComplianceBadge.ColorOf` → CSS `std-0`…`std-7`: blue, teal, brown, indigo, olive, cyan, green, rose; light and
+  dark values in app.css). None match the list's other tags (TEST purple, pending amber, no intake grey). A 9th
+  standard would reuse the 1st colour.
+- Filled = picked for the client. Dashed outline + "· via grant" = not picked; applies because of the grant source on
+  the order. Red "· not in settings" = the picked standard was removed. A key above the list says so.
+- Reordering standards in Settings changes their colours.

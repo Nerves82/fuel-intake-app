@@ -1,10 +1,11 @@
 @*
-  The compliance standard badge beside a client in the clients list. Dashed when it comes from the grant
-  source rather than being picked; a warning colour when the picked standard isn't in the settings any more.
+  The compliance standard tag beside a client in the clients list. Each standard has its own colour (its place in
+  the settings list). Solid = picked for the client; dashed outline + "via grant" = applies because of the grant
+  source on the order; red = the picked standard was removed from the settings.
 *@
 @if (Badge is { } b)
 {
-    <span class="badge compliance @(b.Unknown ? "unknown" : b.FromGrant ? "from-grant" : "")" title="@b.Tooltip">@b.Name</span>
+    <span class="badge compliance @(b.Unknown ? "unknown" : $"std-{b.Color}") @(b.FromGrant ? "from-grant" : "")" title="@b.Tooltip">@b.Label</span>
 }
 
 @code {
