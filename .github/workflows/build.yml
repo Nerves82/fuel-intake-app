@@ -54,6 +54,16 @@ jobs:
           "-p:Version=${{ steps.ver.outputs.version }}" "-p:InformationalVersion=${{ steps.ver.outputs.info }}"
           -o "publish/FuelIntake-${{ steps.ver.outputs.version }}"
 
+      - name: Check the scan reader shipped (PaddleOCR models, ONNX Runtime)
+        shell: pwsh
+        run: |
+          $dir = "publish/FuelIntake-${{ steps.ver.outputs.version }}"
+          foreach ($f in @("models/v5/ch_PP-OCRv5_mobile_det.onnx", "models/v5/latin_PP-OCRv5_rec_mobile_infer.onnx",
+                           "models/v5/ppocrv5_latin_dict.txt", "onnxruntime.dll", "libSkiaSharp.dll", "THIRD-PARTY-NOTICES.md")) {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "Missing from the app folder: $f" }
+          }
+          Write-Host "Scan reader files are in the app folder."
+
       - name: Zip
         shell: pwsh
         run: |
