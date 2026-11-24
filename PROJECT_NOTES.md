@@ -475,11 +475,15 @@ Small deliberate changes from the workbook:
   have ink, cut out straightened, printed rules whited out, trimmed to the writing, and read as one line.
   Household rows with writing become members. A box's reading beats the label reader; an empty box clears a guess.
   Number boxes turn look-alike letters into digits ("o5819", "000.-12-34o1") but flag them.
-- Engine (Desktop `PaddleScanReader`): RapidOcrNet 4.2.0 (Apache-2.0) runs PaddleOCR PP-OCRv5 Latin models with ONNX
+- Engine (`PaddleText`, used by Desktop `PaddleScanReader`): RapidOcrNet 4.2.0 (Apache-2.0) runs PaddleOCR PP-OCRv5 Latin models with ONNX
   Runtime; the package copies the models into `models\v5` in the app folder. App-form boxes use recognition only
   (`TextRecognizer`, about 30 ms a box); other pages are read whole and go to the label/table readers. PDFs are
   rendered at 200 dpi. If the models can't load, Windows' text recognition is used as before.
 - Checked end to end in the sandbox with Chromium-drawn fake handwriting (three handwriting fonts), scans turned
-  0.6–1.4°, shrunk 2–4 %, one upside down, speckled and blurred: forms found every time, ticks exact, 37–45 of 45
+  0.6–1.4°, shrunk 2–4 %, one upside down, speckled and blurred: forms found every time, ticks exact, 39–45 of 45
   answers right. Real handwriting will do worse; every field still needs a tick.
+- `src/FuelIntake.Scanning` (`PaddleText`, cross-platform) holds the PaddleOCR calls; `tests/FuelIntake.Scanning.Tests`
+  runs real recognition in CI (a drawn app form and a drawn non-form page). The desktop's `PaddleScanReader` only
+  turns PDFs and pictures into grey levels (Windows.Data.Pdf, BitmapDecoder). CI fails if the models, onnxruntime.dll
+  or libSkiaSharp.dll are missing from the published folder.
 - Next: test on real filled-in forms (staff, fake data); the occupation rows on page 2 aren't read yet.

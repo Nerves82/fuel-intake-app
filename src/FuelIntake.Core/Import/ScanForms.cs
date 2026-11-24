@@ -453,8 +453,9 @@ public static class ScanFormReader
     {
         var px = (byte[])g.Pixels.Clone();
         bool Dark(int x, int y) => g.Pixels[y * g.Width + x] < GrayImage.InkLevel;
-        // near the edges a shorter run is enough: a cell border the straightening left a pixel off
-        bool Edge(int i, int n) => i < n * 0.08 || i > n * 0.92;
+        // in the last few pixels a shorter run is enough: a cell border the straightening left a pixel off
+        // (only there: further in, that would take the side of a letter written near the edge)
+        bool Edge(int i, int n) => i < 5 || i >= n - 5;
         var rows = Enumerable.Range(0, g.Height)
             .Where(y => Enumerable.Range(0, g.Width).Count(x => Dark(x, y)) > g.Width * (Edge(y, g.Height) ? 0.3 : 0.5)).ToList();
         var cols = Enumerable.Range(0, g.Width)
